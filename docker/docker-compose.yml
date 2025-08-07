@@ -1,0 +1,59 @@
+
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: ocsp-postgres
+    environment:
+      POSTGRES_USER: ocsp
+      POSTGRES_PASSWORD: ocsp
+      POSTGRES_DB: ocsp
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ocsp-network
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: ocsp-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database Connection
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=ocsp;Username=ocsp;Password=ocsp
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      
+      # JWT Configuration  
+      Jwt__SecretKey: your-super-secure-jwt-secret-key-that-is-at-least-32-characters-long-for-development
+      
+      # Email Configuration (THAY ĐỔI PHẦN NÀY)
+      Email__SmtpHost: smtp.gmail.com
+      Email__SmtpPort: 587
+      Email__Username: anhduong7102003@gmail.com
+      Email__Password: gqmaoygrgxpmfgfa      
+      Email__FromEmail: noreply@ocsp.com
+      Email__EnableSsl: true
+    ports:
+      - "8080:8080"
+    networks:
+      - ocsp-network
+
+volumes:
+  db_data:
+
+networks:
+  ocsp-network:
+    driver: bridge

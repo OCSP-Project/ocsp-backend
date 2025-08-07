@@ -1,0 +1,1 @@
+namespace OCSP.Infrastructure.Repositories { public class GenericRepository<T> where T: class {} }

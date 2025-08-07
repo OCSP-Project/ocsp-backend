@@ -1,0 +1,1 @@
+namespace OCSP.Infrastructure.Data.Seeding { public class DatabaseSeeder {} }

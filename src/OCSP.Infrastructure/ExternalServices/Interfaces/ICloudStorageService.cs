@@ -1,0 +1,1 @@
+namespace OCSP.Infrastructure.ExternalServices.Interfaces { public interface ICloudStorageService { } }

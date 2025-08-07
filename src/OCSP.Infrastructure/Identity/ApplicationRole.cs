@@ -1,0 +1,1 @@
+namespace OCSP.Infrastructure.Identity { public class ApplicationRole {} }

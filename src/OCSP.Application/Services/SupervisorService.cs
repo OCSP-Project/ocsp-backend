@@ -1,0 +1,1 @@
+namespace OCSP.Application.Services { public class SupervisorService : Interfaces.ISupervisorService { } }

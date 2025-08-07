@@ -1,0 +1,1 @@
+namespace OCSP.AI.Models { public record AIRequest(string Input); }

@@ -1,0 +1,1 @@
+namespace OCSP.Infrastructure.ExternalServices { public class CloudStorageService {} }

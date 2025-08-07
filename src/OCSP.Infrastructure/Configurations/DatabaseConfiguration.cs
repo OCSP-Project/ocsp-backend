@@ -1,0 +1,1 @@
+namespace OCSP.Infrastructure.Configurations { public static class DatabaseConfiguration {} }

@@ -1,0 +1,1 @@
+namespace OCSP.Application.Common.Constants { public static class AppConstants { public const string SystemName = "OCSP"; } }

@@ -1,0 +1,1 @@
+namespace OCSP.Application.Services.Interfaces { public interface INotificationService { } }

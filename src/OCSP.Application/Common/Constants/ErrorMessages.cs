@@ -1,0 +1,1 @@
+namespace OCSP.Application.Common.Constants { public static class ErrorMessages { public const string Unknown = "Unknown error"; } }

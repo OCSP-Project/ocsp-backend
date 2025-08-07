@@ -1,0 +1,9 @@
+# Trong thư mục OCSP.Backend
+$files = Get-ChildItem -Path "src\OCSP.Domain\Entities\*.cs"
+foreach ($file in $files) {
+    $content = Get-Content $file.FullName
+    if ($content[0] -notmatch "using OCSP.Domain.Common") {
+        $newContent = "using OCSP.Domain.Common;`n`n" + ($content -join "`n")
+        Set-Content -Path $file.FullName -Value $newContent
+    }
+}

@@ -1,0 +1,1 @@
+namespace OCSP.API.Configurations { public static class SwaggerConfiguration {} }

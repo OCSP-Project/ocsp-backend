@@ -1,0 +1,1 @@
+namespace OCSP.Infrastructure.Data.Configurations { public class ProjectConfiguration {} }

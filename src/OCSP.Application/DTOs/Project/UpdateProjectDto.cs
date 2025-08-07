@@ -1,0 +1,1 @@
+namespace OCSP.Application.DTOs.Project { public record UpdateProjectDto(string Name); }

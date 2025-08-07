@@ -1,0 +1,1 @@
+namespace OCSP.Infrastructure.Repositories.Interfaces { public interface IGenericRepository<T> where T: class { } }

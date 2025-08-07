@@ -1,0 +1,1 @@
+namespace OCSP.Application.DTOs.Project { public record ProjectResponseDto(Guid Id, string Name); }

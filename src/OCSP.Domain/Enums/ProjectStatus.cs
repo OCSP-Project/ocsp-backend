@@ -1,0 +1,1 @@
+namespace OCSP.Domain.Enums { public enum ProjectStatus { Draft, Active, Completed, Archived } }

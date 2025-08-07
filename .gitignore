@@ -5,6 +5,12 @@ out/
 .vs/
 .vscode/
 
+
+# Ignore specific sensitive files
+OCSP.Backend/docker/docker-compose.yml
+OCSP.Backend/src/OCSP.API/appsettings.Development.json
+OCSP.Backend/src/OCSP.API/appsettings.json
+OCSP.Backend/src/OCSP.API/appsettings.Staging.json
 # User-specific files
 *.rsuser
 *.suo

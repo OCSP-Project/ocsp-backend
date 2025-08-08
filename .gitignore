@@ -6,11 +6,7 @@ out/
 .vscode/
 
 
-# Ignore specific sensitive files (correct relative paths)
-docker/docker-compose.yml
-src/OCSP.API/appsettings.Development.json
-src/OCSP.API/appsettings.json
-src/OCSP.API/appsettings.Staging.json
+
 
 # User-specific files
 *.rsuser
@@ -51,10 +47,8 @@ packages/
 *.ldf
 *.ndf
 
-# Docker
-Dockerfile*
-!Dockerfile
-!docker-compose*.yml
+
+
 
 # Environment files
 .env

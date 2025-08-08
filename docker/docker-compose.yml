@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: ocsp-postgres
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ocsp-network
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: ocsp-api
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      # Database Connection
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRINGS__DEFAULTCONNECTION}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+
+      # JWT Configuration
+      Jwt__SecretKey: ${JWT__SECRETKEY}
+
+      # Email Configuration
+      Email__SmtpHost: ${EMAIL__SMTPHOST}
+      Email__SmtpPort: ${EMAIL__SMTPPORT}
+      Email__Username: ${EMAIL__USERNAME}
+      Email__Password: ${EMAIL__PASSWORD}
+      Email__FromEmail: ${EMAIL__FROMEMAIL}
+      Email__EnableSsl: ${EMAIL__ENABLESSL}
+    ports:
+      - "8080:8080"
+    networks:
+      - ocsp-network
+
+volumes:
+  db_data:
+
+networks:
+  ocsp-network:
+    driver: bridge

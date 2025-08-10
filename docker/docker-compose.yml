@@ -4,10 +4,12 @@ services:
   db:
     image: postgres:16
     container_name: ocsp-postgres
+    env_file:
+      - ../.env
     environment:
-      POSTGRES_USER: ocsp
-      POSTGRES_PASSWORD: ocsp
-      POSTGRES_DB: ocsp
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -29,24 +31,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - ../.env
     environment:
       # Database Connection
-      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=ocsp;Username=ocsp;Password=ocsp
-      ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
-      
-      # JWT Configuration  
-      Jwt__SecretKey: your-super-secure-jwt-secret-key-that-is-at-least-32-characters-long-for-development
-      Jwt__ExpiryInHours: 24
-      Jwt__RefreshTokenExpiryInDays: 7
-      
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRINGS__DEFAULTCONNECTION}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+
+      # JWT Configuration
+      Jwt__SecretKey: ${JWT__SECRETKEY}
+
       # Email Configuration
-      Email__SmtpHost: smtp.gmail.com
-      Email__SmtpPort: 587
-      Email__Username: anhduong7102003@gmail.com
-      Email__Password: gqmaoygrgxpmfgfa      
-      Email__FromEmail: noreply@ocsp.com
-      Email__EnableSsl: true
+      Email__SmtpHost: ${EMAIL__SMTPHOST}
+      Email__SmtpPort: ${EMAIL__SMTPPORT}
+      Email__Username: ${EMAIL__USERNAME}
+      Email__Password: ${EMAIL__PASSWORD}
+      Email__FromEmail: ${EMAIL__FROMEMAIL}
+      Email__EnableSsl: ${EMAIL__ENABLESSL}
     ports:
       - "8080:8080"
     networks:

@@ -13,7 +13,7 @@ namespace OCSP.Domain.Entities
 
         // Navigation properties
         public Guid SupervisorId { get; set; }
-        public User? Supervisor { get; set; }
+        public Supervisor? Supervisor { get; set; }
 
         public ICollection<Contract>? Contracts { get; set; }
     }

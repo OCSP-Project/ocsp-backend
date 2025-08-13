@@ -89,6 +89,8 @@ Thumbs.db
 *.iml
 
 # Application specific
+appsettings.json
+appsettings.Development.json
 appsettings.Production.json
 appsettings.Staging.json
 wwwroot/uploads/

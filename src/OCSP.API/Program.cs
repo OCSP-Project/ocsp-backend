@@ -7,6 +7,7 @@ using OCSP.Infrastructure.ExternalServices.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using OCSP.Application.DTOs.Supervisor;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISupervisorService, SupervisorService>();
 
 //────────────────────────────────────────────────────────
 // 3) JWT Authentication

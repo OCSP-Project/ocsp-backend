@@ -22,5 +22,9 @@ namespace OCSP.Domain.Entities
         // Basic audit fields
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        
+        // 🔗 Navigation properties cho Chat
+        public ICollection<ConversationParticipant> Conversations { get; set; } = new List<ConversationParticipant>();
+        public ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
     }
 }

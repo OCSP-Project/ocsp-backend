@@ -16,6 +16,9 @@ namespace OCSP.Infrastructure.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Supervisor> Supervisors { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<Conversation> Conversations { get; set; }
+    public DbSet<ConversationParticipant> ConversationParticipants { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -76,6 +79,52 @@ namespace OCSP.Infrastructure.Data
                       .HasForeignKey(e => e.SupervisorId)
                       .IsRequired();
             });
+            // Conversation
+modelBuilder.Entity<Conversation>(e =>
+{
+    e.HasKey(x => x.Id);
+    e.HasOne(x => x.Project)
+     .WithMany(p => p.Conversations!)
+     .HasForeignKey(x => x.ProjectId)
+     .OnDelete(DeleteBehavior.Cascade); 
+});
+
+// ConversationParticipant
+modelBuilder.Entity<ConversationParticipant>(entity =>
+{
+    entity.HasKey(e => e.Id);
+
+    entity.HasOne(cp => cp.User)
+          .WithMany(u => u.Conversations)
+          .HasForeignKey(cp => cp.UserId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+    entity.HasOne(cp => cp.Conversation)
+          .WithMany(c => c.Participants)
+          .HasForeignKey(cp => cp.ConversationId)
+          .OnDelete(DeleteBehavior.Cascade);
+});
+
+// ChatMessage
+modelBuilder.Entity<ChatMessage>(entity =>
+{
+    entity.HasKey(e => e.Id);
+
+    entity.Property(e => e.Content)
+          .IsRequired()
+          .HasMaxLength(1000);
+
+    entity.HasOne(m => m.Conversation)
+          .WithMany(c => c.Messages)
+          .HasForeignKey(m => m.ConversationId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+    entity.HasOne(m => m.Sender)
+          .WithMany(u => u.Messages)
+          .HasForeignKey(m => m.SenderId)
+          .OnDelete(DeleteBehavior.Restrict); // tránh xóa user làm mất hết message
+});
+
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

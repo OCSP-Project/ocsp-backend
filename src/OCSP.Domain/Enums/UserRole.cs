@@ -4,6 +4,7 @@ namespace OCSP.Domain.Enums
     {
         Admin = 0,
         Supervisor = 1,
-        Contractor = 2
+        Contractor = 2,
+        Homeowner = 3
     }
 }

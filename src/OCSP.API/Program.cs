@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using OCSP.Application.DTOs.Supervisor;
+using OCSP.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +34,9 @@ builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfil
 
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddSignalR();
+
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -71,6 +75,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.MapHub<ChatHub>("/chathub");
 //────────────────────────────────────────────────────────
 // 5) Auto Migration
 //────────────────────────────────────────────────────────
@@ -83,11 +88,11 @@ using (var scope = app.Services.CreateScope())
 //────────────────────────────────────────────────────────
 // 6) Middleware Pipeline
 //────────────────────────────────────────────────────────
-if (app.Environment.IsDevelopment())
-{
+ if (app.Environment.IsDevelopment())
+ {
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+ }
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");

@@ -11,5 +11,6 @@ public class ProjectController : ControllerBase
     public ProjectController(IProjectService svc) => _svc = svc;
 
     [HttpGet]
-    public IActionResult GetAll() => Ok(new [] { new { Id = 1, Name = "Sample" } });
+    public IActionResult GetAll() => Ok(new[] { new { Id = 1, Name = "Sample" } });
+
 }

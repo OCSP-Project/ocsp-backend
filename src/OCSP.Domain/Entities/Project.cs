@@ -16,5 +16,6 @@ namespace OCSP.Domain.Entities
         public Supervisor? Supervisor { get; set; }
 
         public ICollection<Contract>? Contracts { get; set; }
+        public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
     }
 }

@@ -23,6 +23,24 @@ services:
     networks:
       - ocsp-network
 
+  # Thêm pgAdmin để quản lý DB trực quan
+  # admin@ocsp.com
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ocsp-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ocsp.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - ocsp-network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
   api:
     build:
       context: ..
@@ -56,6 +74,7 @@ services:
 
 volumes:
   db_data:
+  pgadmin_data:  # Thêm volume cho pgAdmin
 
 networks:
   ocsp-network:

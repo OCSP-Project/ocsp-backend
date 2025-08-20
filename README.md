@@ -55,7 +55,11 @@ docker-compose logs -f api # View logs
 docker-compose restart api # Restart API only
 docker-compose down # Stop all services
 
-# Rebuild when code changes
+# Tạo một migration sau đó ra thư mục chính chạy các lệnh sau
+
+# dotnet ef migrations add TenMigration --project "src/OCSP.Infrastructure" --startup-project "src/OCSP.API"
+
+# dotnet ef database update --project "src/OCSP.Infrastructure" --startup-project "src/OCSP.API" --connection "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=root"
 
 docker-compose up -d --build
 

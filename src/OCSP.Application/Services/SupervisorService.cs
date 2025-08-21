@@ -1,4 +1,6 @@
+// OCSP.Application/Services/SupervisorService.cs
 using Microsoft.EntityFrameworkCore;
+using OCSP.Application.DTOs.Common;
 using OCSP.Application.DTOs.Supervisor;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Infrastructure.Data;
@@ -10,45 +12,110 @@ namespace OCSP.Application.Services
         private readonly ApplicationDbContext _db;
         public SupervisorService(ApplicationDbContext db) => _db = db;
 
-        public async Task<List<SupervisorListDto>> GetAllAsync()
+        public async Task<PagedResult<SupervisorListItemDto>> FilterAsync(
+            FilterSupervisorsRequest req, CancellationToken ct)
+        {
+            var q = _db.Supervisors
+                .Include(s => s.User)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(req.District))
+                q = q.Where(s => s.District != null && s.District.ToLower() == req.District.ToLower());
+
+            if (req.MinRating.HasValue)
+                q = q.Where(s => s.Rating.HasValue && s.Rating >= req.MinRating);
+
+            if (req.PriceMin.HasValue)
+                q = q.Where(s => s.MinRate.HasValue && s.MinRate >= req.PriceMin);
+
+            if (req.PriceMax.HasValue)
+                q = q.Where(s => s.MaxRate.HasValue && s.MaxRate <= req.PriceMax);
+
+            if (req.AvailableNow == true)
+                q = q.Where(s => s.AvailableNow);
+
+            var total = await q.CountAsync(ct);
+
+            var items = await q
+                .OrderByDescending(s => s.Rating ?? 0)   // default sort: rating cao trước
+                .ThenBy(s => s.MinRate ?? 0)
+                .Skip((req.Page - 1) * req.PageSize)
+                .Take(req.PageSize)
+                .Select(s => new SupervisorListItemDto
+                {
+                    Id = s.Id,
+                    Username = s.User!.Username,
+                    Email = s.User!.Email,
+                    Department = s.Department,
+                    Position = s.Position,
+                    District = s.District,
+                    Rating = s.Rating,
+                    ReviewsCount = s.ReviewsCount,
+                    MinRate = s.MinRate,
+                    MaxRate = s.MaxRate,
+                    AvailableNow = s.AvailableNow
+                })
+                .ToListAsync(ct);
+
+            return new PagedResult<SupervisorListItemDto>
+            {
+                Page = req.Page,
+                PageSize = req.PageSize,
+                TotalItems = total,
+                TotalPages = (int)Math.Ceiling(total / (double)req.PageSize),
+                Items = items
+            };
+        }
+
+        public async Task<SupervisorDetailsDto?> GetByIdAsync(Guid id, CancellationToken ct)
         {
             return await _db.Supervisors
                 .Include(s => s.User)
                 .AsNoTracking()
-                .Select(s => new SupervisorListDto
+                .Where(s => s.Id == id)
+                .Select(s => new SupervisorDetailsDto
                 {
                     Id = s.Id,
+                    Username = s.User!.Username,
+                    Email = s.User!.Email,
+                    Phone = s.Phone,
                     Department = s.Department,
                     Position = s.Position,
-                    Phone = s.Phone,
-                    Username = s.User!.Username,
-                    Email = s.User!.Email
+                    District = s.District,
+                    Rating = s.Rating,
+                    ReviewsCount = s.ReviewsCount,
+                    MinRate = s.MinRate,
+                    MaxRate = s.MaxRate,
+                    AvailableNow = s.AvailableNow,
+                    Bio = null,
+                    YearsExperience = null
                 })
-                .ToListAsync();
+                .FirstOrDefaultAsync(ct);
         }
 
-        public async Task<SupervisorDetailDto?> GetByIdAsync(Guid id)
+        public async Task<List<SupervisorListItemDto>> GetAllAsync(CancellationToken ct)
+{
+    return await _db.Supervisors
+        .Include(s => s.User)
+        .AsNoTracking()
+        .OrderByDescending(s => s.Rating ?? 0)
+        .Select(s => new SupervisorListItemDto
         {
-            var s = await _db.Supervisors
-                .Include(x => x.User)
-                .Include(x => x.Projects)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == id);
+            Id = s.Id,
+            Username = s.User!.Username,
+            Email = s.User!.Email,
+            Department = s.Department,
+            Position = s.Position,
+            District = s.District,
+            Rating = s.Rating,
+            ReviewsCount = s.ReviewsCount,
+            MinRate = s.MinRate,
+            MaxRate = s.MaxRate,
+            AvailableNow = s.AvailableNow
+        })
+        .ToListAsync(ct);
+}
 
-            if (s == null) return null;
-
-            return new SupervisorDetailDto
-            {
-                Id = s.Id,
-                Department = s.Department,
-                Position = s.Position,
-                Phone = s.Phone,
-                Username = s.User!.Username,
-                Email = s.User!.Email,
-                Projects = (s.Projects ?? new List<OCSP.Domain.Entities.Project>())
-                    .Select(p => new ProjectItemDto { Id = p.Id, Name = p.Name, Status = p.Status })
-                    .ToList()
-            };
-        }
     }
 }

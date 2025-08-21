@@ -75,7 +75,7 @@ namespace OCSP.Infrastructure.Data
                 entity.Property(e => e.Status).HasMaxLength(50);
 
                 entity.HasOne(e => e.Supervisor)
-                      .WithMany(s => s.Projects!)
+                      .WithMany()
                       .HasForeignKey(e => e.SupervisorId)
                       .IsRequired();
             });

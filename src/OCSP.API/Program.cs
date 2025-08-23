@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using OCSP.Infrastructure.Data;
 using OCSP.Application.Services;
 using OCSP.Application.Services.Interfaces;
@@ -9,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using OCSP.Application.DTOs.Supervisor;
 using OCSP.API.Hubs;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,12 +37,16 @@ builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfil
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddSignalR();
 
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+
+// File Service
+builder.Services.AddScoped<IFileService, FileService>();
 
 //────────────────────────────────────────────────────────
 // 3) JWT Authentication
@@ -98,6 +104,18 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Serve static files from the local 'uploads' folder (for profile documents, images, ...)
+var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 app.MapControllers();
 
 app.Run();

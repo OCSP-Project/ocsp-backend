@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OCSP.Infrastructure.Data;
@@ -11,9 +12,11 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250821052840_AddProfileEntities")]
+    partial class AddProfileEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -360,9 +363,6 @@ namespace OCSP.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("AvailableNow")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -374,15 +374,6 @@ namespace OCSP.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("District")
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("MaxRate")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal?>("MinRate")
-                        .HasColumnType("numeric");
-
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -392,12 +383,6 @@ namespace OCSP.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<double?>("Rating")
-                        .HasColumnType("double precision");
-
-                    b.Property<int?>("ReviewsCount")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -571,7 +556,7 @@ namespace OCSP.Infrastructure.Migrations
             modelBuilder.Entity("OCSP.Domain.Entities.Project", b =>
                 {
                     b.HasOne("OCSP.Domain.Entities.Supervisor", "Supervisor")
-                        .WithMany()
+                        .WithMany("Projects")
                         .HasForeignKey("SupervisorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -607,6 +592,11 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("Contracts");
 
                     b.Navigation("Conversations");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.Supervisor", b =>
+                {
+                    b.Navigation("Projects");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.User", b =>

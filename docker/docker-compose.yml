@@ -5,7 +5,7 @@ services:
     image: postgres:16
     container_name: ocsp-postgres
     env_file:
-      - ../.env
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -32,7 +32,7 @@ services:
       db:
         condition: service_healthy
     env_file:
-      - ../.env
+      - .env
     environment:
       # Database Connection
       ConnectionStrings__DefaultConnection: ${CONNECTION_STRINGS__DEFAULTCONNECTION}

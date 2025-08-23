@@ -17,8 +17,12 @@ namespace OCSP.Infrastructure.Data
         public DbSet<Supervisor> Supervisors { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<Conversation> Conversations { get; set; }
-    public DbSet<ConversationParticipant> ConversationParticipants { get; set; }
-    public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<ConversationParticipant> ConversationParticipants { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
+        
+        // Profile entities
+        public DbSet<Profile> Profiles { get; set; }
+        public DbSet<ProfileDocument> ProfileDocuments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -123,6 +127,57 @@ modelBuilder.Entity<ChatMessage>(entity =>
           .WithMany(u => u.Messages)
           .HasForeignKey(m => m.SenderId)
           .OnDelete(DeleteBehavior.Restrict); // tránh xóa user làm mất hết message
+});
+
+// Profile entity
+modelBuilder.Entity<Profile>(entity =>
+{
+    entity.HasKey(e => e.Id);
+
+    entity.Property(e => e.FirstName).HasMaxLength(100);
+    entity.Property(e => e.LastName).HasMaxLength(100);
+    entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+    entity.Property(e => e.Address).HasMaxLength(500);
+    entity.Property(e => e.City).HasMaxLength(100);
+    entity.Property(e => e.State).HasMaxLength(100);
+    entity.Property(e => e.Country).HasMaxLength(100);
+    entity.Property(e => e.Bio).HasMaxLength(1000);
+    entity.Property(e => e.AvatarUrl).HasMaxLength(500);
+
+    entity.HasOne(e => e.User)
+          .WithMany()
+          .HasForeignKey(e => e.UserId)
+          .OnDelete(DeleteBehavior.Cascade);
+});
+
+// ProfileDocument entity
+modelBuilder.Entity<ProfileDocument>(entity =>
+{
+    entity.HasKey(e => e.Id);
+
+    entity.Property(e => e.FileName)
+          .IsRequired()
+          .HasMaxLength(255);
+
+    entity.Property(e => e.FileUrl)
+          .IsRequired()
+          .HasMaxLength(500);
+
+    entity.Property(e => e.FileType)
+          .IsRequired()
+          .HasMaxLength(20);
+
+    entity.Property(e => e.DocumentType)
+          .IsRequired()
+          .HasMaxLength(100);
+
+    entity.Property(e => e.Description)
+          .HasMaxLength(500);
+
+    entity.HasOne(e => e.Profile)
+          .WithMany(p => p.ProfileDocuments)
+          .HasForeignKey(e => e.ProfileId)
+          .OnDelete(DeleteBehavior.Cascade);
 });
 
         }

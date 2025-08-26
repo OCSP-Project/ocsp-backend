@@ -19,10 +19,15 @@ var builder = WebApplication.CreateBuilder(args);
 //────────────────────────────────────────────────────────
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Port=5432;Database=ocsp;Username=ocsp;Password=ocsp";
+    ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=root";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+
+// var connectionString =
+//     builder.Configuration.GetConnectionString("DefaultConnection")
+//     ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=root";
 
 //────────────────────────────────────────────────────────
 // 2) Services Registration

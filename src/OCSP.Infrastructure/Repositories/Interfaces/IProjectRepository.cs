@@ -1,1 +1,8 @@
-namespace OCSP.Infrastructure.Repositories.Interfaces { public interface IProjectRepository { } }
+using OCSP.Domain.Entities;
+
+namespace OCSP.Infrastructure.Repositories.Interfaces
+{
+    public interface IProjectRepository : IGenericRepository<Project>
+    {
+    }
+}

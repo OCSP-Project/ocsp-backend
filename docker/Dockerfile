@@ -13,7 +13,7 @@ RUN dotnet restore "src/OCSP.API/OCSP.API.csproj"
 # Copy everything else and build
 COPY . .
 WORKDIR "/src/src/OCSP.API"
-RUN dotnet publish "OCSP.API.csproj" -c Release -o /app/publish
+RUN dotnet publish "/src/src/OCSP.API/OCSP.API.csproj" -c Release -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final

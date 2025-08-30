@@ -37,7 +37,7 @@ services:
       # Database Connection
       ConnectionStrings__DefaultConnection: ${CONNECTION_STRINGS__DEFAULTCONNECTION}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
 
       # JWT Configuration
       Jwt__SecretKey: ${JWT__SECRETKEY}

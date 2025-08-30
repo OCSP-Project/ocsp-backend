@@ -15,6 +15,6 @@ namespace OCSP.Domain.Entities
 
         // Thuộc Conversation nào
         public Guid ConversationId { get; set; }
-        public Conversation Conversation { get; set; }
+        public Conversation Conversation { get; set; } = null!;
     }
 }

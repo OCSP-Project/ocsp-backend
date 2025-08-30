@@ -11,6 +11,8 @@ using System.Text;
 using OCSP.Application.DTOs.Supervisor;
 using OCSP.API.Hubs;
 using System.IO;
+using OCSP.Infrastructure.Repositories.Interfaces;
+using OCSP.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,15 +45,19 @@ builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfil
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
-builder.Services.AddSignalR();
-
+builder.Services.AddScoped<IProjectService, ProjectService>();
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();
+
+// SignalR (required for MapHub)
+builder.Services.AddSignalR();
 
 //────────────────────────────────────────────────────────
 // 3) JWT Authentication
@@ -110,7 +116,11 @@ using (var scope = app.Services.CreateScope())
     app.UseSwaggerUI();
  }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();

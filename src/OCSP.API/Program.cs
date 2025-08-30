@@ -73,6 +73,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+
+builder.Services.AddHttpClient<AIRecommendationService>(); // HttpClient cho service
+builder.Services.AddScoped<OCSP.Application.Services.Interfaces.IAIRecommendationService,
+                           OCSP.Application.Services.AIRecommendationService>();
+
 //────────────────────────────────────────────────────────
 // 4) CORS
 //────────────────────────────────────────────────────────

@@ -11,11 +11,16 @@ namespace OCSP.Domain.Entities
         public DateTime EndDate { get; set; }
         public string Status { get; set; } = string.Empty;
 
-        // Navigation properties
+        // Project
         public Guid ProjectId { get; set; }
         public Project? Project { get; set; }
 
+      
         public Guid ContractorId { get; set; }
-        public User? Contractor { get; set; }
+        public Contractor Contractor { get; set; } = null!;
+
+       
+        public Guid? HomeownerId { get; set; }
+        public User? Homeowner { get; set; }
     }
 }

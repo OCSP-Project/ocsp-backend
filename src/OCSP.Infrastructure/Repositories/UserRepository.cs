@@ -9,9 +9,10 @@ namespace OCSP.Infrastructure.Repositories
     {
         public UserRepository(ApplicationDbContext context) : base(context) { }
 
-        public override async Task<User?> GetByIdAsync(Guid id)
+        public override async Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
-            return await _dbSet.FindAsync(id);
+            return await _dbSet.FindAsync(new object?[] { id }, ct);
+            
         }
     }
 }

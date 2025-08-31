@@ -5,7 +5,8 @@ namespace OCSP.Application.Services.Interfaces
     public interface IProjectService
     {
         // Create Project
-        Task<ProjectResponseDto> CreateProjectAsync(CreateProjectDto createDto, Guid homeownerId);
+        Task<ProjectDetailDto> CreateProjectAsync(CreateProjectDto dto, Guid homeownerId);
+Task<ProjectDetailDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default);
         
     }
 }

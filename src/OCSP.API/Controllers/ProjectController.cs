@@ -1,52 +1,75 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using OCSP.Application.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 using OCSP.Application.DTOs.Project;
+using OCSP.Application.Services.Interfaces;
 using System.Security.Claims;
 
 namespace OCSP.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
-    public class ProjectController : ControllerBase
+    [Route("api/projects")]
+    [Authorize] // có thể thay bằng [Authorize(Policy = "HomeownerOnly")] nếu đã cấu hình
+    public class ProjectsController : ControllerBase
     {
         private readonly IProjectService _projectService;
+        private readonly ILogger<ProjectsController> _logger;
 
-        public ProjectController(IProjectService projectService)
+        public ProjectsController(IProjectService projectService, ILogger<ProjectsController> logger)
         {
             _projectService = projectService;
+            _logger = logger;
         }
 
-        // Create Project
+        // GET api/projects/{id}
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ProjectDetailDto>> GetById([FromRoute] Guid id, CancellationToken ct)
+        {
+            var project = await _projectService.GetProjectByIdAsync(id, ct);
+            if (project == null) return NotFound();
+            return Ok(project);
+        }
+
+        // POST api/projects
         [HttpPost]
-        public async Task<IActionResult> CreateProject([FromBody] CreateProjectDto createDto)
+        [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ProjectDetailDto>> CreateProject(
+            [FromBody] CreateProjectDto createDto,
+            CancellationToken ct)
         {
             try
             {
-                // Get current user ID from JWT token
                 var homeownerId = GetCurrentUserId();
                 if (homeownerId == Guid.Empty)
-                    return Unauthorized("User not authenticated");
+                    return Unauthorized(new { message = "User not authenticated" });
 
                 var project = await _projectService.CreateProjectAsync(createDto, homeownerId);
-                // Return 201 Created with project data (removed CreatedAtAction since GetProjectById is commented)
-                return StatusCode(201, project);
+
+                // 201 + Location header đến GET /api/projects/{id}
+                return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogWarning(ex, "Bad request creating project");
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Unhandled error creating project");
+                return StatusCode(500, new { message = "Internal server error" });
             }
         }
 
         private Guid GetCurrentUserId()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(userIdClaim, out var userId) ? userId : Guid.Empty;
+            // Ưu tiên NameIdentifier, fallback sang "sub" (OIDC/JWT phổ biến)
+            var id = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirstValue("sub");
+            return Guid.TryParse(id, out var g) ? g : Guid.Empty;
         }
     }
 }

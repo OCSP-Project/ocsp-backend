@@ -1,54 +1,41 @@
+// OCSP.Infrastructure/Data/Configurations/ContractConfiguration.cs
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OCSP.Domain.Entities;
+using OCSP.Domain.Enums;
 
 namespace OCSP.Infrastructure.Data.Configurations
 {
     public class ContractConfiguration : IEntityTypeConfiguration<Contract>
     {
-        public void Configure(EntityTypeBuilder<Contract> builder)
+        public void Configure(EntityTypeBuilder<Contract> b)
         {
-            builder.ToTable("Contracts");
+            b.ToTable("Contracts");
+            b.HasKey(x => x.Id);
 
-            builder.HasKey(c => c.Id);
+            // FKs
+            b.HasOne(x => x.Project)
+             .WithMany()                    // hoặc .WithMany(p => p.Contracts) nếu có navigation ở Project
+             .HasForeignKey(x => x.ProjectId)
+             .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Property(c => c.Title)
-                   .IsRequired()
-                   .HasMaxLength(200);
+            // scalar
+            b.Property(x => x.TotalPrice).HasColumnType("numeric(18,2)");
+            b.Property(x => x.DurationDays).IsRequired();
 
-            builder.Property(c => c.Status)
-                   .IsRequired()
-                   .HasMaxLength(50);
+            b.Property(x => x.Terms)
+             .HasColumnType("varchar(2000)")
+             .HasDefaultValue(string.Empty);
 
-            builder.Property(c => c.Value)
-                   .HasPrecision(18, 2);
+            b.Property(x => x.Status)
+             .HasConversion<int>()         // enum -> int
+             .IsRequired();
 
-            // Contract → Project
-            builder.HasOne(c => c.Project)
-                   .WithMany(p => p.Contracts!) // nếu Project có ICollection<Contract> Contracts; nếu không có, thay .WithMany()
-                   .HasForeignKey(c => c.ProjectId)
-                   .OnDelete(DeleteBehavior.Restrict);
+            // Index gợi ý
+            b.HasIndex(x => x.ProjectId);
+            b.HasIndex(x => x.Status);
 
-            // ✅ Contract → Contractor (FK = ContractorId)
-            builder.HasOne(c => c.Contractor)
-                   .WithMany(x => x.Contracts)
-                   .HasForeignKey(c => c.ContractorId)
-                   .OnDelete(DeleteBehavior.Restrict);
-
-            // ✅ (Tuỳ chọn) Contract → User (Homeowner) (FK = HomeownerId)
-            // Nếu bạn không dùng Homeowner, xoá 2 dòng property HomeownerId/Homeowner trong entity Contract,
-            // và comment block dưới đây.
-            builder.HasOne(c => c.Homeowner)
-                   .WithMany() // hoặc .WithMany(u => u.ContractsAsHomeowner) nếu bạn có collection này ở User
-                   .HasForeignKey(c => c.HomeownerId)
-                   .OnDelete(DeleteBehavior.Restrict);
-
-            // Indexes hữu ích
-            builder.HasIndex(c => c.ProjectId);
-            builder.HasIndex(c => c.ContractorId);
-            builder.HasIndex(c => c.Status);
-            builder.HasIndex(c => c.StartDate);
-            builder.HasIndex(c => c.EndDate);
+            // Timestamps (AuditableEntity đã tự set trong SaveChanges)
         }
     }
 }

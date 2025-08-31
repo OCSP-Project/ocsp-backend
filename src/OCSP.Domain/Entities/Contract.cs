@@ -1,26 +1,34 @@
+// OCSP.Domain/Entities/Contract.cs
 using OCSP.Domain.Common;
+using OCSP.Domain.Enums;
 
 namespace OCSP.Domain.Entities
 {
     public class Contract : AuditableEntity
     {
-        public string Title { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public decimal Value { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public string Status { get; set; } = string.Empty;
-
-        // Project
         public Guid ProjectId { get; set; }
-        public Project? Project { get; set; }
+        public Project Project { get; set; } = default!;
 
-      
-        public Guid ContractorId { get; set; }
-        public Contractor Contractor { get; set; } = null!;
+        public Guid QuoteRequestId { get; set; }
+        public Guid ProposalId { get; set; }
 
-       
-        public Guid? HomeownerId { get; set; }
-        public User? Homeowner { get; set; }
+        public Guid HomeownerUserId { get; set; }
+        public Guid ContractorUserId { get; set; }
+
+        public decimal TotalPrice { get; set; }
+        public int DurationDays { get; set; }
+
+        public string Terms { get; set; } = string.Empty;
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+
+        public ContractStatus Status { get; set; } = ContractStatus.Draft;
+
+        public DateTime? SignedByHomeownerAt { get; set; }
+        public DateTime? SignedByContractorAt { get; set; }
+
+        public ICollection<ContractItem> Items { get; set; } = new List<ContractItem>();
     }
+
+    
 }

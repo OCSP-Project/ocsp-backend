@@ -1,8 +1,8 @@
 using OCSP.Domain.Entities;
 
-namespace OCSP.Infrastructure.Repositories.Interfaces
+public interface IProjectRepository
 {
-    public interface IProjectRepository : IGenericRepository<Project>
-    {
-    }
+    Task<Project?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task AddAsync(Project project, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
 }

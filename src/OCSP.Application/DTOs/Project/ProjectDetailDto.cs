@@ -22,6 +22,7 @@ namespace OCSP.Application.DTOs.Project
     public class ProjectParticipantDto
     {
         public Guid UserId { get; set; }
+        public string UserName { get; set; } = default!;
         public string Role { get; set; } = default!;
         public string Status { get; set; } = default!;
     }

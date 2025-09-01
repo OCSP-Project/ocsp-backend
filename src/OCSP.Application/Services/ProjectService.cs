@@ -74,6 +74,7 @@ public class ProjectService : IProjectService
                 .Select(pp => new ProjectParticipantDto
                 {
                     UserId = pp.UserId,
+                    UserName = pp.User?.Username ?? "Unknown User",
                     Role = pp.Role.ToString(),
                     Status = pp.Status.ToString()
                 }).ToList()
@@ -144,6 +145,7 @@ public class ProjectService : IProjectService
             Participants = project.Participants.Select(pp => new ProjectParticipantDto
             {
                 UserId = pp.UserId,
+                UserName = pp.User?.Username ?? "Unknown User",
                 Role = pp.Role.ToString(),
                 Status = pp.Status.ToString()
             }).ToList()
@@ -181,8 +183,13 @@ public class ProjectService : IProjectService
             throw new ArgumentException("EstimatedCompletionDate cannot be earlier than StartDate");
         project.EstimatedCompletionDate = dto.EstimatedCompletionDate;
     }
-    if (dto.Status.HasValue)
-        project.Status = dto.Status.Value;
+    if (!string.IsNullOrWhiteSpace(dto.Status))
+    {
+        if (Enum.TryParse<ProjectStatus>(dto.Status, true, out var status))
+            project.Status = status;
+        else
+            throw new ArgumentException($"Invalid status: {dto.Status}. Valid values are: {string.Join(", ", Enum.GetNames<ProjectStatus>())}");
+    }
 
     await _projectRepository.SaveChangesAsync();
 
@@ -201,12 +208,13 @@ public class ProjectService : IProjectService
         Status = project.Status.ToString(),
         HomeownerId = project.HomeownerId,
         SupervisorId = project.SupervisorId,
-        Participants = project.Participants.Select(pp => new ProjectParticipantDto
-        {
-            UserId = pp.UserId,
-            Role = pp.Role.ToString(),
-            Status = pp.Status.ToString()
-        }).ToList()
+                    Participants = project.Participants.Select(pp => new ProjectParticipantDto
+            {
+                UserId = pp.UserId,
+                UserName = pp.User?.Username ?? "Unknown User",
+                Role = pp.Role.ToString(),
+                Status = pp.Status.ToString()
+            }).ToList()
     };
 }
 

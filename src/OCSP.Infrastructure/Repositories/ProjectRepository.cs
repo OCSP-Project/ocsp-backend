@@ -11,6 +11,7 @@ public class ProjectRepository : IProjectRepository
     {
         return await _db.Projects
             .Include(p => p.Participants)
+                .ThenInclude(pp => pp.User)
             .Include(p => p.Supervisor) // optional
             .Include(p => p.Homeowner)  // optional
             .FirstOrDefaultAsync(p => p.Id == id, ct);

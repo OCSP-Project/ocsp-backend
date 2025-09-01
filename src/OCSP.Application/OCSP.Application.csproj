@@ -12,12 +12,12 @@
   
   <ItemGroup>
     <!-- JWT và Security -->
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.0" />
     
     <!-- AutoMapper -->
-    <PackageReference Include="AutoMapper" Version="12.0.1" />
-    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
     
     <!-- BCrypt -->
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />

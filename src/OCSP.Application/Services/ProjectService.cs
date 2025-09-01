@@ -2,52 +2,52 @@ using OCSP.Application.DTOs.Project;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Domain.Entities;
-using AutoMapper;
+
 public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projectRepository;
     private readonly IUserRepository _userRepository;
-     private readonly IMapper _mapper;
+
 
     public ProjectService(
         IProjectRepository projectRepository,
-        IUserRepository userRepository, IMapper mapper)
+        IUserRepository userRepository)
     {
         _projectRepository = projectRepository;
         _userRepository = userRepository;
-        _mapper = mapper;
+
     }
 
     public async Task<List<ProjectResponseDto>> GetProjectsByHomeownerAsync(Guid homeownerId, CancellationToken ct = default)
     {
-    var homeowner = await _userRepository.GetByIdAsync(homeownerId);
-            if (homeowner == null)
-            {
-                throw new ArgumentException("Homeowner not found");
-            }
+        var homeowner = await _userRepository.GetByIdAsync(homeownerId);
+        if (homeowner == null)
+            throw new ArgumentException("Homeowner not found");
 
-            var result = projects.Select(p => new ProjectResponseDto(
-        Id: p.Id,
-        Name: p.Name,
-        Description: p.Description,
-        Address: p.Address,
-        FloorArea: p.FloorArea,
-        NumberOfFloors: p.NumberOfFloors,
-        Budget: p.Budget,
-        ActualBudget: p.ActualBudget,
-        StartDate: p.StartDate,
-        EndDate: p.EndDate,
-        EstimatedCompletionDate: p.EstimatedCompletionDate,
-        Status: p.Status.ToString(),
-        CreatedAt: p.CreatedAt,
-        UpdatedAt: p.UpdatedAt,
-        SupervisorId: p.SupervisorId,
-        SupervisorName: p.Supervisor?.FullName, 
-        HomeownerId: p.HomeownerId,
-        HomeownerName: p.Homeowner?.FullName     
-    )).ToList();
+        var projects = await _projectRepository.GetByHomeownerIdAsync(homeownerId, ct);
 
-    return result;
+        var result = projects.Select(p => new ProjectResponseDto(
+            Id: p.Id,
+            Name: p.Name,
+            Description: p.Description,
+            Address: p.Address,
+            FloorArea: p.FloorArea,
+            NumberOfFloors: p.NumberOfFloors,
+            Budget: p.Budget,
+            ActualBudget: p.ActualBudget,
+            StartDate: p.StartDate,
+            EndDate: p.EndDate,
+            EstimatedCompletionDate: p.EstimatedCompletionDate,
+            Status: p.Status.ToString(),
+            CreatedAt: p.CreatedAt,
+            UpdatedAt: p.UpdatedAt,
+            SupervisorId: p.SupervisorId,
+            SupervisorName: p.Supervisor?.FullName,
+            HomeownerId: p.HomeownerId,
+            HomeownerName: p.Homeowner?.FullName
+        )).ToList();
+
+        return result;
     }
     public async Task<ProjectDetailDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default)
     {
@@ -147,4 +147,65 @@ public class ProjectService : IProjectService
             }).ToList()
         };
     }
+    public async Task<ProjectDetailDto> UpdateProjectAsync(Guid projectId, UpdateProjectDto dto, Guid homeownerId)
+{
+    var project = await _projectRepository.GetByIdAsync(projectId)
+        ?? throw new ArgumentException("Project not found");
+
+    if (project.HomeownerId != homeownerId)
+        throw new UnauthorizedAccessException("You are not allowed to update this project");
+
+    // Update từng property nếu khác null
+    if (!string.IsNullOrWhiteSpace(dto.Name))
+        project.Name = dto.Name.Trim();
+    if (!string.IsNullOrWhiteSpace(dto.Address))
+        project.Address = dto.Address.Trim();
+    if (dto.Description != null)
+        project.Description = dto.Description.Trim();
+    if (dto.FloorArea.HasValue)
+        project.FloorArea = dto.FloorArea.Value;
+    if (dto.NumberOfFloors.HasValue)
+        project.NumberOfFloors = dto.NumberOfFloors.Value;
+    if (dto.Budget.HasValue)
+    {
+        if (dto.Budget < 0) throw new ArgumentException("Budget must be >= 0");
+        project.Budget = dto.Budget.Value;
+    }
+    if (dto.StartDate.HasValue)
+        project.StartDate = dto.StartDate.Value;
+    if (dto.EstimatedCompletionDate.HasValue)
+    {
+        if (dto.StartDate.HasValue && dto.EstimatedCompletionDate < dto.StartDate)
+            throw new ArgumentException("EstimatedCompletionDate cannot be earlier than StartDate");
+        project.EstimatedCompletionDate = dto.EstimatedCompletionDate;
+    }
+    if (!string.IsNullOrWhiteSpace(dto.Status) && Enum.TryParse<ProjectStatus>(dto.Status, true, out var status))
+        project.Status = status;
+
+    await _projectRepository.SaveChangesAsync();
+
+    // Map trả về
+    return new ProjectDetailDto
+    {
+        Id = project.Id,
+        Name = project.Name,
+        Address = project.Address,
+        Description = project.Description,
+        FloorArea = project.FloorArea,
+        NumberOfFloors = project.NumberOfFloors,
+        Budget = project.Budget,
+        StartDate = project.StartDate,
+        EstimatedCompletionDate = project.EstimatedCompletionDate,
+        Status = project.Status.ToString(),
+        HomeownerId = project.HomeownerId,
+        SupervisorId = project.SupervisorId,
+        Participants = project.Participants.Select(pp => new ProjectParticipantDto
+        {
+            UserId = pp.UserId,
+            Role = pp.Role.ToString(),
+            Status = pp.Status.ToString()
+        }).ToList()
+    };
+}
+
 }

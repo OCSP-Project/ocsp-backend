@@ -2,6 +2,7 @@
 using AutoMapper;
 using OCSP.Application.DTOs.Auth;
 using OCSP.Application.DTOs.Profile;
+using OCSP.Application.DTOs.Project;
 using OCSP.Domain.Entities;
 
 namespace OCSP.Application.Mappings
@@ -16,6 +17,12 @@ namespace OCSP.Application.Mappings
             // Profile mappings
             CreateMap<OCSP.Domain.Entities.Profile, ProfileDto>();
             CreateMap<OCSP.Domain.Entities.ProfileDocument, ProfileDocumentDto>();
+            
+            // Project mappings
+            CreateMap<Project, ProjectResponseDto>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.SupervisorName, opt => opt.MapFrom(src => src.Supervisor != null ? src.Supervisor.User.Username : null))
+                .ForMember(dest => dest.HomeownerName, opt => opt.MapFrom(src => src.Homeowner != null ? src.Homeowner.Username : null));
         }
     }
 }

@@ -2,6 +2,7 @@ using OCSP.Application.DTOs.Project;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Domain.Entities;
+using AutoMapper;
 
 public class ProjectService : IProjectService
 {

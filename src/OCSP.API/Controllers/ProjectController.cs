@@ -30,6 +30,16 @@ namespace OCSP.API.Controllers
             if (project == null) return NotFound();
             return Ok(project);
         }
+         [HttpGet("my-projects")]
+        public async Task<IActionResult> GetMyProjects()
+        {
+            var homeownerId = GetCurrentUserId();
+            if (homeownerId == Guid.Empty)
+                return Unauthorized(new { message = "User not authenticated" });
+
+            var projects = await _projectService.GetProjectsByHomeownerAsync(homeownerId);
+            return Ok(projects);
+        }
 
         // POST api/projects
         [HttpPost]

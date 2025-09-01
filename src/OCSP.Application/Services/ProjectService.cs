@@ -7,15 +7,28 @@ public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projectRepository;
     private readonly IUserRepository _userRepository;
+     private readonly IMapper _mapper;
 
     public ProjectService(
         IProjectRepository projectRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository, IMapper mapper)
     {
         _projectRepository = projectRepository;
         _userRepository = userRepository;
+        _mapper = mapper;
     }
 
+    public async Task<List<ProjectResponseDto>> GetProjectsByHomeownerAsync(Guid homeownerId, CancellationToken ct = default)
+    {
+    var homeowner = await _userRepository.GetByIdAsync(homeownerId);
+            if (homeowner == null)
+            {
+                throw new ArgumentException("Homeowner not found");
+            }
+
+            var projects = await _projectRepository.GetByHomeownerIdAsync(homeownerId);
+           return _mapper.Map<List<ProjectResponseDto>>(projects);
+    }
     public async Task<ProjectDetailDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default)
     {
         var p = await _projectRepository.GetByIdAsync(id, ct);

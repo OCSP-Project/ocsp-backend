@@ -2,7 +2,7 @@ using OCSP.Application.DTOs.Project;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Domain.Entities;
-
+using AutoMapper;
 public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projectRepository;
@@ -26,8 +26,28 @@ public class ProjectService : IProjectService
                 throw new ArgumentException("Homeowner not found");
             }
 
-            var projects = await _projectRepository.GetByHomeownerIdAsync(homeownerId);
-           return _mapper.Map<List<ProjectResponseDto>>(projects);
+            var result = projects.Select(p => new ProjectResponseDto(
+        Id: p.Id,
+        Name: p.Name,
+        Description: p.Description,
+        Address: p.Address,
+        FloorArea: p.FloorArea,
+        NumberOfFloors: p.NumberOfFloors,
+        Budget: p.Budget,
+        ActualBudget: p.ActualBudget,
+        StartDate: p.StartDate,
+        EndDate: p.EndDate,
+        EstimatedCompletionDate: p.EstimatedCompletionDate,
+        Status: p.Status.ToString(),
+        CreatedAt: p.CreatedAt,
+        UpdatedAt: p.UpdatedAt,
+        SupervisorId: p.SupervisorId,
+        SupervisorName: p.Supervisor?.FullName, 
+        HomeownerId: p.HomeownerId,
+        HomeownerName: p.Homeowner?.FullName     
+    )).ToList();
+
+    return result;
     }
     public async Task<ProjectDetailDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default)
     {

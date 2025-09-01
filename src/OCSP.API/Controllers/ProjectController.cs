@@ -30,7 +30,7 @@ namespace OCSP.API.Controllers
             if (project == null) return NotFound();
             return Ok(project);
         }
-         [HttpGet("my-projects")]
+        [HttpGet("my-projects")]
         public async Task<IActionResult> GetMyProjects()
         {
             var homeownerId = GetCurrentUserId();
@@ -70,6 +70,44 @@ namespace OCSP.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unhandled error creating project");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // PUT api/projects/{id}
+        [HttpPut("{id:guid}")]
+        [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateProject(
+            [FromRoute] Guid id,
+            [FromBody] UpdateProjectDto dto,
+            CancellationToken ct)
+        {
+            try
+            {
+                var homeownerId = GetCurrentUserId();
+                if (homeownerId == Guid.Empty)
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                var project = await _projectService.UpdateProjectAsync(id, dto, homeownerId);
+                return Ok(project);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Bad request updating project");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Forbidden updating project");
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error updating project");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

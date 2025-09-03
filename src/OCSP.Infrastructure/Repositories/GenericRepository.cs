@@ -1,14 +1,17 @@
+
 using System.Linq.Expressions;
+
 using Microsoft.EntityFrameworkCore;
 using OCSP.Infrastructure.Data;
 using OCSP.Infrastructure.Repositories.Interfaces;
 
 namespace OCSP.Infrastructure.Repositories
 {
-    // Namespace như bạn đưa: OCSP.Infrastructure.Repositories
+
+   
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        /// <summary>Cho phép repo con truy cập trực tiếp khi cần.</summary>
+     
         protected readonly ApplicationDbContext _context;
         protected readonly DbSet<T> _dbSet;
 
@@ -92,3 +95,4 @@ namespace OCSP.Infrastructure.Repositories
             => _context.SaveChangesAsync(ct);
     }
 }
+

@@ -86,184 +86,82 @@ dotnet test tests/OCSP.UnitTests/
 
 dotnet test --collect:"XPlat Code Coverage"
 
+## 📦 Project Structure
+
+```plaintext
 OCSP.Backend/
-├── src/
-│ ├── OCSP.API/ # Web API Layer
-│ │ ├── Controllers/
-│ │ │ ├── AuthController.cs
-│ │ │ ├── ProjectController.cs
-│ │ │ ├── ContractorController.cs
-│ │ │ ├── SupervisorController.cs
-│ │ │ ├── AdminController.cs
-│ │ │ └── NotificationController.cs
-│ │ ├── Middlewares/
-│ │ │ ├── ErrorHandlingMiddleware.cs
-│ │ │ ├── JwtMiddleware.cs
-│ │ │ └── LoggingMiddleware.cs
-│ │ ├── Hubs/ # SignalR Hubs
-│ │ │ ├── ChatHub.cs
-│ │ │ └── NotificationHub.cs
-│ │ ├── Configurations/
-│ │ │ ├── ServiceCollectionExtensions.cs
-│ │ │ ├── SwaggerConfiguration.cs
-│ │ │ └── CorsConfiguration.cs
-│ │ ├── appsettings.json
-│ │ ├── appsettings.Development.json
-│ │ ├── Program.cs
-│ │ └── OCSP.API.csproj
-│ │
-│ ├── OCSP.Application/ # Application Layer
-│ │ ├── Services/
-│ │ │ ├── Interfaces/
-│ │ │ │ ├── IAuthService.cs
-│ │ │ │ ├── IProjectService.cs
-│ │ │ │ ├── IContractorService.cs
-│ │ │ │ ├── ISupervisorService.cs
-│ │ │ │ ├── INotificationService.cs
-│ │ │ │ └── IFileService.cs
-│ │ │ ├── AuthService.cs
-│ │ │ ├── ProjectService.cs
-│ │ │ ├── ContractorService.cs
-│ │ │ ├── SupervisorService.cs
-│ │ │ ├── NotificationService.cs
-│ │ │ └── FileService.cs
-│ │ ├── DTOs/
-│ │ │ ├── Auth/
-│ │ │ │ ├── LoginDto.cs
-│ │ │ │ ├── RegisterDto.cs
-│ │ │ │ └── TokenDto.cs
-│ │ │ ├── Project/
-│ │ │ │ ├── CreateProjectDto.cs
-│ │ │ │ ├── UpdateProjectDto.cs
-│ │ │ │ └── ProjectResponseDto.cs
-│ │ │ ├── Contractor/
-│ │ │ └── Supervisor/
-│ │ ├── Validators/
-│ │ │ ├── AuthValidators/
-│ │ │ ├── ProjectValidators/
-│ │ │ └── ContractorValidators/
-│ │ ├── Mappings/
-│ │ │ └── AutoMapperProfile.cs
-│ │ ├── Common/
-│ │ │ ├── Exceptions/
-│ │ │ │ ├── BusinessException.cs
-│ │ │ │ ├── ValidationException.cs
-│ │ │ │ └── NotFoundException.cs
-│ │ │ ├── Constants/
-│ │ │ │ ├── AppConstants.cs
-│ │ │ │ └── ErrorMessages.cs
-│ │ │ └── Helpers/
-│ │ │ ├── JwtHelper.cs
-│ │ │ ├── PasswordHelper.cs
-│ │ │ └── FileHelper.cs
-│ │ └── OCSP.Application.csproj
-│ │
-│ ├── OCSP.Domain/ # Domain Layer
-│ │ ├── Entities/
-│ │ │ ├── User.cs
-│ │ │ ├── Project.cs
-│ │ │ ├── Contractor.cs
-│ │ │ ├── Supervisor.cs
-│ │ │ ├── Contract.cs
-│ │ │ ├── ProgressReport.cs
-│ │ │ ├── MaterialUsage.cs
-│ │ │ ├── Payment.cs
-│ │ │ ├── Notification.cs
-│ │ │ ├── Review.cs
-│ │ │ └── ChatMessage.cs
-│ │ ├── Enums/
-│ │ │ ├── UserRole.cs
-│ │ │ ├── ProjectStatus.cs
-│ │ │ ├── ContractStatus.cs
-│ │ │ └── PaymentStatus.cs
-│ │ ├── Common/
-│ │ │ ├── BaseEntity.cs
-│ │ │ └── AuditableEntity.cs
-│ │ └── OCSP.Domain.csproj
-│ │
-│ ├── OCSP.Infrastructure/ # Infrastructure Layer
-│ │ ├── Data/
-│ │ │ ├── ApplicationDbContext.cs
-│ │ │ ├── Configurations/
-│ │ │ │ ├── UserConfiguration.cs
-│ │ │ │ ├── ProjectConfiguration.cs
-│ │ │ │ ├── ContractorConfiguration.cs
-│ │ │ │ └── SupervisorConfiguration.cs
-│ │ │ ├── Migrations/
-│ │ │ └── Seeding/
-│ │ │ ├── DatabaseSeeder.cs
-│ │ │ └── SeedData/
-│ │ ├── Repositories/
-│ │ │ ├── Interfaces/
-│ │ │ │ ├── IGenericRepository.cs
-│ │ │ │ ├── IUserRepository.cs
-│ │ │ │ ├── IProjectRepository.cs
-│ │ │ │ ├── IContractorRepository.cs
-│ │ │ │ └── ISupervisorRepository.cs
-│ │ │ ├── GenericRepository.cs
-│ │ │ ├── UserRepository.cs
-│ │ │ ├── ProjectRepository.cs
-│ │ │ ├── ContractorRepository.cs
-│ │ │ └── SupervisorRepository.cs
-│ │ ├── ExternalServices/
-│ │ │ ├── Interfaces/
-│ │ │ │ ├── IEmailService.cs
-│ │ │ │ ├── ISmsService.cs
-│ │ │ │ └── ICloudStorageService.cs
-│ │ │ ├── EmailService.cs
-│ │ │ ├── SmsService.cs
-│ │ │ └── CloudStorageService.cs
-│ │ ├── Identity/
-│ │ │ ├── ApplicationUser.cs
-│ │ │ └── ApplicationRole.cs
-│ │ ├── Configurations/
-│ │ │ ├── DatabaseConfiguration.cs
-│ │ │ └── JwtConfiguration.cs
-│ │ └── OCSP.Infrastructure.csproj
-│ │
-│ └── OCSP.AI/ # AI Services (tách riêng)
-│ ├── Services/
-│ │ ├── Interfaces/
-│ │ │ ├── IAIRecommendationService.cs
-│ │ │ ├── IAIReportSummaryService.cs
-│ │ │ ├── IAIAssistantService.cs
-│ │ │ └── IAIAnomalyDetectionService.cs
-│ │ ├── GeminiService.cs
-│ │ ├── RecommendationService.cs
-│ │ ├── ReportSummaryService.cs
-│ │ ├── AssistantService.cs
-│ │ └── AnomalyDetectionService.cs
-│ ├── Models/
-│ │ ├── AIRequest.cs
-│ │ ├── AIResponse.cs
-│ │ └── RecommendationModel.cs
-│ ├── Configurations/
-│ │ └── AIConfiguration.cs
-│ └── OCSP.AI.csproj
+├── 📂 src/
+│   ├── 📂 OCSP.API/              # Web API Layer (.NET)
+│   │   ├── 📂 Controllers/       # API endpoints (Auth, Project, Contractor, ...)
+│   │   ├── 📂 Middlewares/       # Custom middlewares (ErrorHandling, JWT, Logging)
+│   │   ├── 📂 Hubs/              # SignalR real-time hubs (Chat, Notification)
+│   │   ├── 📂 Configurations/    # Swagger, CORS, ServiceCollection extensions
+│   │   ├── 📄 appsettings.json
+│   │   ├── 📄 appsettings.Development.json
+│   │   ├── 📄 Program.cs
+│   │   └── 📄 OCSP.API.csproj
+│   │
+│   ├── 📂 OCSP.Application/      # Application Layer (business logic, DTOs, mapping, helpers)
+│   │   ├── 📂 Services/          # Service interfaces + implementations
+│   │   ├── 📂 DTOs/              # Request/Response DTOs
+│   │   ├── 📂 Validators/        # FluentValidation classes
+│   │   ├── 📂 Mappings/          # AutoMapper profile
+│   │   ├── 📂 Common/            # Helpers, Constants, Exceptions
+│   │   └── 📄 OCSP.Application.csproj
+│   │
+│   ├── 📂 OCSP.Domain/           # Domain Layer (Entities, Enums, Base classes)
+│   │   ├── 📂 Entities/          # Core domain entities (User, Project, Contract, ...)
+│   │   ├── 📂 Enums/             # Enum types (UserRole, ProjectStatus, ...)
+│   │   ├── 📂 Common/            # BaseEntity, AuditableEntity
+│   │   └── 📄 OCSP.Domain.csproj
+│   │
+│   ├── 📂 OCSP.Infrastructure/   # Infrastructure Layer (DB, Identity, Repos, External services)
+│   │   ├── 📂 Data/              # ApplicationDbContext, EF Configurations, Migrations, Seeding
+│   │   ├── 📂 Repositories/      # Repos + Interfaces
+│   │   ├── 📂 ExternalServices/  # Email/SMS/CloudStorage
+│   │   ├── 📂 Identity/          # ApplicationUser, ApplicationRole
+│   │   ├── 📂 Configurations/    # DB & JWT config
+│   │   └── 📄 OCSP.Infrastructure.csproj
+│   │
+│   └── 📂 OCSP.AI/               # AI Services (C# integration with AI models)
+│       ├── 📂 Services/          # AI service interfaces + implementations
+│       ├── 📂 Models/            # AI request/response models
+│       ├── 📂 Configurations/    # AI configs
+│       └── 📄 OCSP.AI.csproj
 │
-├── tests/
-│ ├── OCSP.UnitTests/
-│ ├── OCSP.IntegrationTests/
-│ └── OCSP.API.Tests/
+├── 📂 OCSP.AIService/            # 🆕 FastAPI Service (Python AI microservice)
+│   ├── 📂 app/
+│   │   ├── 📄 main.py            # Entry point (FastAPI app)
+│   │   ├── 📂 api/               # REST endpoints (chat, recommendations)
+│   │   ├── 📂 core/              # Core configs (settings, DB connection)
+│   │   ├── 📂 services/          # Business logic (RAG, embeddings, LLM wrapper)
+│   │   ├── 📂 models/            # Pydantic schemas (request/response models)
+│   │   └── 📂 utils/             # Helpers (text preprocessing, etc.)
+│   ├── 📄 requirements.txt       # Python dependencies
+│   ├── 📄 Dockerfile             # Docker build
+│   └── 📄 README.md              # AI Service guide
 │
-├── docker/
-│ ├── Dockerfile
-│ ├── docker-compose.yml
-│ ├── docker-compose.override.yml
-│ └── postgres/
-│ └── init.sql
+├── 📂 docker/                    # Docker Compose setup
+│   ├── 📄 docker-compose.yml
+│   └── 📄 docker-compose.override.yml
 │
-├── scripts/
-│ ├── setup-database.sh
-│ ├── run-migrations.sh
-│ └── seed-data.sh
+├── 📂 tests/                     # .NET test projects
+│   ├── 📂 OCSP.UnitTests/
+│   ├── 📂 OCSP.IntegrationTests/
+│   └── 📂 OCSP.API.Tests/
 │
-├── docs/
-│ ├── api-documentation.md
-│ ├── database-schema.md
-│ └── deployment-guide.md
+├── 📂 scripts/                   # Automation scripts
+│   ├── 📄 setup-database.sh
+│   ├── 📄 run-migrations.sh
+│   └── 📄 seed-data.sh
 │
-├── .gitignore
-├── README.md
-├── OCSP.Backend.sln
-└── global.json
+├── 📂 docs/                      # Documentation
+│   ├── 📄 api-documentation.md
+│   ├── 📄 database-schema.md
+│   └── 📄 deployment-guide.md
+│
+├── 📄 .gitignore
+├── 📄 README.md
+├── 📄 OCSP.Backend.sln
+└── 📄 global.json
+```

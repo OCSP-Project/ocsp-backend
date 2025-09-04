@@ -173,6 +173,7 @@ namespace OCSP.Application.Services
                 
                 var warningLevel = warningCount switch
                 {
+                    < 0 => 0, // Invalid negative count
                     0 => 1, // First warning
                     1 or 2 => 2, // Second-third warning
                     >= 3 => 3 // Final warning

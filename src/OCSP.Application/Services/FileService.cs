@@ -47,12 +47,12 @@ namespace OCSP.Application.Services
             }
         }
 
-        public async Task DeleteFileAsync(string fileUrl)
+        public Task DeleteFileAsync(string fileUrl)
         {
             try
             {
                 if (string.IsNullOrEmpty(fileUrl))
-                    return;
+                    return Task.CompletedTask;
 
                 // Chuyển đổi URL thành đường dẫn file system
                 var relativePath = fileUrl.TrimStart('/');
@@ -68,6 +68,8 @@ namespace OCSP.Application.Services
                 // Log lỗi nhưng không throw exception để tránh ảnh hưởng đến flow chính
                 Console.WriteLine($"Lỗi khi xóa file: {ex.Message}");
             }
+            
+            return Task.CompletedTask;
         }
 
         public async Task<byte[]> GetFileAsync(string fileUrl)

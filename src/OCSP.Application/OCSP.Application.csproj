@@ -27,5 +27,7 @@
     
     <!-- Entity Framework -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+
+     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 </Project>

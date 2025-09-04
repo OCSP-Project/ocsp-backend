@@ -5,18 +5,18 @@
 namespace OCSP.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateSupervisorForFilters : Migration
+    public partial class UpdateContractStatusEnum : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Không thực hiện thay đổi nào
+
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Không rollback
+
         }
     }
 }

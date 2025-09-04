@@ -1,9 +1,55 @@
-# Trong thư mục OCSP.Backend
-$files = Get-ChildItem -Path "src\OCSP.Domain\Entities\*.cs"
-foreach ($file in $files) {
-    $content = Get-Content $file.FullName
-    if ($content[0] -notmatch "using OCSP.Domain.Common") {
-        $newContent = "using OCSP.Domain.Common;`n`n" + ($content -join "`n")
-        Set-Content -Path $file.FullName -Value $newContent
-    }
-}
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{34FD3D0F-2D3C-4AA4-BB95-AC8F68B24F93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OCSP.API", "src\OCSP.API\OCSP.API.csproj", "{48EEFDAE-352B-4199-A96D-120A0ED9D522}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OCSP.Application", "src\OCSP.Application\OCSP.Application.csproj", "{20EEE411-80E9-4667-AEAA-D0674444A726}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OCSP.Domain", "src\OCSP.Domain\OCSP.Domain.csproj", "{EDC4E4BE-2375-466D-A96B-4E3A26499CB9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OCSP.Infrastructure", "src\OCSP.Infrastructure\OCSP.Infrastructure.csproj", "{2055CBE5-B59C-43F0-B8FB-7C2ECE919146}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OCSP.AI", "src\OCSP.AI\OCSP.AI.csproj", "{C3732C62-8F79-4C2C-8054-E8EE0B6ADB07}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{48EEFDAE-352B-4199-A96D-120A0ED9D522}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48EEFDAE-352B-4199-A96D-120A0ED9D522}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48EEFDAE-352B-4199-A96D-120A0ED9D522}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48EEFDAE-352B-4199-A96D-120A0ED9D522}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20EEE411-80E9-4667-AEAA-D0674444A726}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20EEE411-80E9-4667-AEAA-D0674444A726}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20EEE411-80E9-4667-AEAA-D0674444A726}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20EEE411-80E9-4667-AEAA-D0674444A726}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDC4E4BE-2375-466D-A96B-4E3A26499CB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDC4E4BE-2375-466D-A96B-4E3A26499CB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDC4E4BE-2375-466D-A96B-4E3A26499CB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDC4E4BE-2375-466D-A96B-4E3A26499CB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2055CBE5-B59C-43F0-B8FB-7C2ECE919146}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2055CBE5-B59C-43F0-B8FB-7C2ECE919146}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2055CBE5-B59C-43F0-B8FB-7C2ECE919146}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2055CBE5-B59C-43F0-B8FB-7C2ECE919146}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3732C62-8F79-4C2C-8054-E8EE0B6ADB07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3732C62-8F79-4C2C-8054-E8EE0B6ADB07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3732C62-8F79-4C2C-8054-E8EE0B6ADB07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3732C62-8F79-4C2C-8054-E8EE0B6ADB07}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{48EEFDAE-352B-4199-A96D-120A0ED9D522} = {34FD3D0F-2D3C-4AA4-BB95-AC8F68B24F93}
+		{20EEE411-80E9-4667-AEAA-D0674444A726} = {34FD3D0F-2D3C-4AA4-BB95-AC8F68B24F93}
+		{EDC4E4BE-2375-466D-A96B-4E3A26499CB9} = {34FD3D0F-2D3C-4AA4-BB95-AC8F68B24F93}
+		{2055CBE5-B59C-43F0-B8FB-7C2ECE919146} = {34FD3D0F-2D3C-4AA4-BB95-AC8F68B24F93}
+		{C3732C62-8F79-4C2C-8054-E8EE0B6ADB07} = {34FD3D0F-2D3C-4AA4-BB95-AC8F68B24F93}
+	EndGlobalSection
+EndGlobal

@@ -11,6 +11,8 @@ using System.Text;
 using OCSP.Application.DTOs.Supervisor;
 using OCSP.API.Hubs;
 using System.IO;
+using OCSP.Infrastructure.Repositories.Interfaces;
+using OCSP.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,17 +21,52 @@ var builder = WebApplication.CreateBuilder(args);
 //────────────────────────────────────────────────────────
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Port=5432;Database=ocsp;Username=ocsp;Password=ocsp";
+    ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=root";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+
+// var connectionString =
+//     builder.Configuration.GetConnectionString("DefaultConnection")
+//     ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=root";
 
 //────────────────────────────────────────────────────────
 // 2) Services Registration
 //────────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "OCSP API", Version = "v1" });
+
+    // 🔐 Bearer
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Dán token vào đây. Nếu UI không tự thêm prefix, dùng: Bearer {token}"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
 
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfile));
@@ -38,15 +75,25 @@ builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfil
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
-builder.Services.AddSignalR();
-
+builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IQuoteService, QuoteService>();
+builder.Services.AddScoped<IProposalService, ProposalService>();
+builder.Services.AddScoped<IContractService, ContractService>();
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
+builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
+builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();
+
+// SignalR (required for MapHub)
+builder.Services.AddSignalR();
 
 //────────────────────────────────────────────────────────
 // 3) JWT Authentication
@@ -67,6 +114,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.Zero
         };
     });
+
+
+builder.Services.AddHttpClient<AIRecommendationService>(); // HttpClient cho service
+builder.Services.AddScoped<OCSP.Application.Services.Interfaces.IAIRecommendationService,
+                           OCSP.Application.Services.AIRecommendationService>();
 
 //────────────────────────────────────────────────────────
 // 4) CORS
@@ -100,7 +152,11 @@ using (var scope = app.Services.CreateScope())
     app.UseSwaggerUI();
  }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();

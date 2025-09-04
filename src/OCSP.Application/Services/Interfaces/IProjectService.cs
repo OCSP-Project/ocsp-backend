@@ -6,7 +6,12 @@ namespace OCSP.Application.Services.Interfaces
     {
         // Create Project
         Task<ProjectDetailDto> CreateProjectAsync(CreateProjectDto dto, Guid homeownerId);
-Task<ProjectDetailDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default);
         
+        // Get Project
+        Task<ProjectDetailDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default);
+        Task<List<ProjectResponseDto>> GetProjectsByHomeownerAsync(Guid homeownerId, CancellationToken ct = default);
+        
+        // Update Project
+        Task<ProjectDetailDto> UpdateProjectAsync(Guid projectId, UpdateProjectDto dto, Guid homeownerId);
     }
 }

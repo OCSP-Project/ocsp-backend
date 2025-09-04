@@ -11,9 +11,22 @@ public class ProjectRepository : IProjectRepository
     {
         return await _db.Projects
             .Include(p => p.Participants)
+                .ThenInclude(pp => pp.User)
             .Include(p => p.Supervisor) // optional
             .Include(p => p.Homeowner)  // optional
             .FirstOrDefaultAsync(p => p.Id == id, ct);
+    }
+
+    public async Task<List<Project>> GetByHomeownerIdAsync(Guid homeownerId, CancellationToken ct = default)
+    {
+        return await _db.Projects
+            .AsNoTracking()
+            .Include(p => p.Homeowner)
+            .Include(p => p.Supervisor)
+                .ThenInclude(s => s.User)
+            .Where(p => p.HomeownerId == homeownerId)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(ct);
     }
 
     public Task AddAsync(Project project, CancellationToken ct = default)

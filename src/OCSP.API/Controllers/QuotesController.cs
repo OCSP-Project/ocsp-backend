@@ -38,6 +38,23 @@ namespace OCSP.API.Controllers
         }
 
         // ─────────────────────────────────────────────────────────────
+        // Add invitee to quote (Homeowner)
+        // ─────────────────────────────────────────────────────────────
+        [HttpPost("{id:guid}/invite")]
+        public async Task<IActionResult> AddInvitee(Guid id, [FromBody] AddInviteeDto dto, CancellationToken ct)
+        {
+            var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+            try
+            {
+                await _quoteService.AddInviteeAsync(id, dto.ContractorUserId, uid, ct);
+                return NoContent();
+            }
+            catch (ArgumentException ex)            { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex)  { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)    { return BadRequest(ex.Message); }
+        }
+
+        // ─────────────────────────────────────────────────────────────
         // Send quote (Homeowner) : Draft -> Sent
         // ─────────────────────────────────────────────────────────────
         [HttpPost("{id:guid}/send")]
@@ -47,6 +64,40 @@ namespace OCSP.API.Controllers
             try
             {
                 await _quoteService.SendAsync(id, uid, ct);
+                return NoContent();
+            }
+            catch (ArgumentException ex)            { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex)  { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)    { return BadRequest(ex.Message); }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // Send quote to all contractors (Homeowner)
+        // ─────────────────────────────────────────────────────────────
+        [HttpPost("{id:guid}/send-to-all")]
+        public async Task<IActionResult> SendToAllContractors(Guid id, CancellationToken ct)
+        {
+            var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+            try
+            {
+                await _quoteService.SendToAllContractorsAsync(id, uid, ct);
+                return NoContent();
+            }
+            catch (ArgumentException ex)            { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex)  { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)    { return BadRequest(ex.Message); }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // Send quote to specific contractor (Homeowner)
+        // ─────────────────────────────────────────────────────────────
+        [HttpPost("{id:guid}/send-to-contractor")]
+        public async Task<IActionResult> SendToContractor(Guid id, [FromBody] AddInviteeDto dto, CancellationToken ct)
+        {
+            var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+            try
+            {
+                await _quoteService.SendToContractorAsync(id, dto.ContractorUserId, uid, ct);
                 return NoContent();
             }
             catch (ArgumentException ex)            { return NotFound(ex.Message); }

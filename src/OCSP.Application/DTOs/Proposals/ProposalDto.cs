@@ -12,5 +12,6 @@ namespace OCSP.Application.DTOs.Proposals
         public int DurationDays { get; set; }
         public string? TermsSummary { get; set; }
         public List<ProposalItemDto> Items { get; set; } = new();
+        public ContractorSummaryDto? Contractor { get; set; }
     }
 }

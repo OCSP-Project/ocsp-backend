@@ -79,6 +79,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
 builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<IContractorService, ContractorService>();
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();

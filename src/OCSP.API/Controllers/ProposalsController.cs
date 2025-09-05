@@ -24,6 +24,34 @@ namespace OCSP.API.Controllers
             catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
         }
 
+        [HttpGet("{id:guid}")] // contractor xem bản nháp của mình
+        public async Task<ActionResult<ProposalDto>> GetMy(Guid id, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            try { var res = await _svc.GetMyByIdAsync(id, uid, ct); return Ok(res); }
+            catch (ArgumentException ex)           { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        }
+
+        [HttpGet("by-quote/{quoteId:guid}/mine")] // contractor lấy bản nháp của mình theo quote
+        public async Task<ActionResult<ProposalDto>> GetMyByQuote(Guid quoteId, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            var res = await _svc.GetMyByQuoteAsync(quoteId, uid, ct);
+            if (res == null) return NotFound();
+            return Ok(res);
+        }
+
+        [HttpPut("{id:guid}")] // contractor cập nhật draft
+        public async Task<ActionResult<ProposalDto>> Update(Guid id, [FromBody] UpdateProposalDto dto, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            try { var res = await _svc.UpdateDraftAsync(id, dto, uid, ct); return Ok(res); }
+            catch (ArgumentException ex)           { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
+        }
+
         [HttpPost("{id:guid}/submit")] // contractor submit
         public async Task<IActionResult> Submit(Guid id, CancellationToken ct)
         {

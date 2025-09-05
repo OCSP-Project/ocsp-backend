@@ -15,5 +15,10 @@ namespace OCSP.Application.Services.Interfaces
 
         // homeowner accept 1 proposal (reject các proposal còn lại, đóng quote)
         Task AcceptAsync(Guid proposalId, Guid homeownerId, CancellationToken ct = default);
+
+        // contractor: lấy/sửa draft của chính mình
+        Task<ProposalDto> GetMyByIdAsync(Guid id, Guid contractorUserId, CancellationToken ct = default);
+        Task<ProposalDto?> GetMyByQuoteAsync(Guid quoteId, Guid contractorUserId, CancellationToken ct = default);
+        Task<ProposalDto> UpdateDraftAsync(Guid id, UpdateProposalDto dto, Guid contractorUserId, CancellationToken ct = default);
     }
 }

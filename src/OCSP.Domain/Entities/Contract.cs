@@ -1,11 +1,13 @@
 // OCSP.Domain/Entities/Contract.cs
 using OCSP.Domain.Common;
 using OCSP.Domain.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OCSP.Domain.Entities
 {
     public class Contract : AuditableEntity
     {
+        [ForeignKey("ProjectId")]
         public Guid ProjectId { get; set; }
         public Project Project { get; set; } = default!;
 
@@ -30,5 +32,5 @@ namespace OCSP.Domain.Entities
         public ICollection<ContractItem> Items { get; set; } = new List<ContractItem>();
     }
 
-    
+
 }

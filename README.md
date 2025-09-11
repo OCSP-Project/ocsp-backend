@@ -90,161 +90,110 @@ OCSP.Backend/
 ├── src/
 │ ├── OCSP.API/ # Web API Layer
 │ │ ├── Controllers/
-│ │ │ ├── AuthController.cs
-│ │ │ ├── ProjectController.cs
-│ │ │ ├── ContractorController.cs
-│ │ │ ├── SupervisorController.cs
 │ │ │ ├── AdminController.cs
-│ │ │ └── NotificationController.cs
+│ │ │ ├── AuthController.cs
+│ │ │ ├── ChatController.cs
+│ │ │ ├── ContractorController.cs
+│ │ │ ├── ContractsController.cs
+│ │ │ ├── NotificationController.cs
+│ │ │ ├── ProfileController.cs
+│ │ │ ├── ProjectController.cs
+│ │ │ ├── ProposalsController.cs
+│ │ │ ├── QuotesController.cs
+│ │ │ └── SupervisorController.cs
+│ │ ├── Hubs/ # SignalR Hubs
+│ │ │ ├── ChatHub.cs
+│ │ │ └── NotificationHub.cs
 │ │ ├── Middlewares/
 │ │ │ ├── ErrorHandlingMiddleware.cs
 │ │ │ ├── JwtMiddleware.cs
 │ │ │ └── LoggingMiddleware.cs
-│ │ ├── Hubs/ # SignalR Hubs
-│ │ │ ├── ChatHub.cs
-│ │ │ └── NotificationHub.cs
 │ │ ├── Configurations/
+│ │ │ ├── CorsConfiguration.cs
 │ │ │ ├── ServiceCollectionExtensions.cs
-│ │ │ ├── SwaggerConfiguration.cs
-│ │ │ └── CorsConfiguration.cs
+│ │ │ └── SwaggerConfiguration.cs
 │ │ ├── appsettings.json
 │ │ ├── appsettings.Development.json
 │ │ ├── Program.cs
 │ │ └── OCSP.API.csproj
 │ │
 │ ├── OCSP.Application/ # Application Layer
-│ │ ├── Services/
-│ │ │ ├── Interfaces/
-│ │ │ │ ├── IAuthService.cs
-│ │ │ │ ├── IProjectService.cs
-│ │ │ │ ├── IContractorService.cs
-│ │ │ │ ├── ISupervisorService.cs
-│ │ │ │ ├── INotificationService.cs
-│ │ │ │ └── IFileService.cs
-│ │ │ ├── AuthService.cs
-│ │ │ ├── ProjectService.cs
-│ │ │ ├── ContractorService.cs
-│ │ │ ├── SupervisorService.cs
-│ │ │ ├── NotificationService.cs
-│ │ │ └── FileService.cs
-│ │ ├── DTOs/
-│ │ │ ├── Auth/
-│ │ │ │ ├── LoginDto.cs
-│ │ │ │ ├── RegisterDto.cs
-│ │ │ │ └── TokenDto.cs
-│ │ │ ├── Project/
-│ │ │ │ ├── CreateProjectDto.cs
-│ │ │ │ ├── UpdateProjectDto.cs
-│ │ │ │ └── ProjectResponseDto.cs
-│ │ │ ├── Contractor/
-│ │ │ └── Supervisor/
-│ │ ├── Validators/
-│ │ │ ├── AuthValidators/
-│ │ │ ├── ProjectValidators/
-│ │ │ └── ContractorValidators/
-│ │ ├── Mappings/
-│ │ │ └── AutoMapperProfile.cs
 │ │ ├── Common/
-│ │ │ ├── Exceptions/
-│ │ │ │ ├── BusinessException.cs
-│ │ │ │ ├── ValidationException.cs
-│ │ │ │ └── NotFoundException.cs
 │ │ │ ├── Constants/
 │ │ │ │ ├── AppConstants.cs
 │ │ │ │ └── ErrorMessages.cs
-│ │ │ └── Helpers/
-│ │ │ ├── JwtHelper.cs
-│ │ │ ├── PasswordHelper.cs
-│ │ │ └── FileHelper.cs
-│ │ └── OCSP.Application.csproj
+│ │ │ ├── Exceptions/ (3 files)
+│ │ │ └── Helpers/ (3 files)
+│ │ ├── DTOs/
+│ │ │ ├── Auth/ (7 files)
+│ │ │ ├── Common/ (1 file)
+│ │ │ ├── Contractor/ (11 files)
+│ │ │ ├── Contracts/ (7 files)
+│ │ │ ├── Profile/ (1 file)
+│ │ │ ├── Project/ (4 files)
+│ │ │ ├── Proposals/ (5 files)
+│ │ │ ├── Quotes/ (4 files)
+│ │ │ └── Supervisor/ (3 files)
+│ │ ├── Mappings/
+│ │ │ ├── AutoMapperProfile.cs
+│ │ │ └── ContractorMappingProfile.cs
+│ │ ├── Services/
+│ │ │ ├── Interfaces/ (12 files)
+│ │ │ ├── AIRecommendationService.cs
+│ │ │ ├── AuthService.cs
+│ │ │ ├── ChatService.cs
+│ │ │ ├── ContractorService.cs
+│ │ │ ├── ContractService.cs
+│ │ │ ├── FileService.cs
+│ │ │ ├── NotificationService.cs
+│ │ │ ├── ProfileService.cs
+│ │ │ ├── ProjectService.cs
+│ │ │ ├── ProposalService.cs
+│ │ │ ├── QuoteService.cs
+│ │ │ └── SupervisorService.cs
+│ │ └── Validators/
+│ │ ├── AuthValidators/...
+│ │ ├── ContractorValidators/...
+│ │ └── ProjectValidators/...
 │ │
 │ ├── OCSP.Domain/ # Domain Layer
-│ │ ├── Entities/
-│ │ │ ├── User.cs
-│ │ │ ├── Project.cs
-│ │ │ ├── Contractor.cs
-│ │ │ ├── Supervisor.cs
-│ │ │ ├── Contract.cs
-│ │ │ ├── ProgressReport.cs
-│ │ │ ├── MaterialUsage.cs
-│ │ │ ├── Payment.cs
-│ │ │ ├── Notification.cs
-│ │ │ ├── Review.cs
-│ │ │ └── ChatMessage.cs
-│ │ ├── Enums/
-│ │ │ ├── UserRole.cs
-│ │ │ ├── ProjectStatus.cs
-│ │ │ ├── ContractStatus.cs
-│ │ │ └── PaymentStatus.cs
 │ │ ├── Common/
-│ │ │ ├── BaseEntity.cs
-│ │ │ └── AuditableEntity.cs
-│ │ └── OCSP.Domain.csproj
+│ │ │ ├── AuditableEntity.cs
+│ │ │ └── BaseEntity.cs
+│ │ ├── Entities/ (21 files)
+│ │ └── Enums/ (10 files)
 │ │
 │ ├── OCSP.Infrastructure/ # Infrastructure Layer
-│ │ ├── Data/
-│ │ │ ├── ApplicationDbContext.cs
-│ │ │ ├── Configurations/
-│ │ │ │ ├── UserConfiguration.cs
-│ │ │ │ ├── ProjectConfiguration.cs
-│ │ │ │ ├── ContractorConfiguration.cs
-│ │ │ │ └── SupervisorConfiguration.cs
-│ │ │ ├── Migrations/
-│ │ │ └── Seeding/
-│ │ │ ├── DatabaseSeeder.cs
-│ │ │ └── SeedData/
-│ │ ├── Repositories/
-│ │ │ ├── Interfaces/
-│ │ │ │ ├── IGenericRepository.cs
-│ │ │ │ ├── IUserRepository.cs
-│ │ │ │ ├── IProjectRepository.cs
-│ │ │ │ ├── IContractorRepository.cs
-│ │ │ │ └── ISupervisorRepository.cs
-│ │ │ ├── GenericRepository.cs
-│ │ │ ├── UserRepository.cs
-│ │ │ ├── ProjectRepository.cs
-│ │ │ ├── ContractorRepository.cs
-│ │ │ └── SupervisorRepository.cs
-│ │ ├── ExternalServices/
-│ │ │ ├── Interfaces/
-│ │ │ │ ├── IEmailService.cs
-│ │ │ │ ├── ISmsService.cs
-│ │ │ │ └── ICloudStorageService.cs
-│ │ │ ├── EmailService.cs
-│ │ │ ├── SmsService.cs
-│ │ │ └── CloudStorageService.cs
-│ │ ├── Identity/
-│ │ │ ├── ApplicationUser.cs
-│ │ │ └── ApplicationRole.cs
 │ │ ├── Configurations/
 │ │ │ ├── DatabaseConfiguration.cs
 │ │ │ └── JwtConfiguration.cs
-│ │ └── OCSP.Infrastructure.csproj
+│ │ ├── Data/ (9 files)
+│ │ ├── ExternalServices/ (6 files)
+│ │ ├── Identity/
+│ │ │ ├── ApplicationRole.cs
+│ │ │ └── ApplicationUser.cs
+│ │ ├── Migrations/ (3 files)
+│ │ └── Repositories/ (10 files)
 │ │
 │ └── OCSP.AI/ # AI Services (tách riêng)
-│ ├── Services/
-│ │ ├── Interfaces/
-│ │ │ ├── IAIRecommendationService.cs
-│ │ │ ├── IAIReportSummaryService.cs
-│ │ │ ├── IAIAssistantService.cs
-│ │ │ └── IAIAnomalyDetectionService.cs
-│ │ ├── GeminiService.cs
-│ │ ├── RecommendationService.cs
-│ │ ├── ReportSummaryService.cs
-│ │ ├── AssistantService.cs
-│ │ └── AnomalyDetectionService.cs
+│ ├── Configurations/
+│ │ └── AIConfiguration.cs
 │ ├── Models/
 │ │ ├── AIRequest.cs
 │ │ ├── AIResponse.cs
 │ │ └── RecommendationModel.cs
-│ ├── Configurations/
-│ │ └── AIConfiguration.cs
-│ └── OCSP.AI.csproj
+│ └── Services/
+│ ├── Interfaces/ (4 files)
+│ ├── AnomalyDetectionService.cs
+│ ├── AssistantService.cs
+│ ├── GeminiService.cs
+│ ├── RecommendationService.cs
+│ └── ReportSummaryService.cs
 │
 ├── tests/
-│ ├── OCSP.UnitTests/
+│ ├── OCSP.API.Tests/
 │ ├── OCSP.IntegrationTests/
-│ └── OCSP.API.Tests/
+│ └── OCSP.UnitTests/
 │
 ├── docker/
 │ ├── Dockerfile
@@ -254,16 +203,15 @@ OCSP.Backend/
 │ └── init.sql
 │
 ├── scripts/
-│ ├── setup-database.sh
 │ ├── run-migrations.sh
-│ └── seed-data.sh
+│ ├── seed-data.sh
+│ └── setup-database.sh
 │
 ├── docs/
 │ ├── api-documentation.md
 │ ├── database-schema.md
 │ └── deployment-guide.md
 │
-├── .gitignore
-├── README.md
 ├── OCSP.Backend.sln
-└── global.json
+├── global.json
+└── README.md

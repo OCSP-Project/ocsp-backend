@@ -47,6 +47,7 @@ public DbSet<ProposalItem> ProposalItems { get; set; }
         public DbSet<ContractorPortfolio> ContractorPortfolios { get; set; }
         public DbSet<Communication> Communications { get; set; }
         public DbSet<Review> Reviews { get; set; } // Add if not exists
+        public DbSet<ProgressMedia> ProgressMedias { get; set; }
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
@@ -128,6 +129,8 @@ public DbSet<ProposalItem> ProposalItems { get; set; }
             .WithMany()
             .HasForeignKey(e => e.HomeownerId)
             .OnDelete(DeleteBehavior.Restrict);
+
+                        
 
                         // (Optional) nếu bạn muốn cấu hình Contracts rõ ràng:
                         // entity.HasMany(p => p.Contracts)
@@ -283,6 +286,39 @@ public DbSet<ProposalItem> ProposalItems { get; set; }
                         .WithMany()
                         .HasForeignKey(e => e.ProjectId)
                         .OnDelete(DeleteBehavior.Restrict);
+                  });
+
+                  // ProgressMedia entity configuration
+                  modelBuilder.Entity<ProgressMedia>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+
+                        entity.Property(e => e.Url)
+                        .IsRequired()
+                        .HasMaxLength(1000);
+
+                        entity.Property(e => e.Caption)
+                        .HasMaxLength(500);
+
+                        entity.Property(e => e.FileName)
+                        .IsRequired()
+                        .HasMaxLength(255);
+
+                        entity.Property(e => e.ContentType)
+                        .IsRequired()
+                        .HasMaxLength(100);
+
+                        entity.HasOne(e => e.Project)
+                        .WithMany()
+                        .HasForeignKey(e => e.ProjectId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Creator)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatorId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                        entity.HasIndex(e => new { e.ProjectId, e.CreatedAt });
                   });
             // QuoteRequest
 modelBuilder.Entity<QuoteRequest>(e =>

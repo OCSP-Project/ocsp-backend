@@ -39,6 +39,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "OCSP API", Version = "v1" });
+    
+    c.CustomSchemaIds(type => type.FullName);
 
     // 🔐 Bearer
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -80,6 +82,7 @@ builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
 builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IContractorService, ContractorService>();
+builder.Services.AddScoped<IProgressMediaService, ProgressMediaService>();
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -89,6 +92,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
 builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
 builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
+builder.Services.AddScoped<IProgressMediaRepository, ProgressMediaRepository>();
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();

@@ -8,15 +8,17 @@ public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projectRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IContractorRepository _contractorRepository;
 
 
     public ProjectService(
         IProjectRepository projectRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IContractorRepository contractorRepository)
     {
         _projectRepository = projectRepository;
         _userRepository = userRepository;
-
+        _contractorRepository = contractorRepository;
     }
 
     public async Task<List<ProjectResponseDto>> GetProjectsByHomeownerAsync(Guid homeownerId, CancellationToken ct = default)
@@ -95,7 +97,7 @@ public class ProjectService : IProjectService
         _ = await _userRepository.GetByIdAsync(homeownerId)
             ?? throw new ArgumentException("Homeowner not found");
 
-        // Khởi tạo project (KHÔNG gán Supervisor)
+        // Khởi tạo project (có thể gán Contractor)
         var project = new Project
         {
             Name = dto.Name.Trim(),
@@ -108,11 +110,12 @@ public class ProjectService : IProjectService
             EstimatedCompletionDate = dto.EstimatedCompletionDate,
             Status = ProjectStatus.Active, // hoặc Draft tùy policy
             HomeownerId = homeownerId,
-            SupervisorId = null
+            SupervisorId = null,
+            ContractorId = dto.ContractorId // Gán contractor nếu có
         };
 
         // Thêm participant: Homeowner
-        project.Participants = new List<ProjectParticipant>
+        var participants = new List<ProjectParticipant>
         {
             new ProjectParticipant
             {
@@ -123,6 +126,26 @@ public class ProjectService : IProjectService
                 JoinedAt = DateTime.UtcNow
             }
         };
+
+        // Thêm Contractor vào participants nếu có
+        if (dto.ContractorId.HasValue)
+        {
+            // Lấy UserId từ ContractorId
+            var contractor = await _contractorRepository.GetByIdAsync(dto.ContractorId.Value);
+            if (contractor != null)
+            {
+                participants.Add(new ProjectParticipant
+                {
+                    Project = project,
+                    UserId = contractor.UserId, // Dùng UserId thay vì ContractorId
+                    Role = ProjectRole.Contractor,
+                    Status = ParticipantStatus.Active,
+                    JoinedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        project.Participants = participants;
 
         await _projectRepository.AddAsync(project);
         await _projectRepository.SaveChangesAsync();

@@ -15,5 +15,8 @@ namespace OCSP.Application.DTOs.Project
 
         // Supervisor chỉ định (optional)
         // public Guid? SupervisorId { get; set; }
+        
+        // Contractor chỉ định (optional)
+        public Guid? ContractorId { get; set; }
     }
 }

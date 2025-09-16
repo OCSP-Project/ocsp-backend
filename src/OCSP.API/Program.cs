@@ -21,7 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 //────────────────────────────────────────────────────────
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=root";
+    ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=123";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -79,6 +79,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
 builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<IProjectTimelineService, ProjectTimelineService>();
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -86,6 +87,9 @@ builder.Services.AddScoped<ISupervisorService, SupervisorService>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
+builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
+builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
+builder.Services.AddScoped<IProjectTimelineRepository, ProjectTimelineRepository>();
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();

@@ -1,6 +1,6 @@
 namespace OCSP.Application.DTOs.Proposals
 {
-    public class ContractorSummaryDto
+    public class ProposalContractorSummaryDto
     {
         public string CompanyName { get; set; } = string.Empty;
         public string ContactPerson { get; set; } = string.Empty;

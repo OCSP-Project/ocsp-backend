@@ -20,7 +20,7 @@ namespace OCSP.API.Controllers
             var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
             try { var res = await _svc.CreateAsync(dto, uid, ct); return CreatedAtAction(nameof(GetByQuote), new { quoteId = res.QuoteRequestId }, res); }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
-            catch (UnauthorizedAccessException ex) { return StatusCode(403, ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
             catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
         }
 
@@ -30,7 +30,7 @@ namespace OCSP.API.Controllers
             var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
             try { var res = await _svc.GetMyByIdAsync(id, uid, ct); return Ok(res); }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
-            catch (UnauthorizedAccessException ex) { return StatusCode(403, ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
         }
 
         [HttpGet("by-quote/{quoteId:guid}/mine")] // contractor lấy bản nháp của mình theo quote
@@ -48,7 +48,7 @@ namespace OCSP.API.Controllers
             var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
             try { var res = await _svc.UpdateDraftAsync(id, dto, uid, ct); return Ok(res); }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
-            catch (UnauthorizedAccessException ex) { return StatusCode(403, ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
             catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
         }
 
@@ -58,7 +58,7 @@ namespace OCSP.API.Controllers
             var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
             try { await _svc.SubmitAsync(id, uid, ct); return NoContent(); }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
-            catch (UnauthorizedAccessException ex) { return StatusCode(403, ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
             catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
         }
 
@@ -68,7 +68,7 @@ namespace OCSP.API.Controllers
             var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
             try { var list = await _svc.ListByQuoteAsync(quoteId, uid, ct); return Ok(list); }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
-            catch (UnauthorizedAccessException ex) { return StatusCode(403, ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
         }
 
         [HttpPost("{id:guid}/accept")] // homeowner accept 1 proposal
@@ -77,7 +77,7 @@ namespace OCSP.API.Controllers
             var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
             try { await _svc.AcceptAsync(id, uid, ct); return NoContent(); }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
-            catch (UnauthorizedAccessException ex) { return StatusCode(403, ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
             catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
         }
 

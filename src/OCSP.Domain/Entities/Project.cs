@@ -37,5 +37,8 @@ namespace OCSP.Domain.Entities
         public ICollection<ProjectParticipant> Participants { get; set; } = new List<ProjectParticipant>();
         public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
         public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
+        
+        // NEW: Daily Resources
+        public ICollection<ProjectDailyResource> DailyResources { get; set; } = new List<ProjectDailyResource>();
     }
 }

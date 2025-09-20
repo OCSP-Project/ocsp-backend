@@ -76,3 +76,6 @@ ORDER BY c."CreatedAt" DESC;
 EOF
 
 echo "✅ Contractor data seeded successfully!"
+
+
+

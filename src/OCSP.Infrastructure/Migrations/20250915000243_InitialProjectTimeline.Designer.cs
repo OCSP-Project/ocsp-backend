@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OCSP.Infrastructure.Data;
@@ -11,9 +12,11 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250915000243_InitialProjectTimeline")]
+    partial class InitialProjectTimeline
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1684,90 +1687,7 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.Navigation("Conversations");
 
-                    b.Navigation("DailyResources");
-
                     b.Navigation("Participants");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.ProjectDailyResource", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("AggregateConsumed")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("AggregateRemaining")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("CementConsumed")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("CementRemaining")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("ConcreteMixer")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("MaterialHoist")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("PassengerHoist")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ResourceDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("SandConsumed")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("SandRemaining")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("TowerCrane")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("Vibrator")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId", "ResourceDate");
-
-                    b.HasIndex("ResourceDate");
-
-                    b.ToTable("ProjectDailyResources");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.ProjectDailyResource", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
-                        .WithMany("DailyResources")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.ProjectTimeline", b =>

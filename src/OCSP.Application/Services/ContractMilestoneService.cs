@@ -29,8 +29,9 @@ namespace OCSP.Application.Services
     if (contract.HomeownerUserId != currentUserId)
         throw new UnauthorizedAccessException("Only homeowner can create milestones");
 
-    if (contract.Status != ContractStatus.Active && contract.Status != ContractStatus.PendingSignatures)
-        throw new InvalidOperationException("Contract is not active/pending-signatures");
+    if (contract.Status != ContractStatus.Active)
+    throw new InvalidOperationException("Contract must be Active (both parties signed) to create milestones");
+
 
     var totalExisting = await _db.ContractMilestones
         .Where(m => m.ContractId == contract.Id)
@@ -71,8 +72,9 @@ namespace OCSP.Application.Services
             if (contract.HomeownerUserId != currentUserId)
                 throw new UnauthorizedAccessException("Only homeowner can create milestones");
 
-            if (contract.Status != ContractStatus.Active && contract.Status != ContractStatus.PendingSignatures)
-                throw new InvalidOperationException("Contract is not active/pending-signatures");
+            if (contract.Status != ContractStatus.Active)
+    throw new InvalidOperationException("Contract must be Active (both parties signed) to create milestones");
+
 
             // Validate từng item & tính tổng new
             decimal totalNew = 0;
@@ -96,14 +98,17 @@ namespace OCSP.Application.Services
 
             // Tạo danh sách
             var milestones = dto.Milestones.Select(m => new ContractMilestone
-            {
-                ContractId = contract.Id,
-                Name = m.Name.Trim(),
-                Amount = m.Amount,
-                DueDate = m.DueDate,
-                Note = string.IsNullOrWhiteSpace(m.Note) ? null : m.Note!.Trim(),
-                Status = MilestoneStatus.Planned
-            }).ToList();
+{
+    ContractId = contract.Id,
+    Name = m.Name.Trim(),
+    Amount = m.Amount,
+    DueDate = m.DueDate,
+    Note = string.IsNullOrWhiteSpace(m.Note) ? null : m.Note!.Trim(),
+    Status = MilestoneStatus.Planned,
+    CreatedAt = DateTime.UtcNow,
+    UpdatedAt = DateTime.UtcNow
+}).ToList();
+
 
             _db.ContractMilestones.AddRange(milestones);
             await _db.SaveChangesAsync(ct);

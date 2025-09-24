@@ -30,6 +30,9 @@ namespace OCSP.Domain.Entities
         public DateTime? SignedByContractorAt { get; set; }
 
         public ICollection<ContractItem> Items { get; set; } = new List<ContractItem>();
+        public ICollection<ContractMilestone> Milestones { get; set; } = new List<ContractMilestone>();
+public EscrowAccount? Escrow { get; set; }
+
     }
 
 

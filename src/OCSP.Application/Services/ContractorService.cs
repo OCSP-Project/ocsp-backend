@@ -73,8 +73,13 @@ namespace OCSP.Application.Services
                 isPremium: searchDto.IsPremium
             );
 
+<<<<<<< HEAD
             var contractorDtos = _mapper.Map<List<ContractorSummaryDto>>(contractors);
 
+=======
+            var contractorDtos = _mapper.Map<List<ContractorProfileSummaryDto>>(contractors);
+            
+>>>>>>> 7cd304bc026c4a02b16f5d2a8e12857e2ba8c47b
             return new ContractorListResponseDto
             {
                 Contractors = contractorDtos,
@@ -143,7 +148,7 @@ namespace OCSP.Application.Services
 
                 recommendations.Add(new ContractorRecommendationDto
                 {
-                    Contractor = _mapper.Map<ContractorSummaryDto>(contractor),
+                    Contractor = _mapper.Map<ContractorProfileSummaryDto>(contractor),
                     MatchScore = matchScore,
                     MatchReason = matchReason,
                     MatchingFactors = matchingFactors

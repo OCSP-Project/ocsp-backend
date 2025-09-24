@@ -36,18 +36,18 @@ namespace OCSP.Application.DTOs.Quotes
         public int? DurationDays { get; set; }
     }
 
-    public class QuoteRequestDetailDto
-    {
-        public Guid Id { get; set; }
-        public string Scope { get; set; } = "";
-        public DateTime? DueDate { get; set; }
-        public string Status { get; set; } = "";
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+    // public class QuoteRequestDetailDto
+    // {
+    //     public Guid Id { get; set; }
+    //     public string Scope { get; set; } = "";
+    //     public DateTime? DueDate { get; set; }
+    //     public string Status { get; set; } = "";
+    //     public DateTime CreatedAt { get; set; }
+    //     public DateTime UpdatedAt { get; set; }
 
-        public ProjectSummaryDto Project { get; set; } = new();
-        public HomeownerSummaryDto Homeowner { get; set; } = new();
-        public List<InviteeSummaryDto> Invitees { get; set; } = new();
-        public MyProposalSummaryDto MyProposal { get; set; } = new();
-    }
+    //     public ProjectSummaryDto Project { get; set; } = new();
+    //     public HomeownerSummaryDto Homeowner { get; set; } = new();
+    //     public List<InviteeSummaryDto> Invitees { get; set; } = new();
+    //     public MyProposalSummaryDto MyProposal { get; set; } = new();
+    // }
 }

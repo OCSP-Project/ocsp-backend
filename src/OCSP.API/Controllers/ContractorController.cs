@@ -142,7 +142,7 @@ namespace OCSP.API.Controllers
         /// Get featured/premium contractors for homepage
         /// </summary>
         [HttpGet("featured")]
-        public async Task<ActionResult<List<ContractorSummaryDto>>> GetFeaturedContractors([FromQuery] int count = 6)
+        public async Task<ActionResult<List<ContractorProfileSummaryDto >>> GetFeaturedContractors([FromQuery] int count = 6)
         {
             try
             {

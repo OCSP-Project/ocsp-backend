@@ -13,6 +13,7 @@ using OCSP.API.Hubs;
 using System.IO;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Infrastructure.Repositories;
+using OCSP.Application.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -82,6 +83,11 @@ builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
 builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IContractorService, ContractorService>();
+builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>();
+builder.Services.AddScoped<IEscrowService, EscrowService>();
+builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VnPay"));
+builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Payments"));
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -91,6 +97,9 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
 builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
 builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
+builder.Services.AddScoped<IContractMilestoneRepository, ContractMilestoneRepository>();
+builder.Services.AddScoped<IContractRepository, ContractRepository>();
+builder.Services.AddScoped<IContractRepository, ContractRepository>();
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();
@@ -153,7 +162,9 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
 }
+
 
 if (!app.Environment.IsDevelopment())
 {

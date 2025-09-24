@@ -1,1 +1,0 @@
-namespace OCSP.AI.Models { public record AIResponse(string Output); }

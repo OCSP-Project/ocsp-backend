@@ -6,6 +6,7 @@ using System.Security.Claims;
 
 namespace OCSP.API.Controllers
 {
+
     [ApiController]
     [Route("api/[controller]")]
     public class ContractorController : ControllerBase
@@ -28,9 +29,9 @@ namespace OCSP.API.Controllers
             try
             {
                 _logger.LogInformation("Searching contractors with query: {Query}", searchDto.Query);
-                
+
                 var result = await _contractorService.SearchContractorsAsync(searchDto);
-                
+
                 _logger.LogInformation("Found {Count} contractors", result.TotalCount);
                 return Ok(result);
             }
@@ -40,13 +41,33 @@ namespace OCSP.API.Controllers
                 return StatusCode(500, new { Message = "An error occurred while searching contractors." });
             }
         }
+        [HttpPost("bulk-create")]
+        // [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<BulkContractorResponseDto>> BulkCreateContractors([FromBody] BulkContractorRequestDto request)
+        {
+            try
+            {
+                _logger.LogInformation("Creating {Count} contractors", request.Contractors.Count);
 
+                var result = await _contractorService.BulkCreateContractorsAsync(request);
+
+                _logger.LogInformation("Successfully created {Success} contractors, {Failed} failed",
+                    result.SuccessfulCount, result.FailedCount);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating bulk contractors");
+                return StatusCode(500, new { Message = "An error occurred while creating contractors." });
+            }
+        }
         /// <summary>
         /// UC-17: Get all contractors with pagination
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<ContractorListResponseDto>> GetAllContractors(
-            [FromQuery] int page = 1, 
+            [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
             try
@@ -55,9 +76,9 @@ namespace OCSP.API.Controllers
                 if (pageSize < 1 || pageSize > 50) pageSize = 10;
 
                 _logger.LogInformation("Getting contractors list - Page: {Page}, PageSize: {PageSize}", page, pageSize);
-                
+
                 var result = await _contractorService.GetAllContractorsAsync(page, pageSize);
-                
+
                 return Ok(result);
             }
             catch (Exception ex)
@@ -76,15 +97,15 @@ namespace OCSP.API.Controllers
             try
             {
                 _logger.LogInformation("Getting contractor profile for ID: {ContractorId}", contractorId);
-                
+
                 var contractor = await _contractorService.GetContractorProfileAsync(contractorId);
-                
+
                 if (contractor == null)
                 {
                     _logger.LogWarning("Contractor not found with ID: {ContractorId}", contractorId);
                     return NotFound(new { Message = "Contractor not found." });
                 }
-                
+
                 return Ok(contractor);
             }
             catch (Exception ex)
@@ -104,9 +125,9 @@ namespace OCSP.API.Controllers
             try
             {
                 _logger.LogInformation("Getting AI recommendations for project: {Description}", requestDto.ProjectDescription);
-                
+
                 var recommendations = await _contractorService.GetAIRecommendationsAsync(requestDto);
-                
+
                 _logger.LogInformation("Generated {Count} recommendations", recommendations.Count);
                 return Ok(recommendations);
             }
@@ -188,30 +209,30 @@ namespace OCSP.API.Controllers
             try
             {
                 var fromUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
-                
+
                 var warning = await _contractorService.ValidateCommunicationAsync(dto.Content, fromUserId, dto.ToUserId);
-                
+
                 if (warning != null)
                 {
                     // Log the communication with flag
                     await _contractorService.LogCommunicationAsync(
-                        fromUserId, 
-                        dto.ToUserId, 
-                        dto.Content, 
+                        fromUserId,
+                        dto.ToUserId,
+                        dto.Content,
                         Domain.Enums.CommunicationType.Chat,
                         dto.ProjectId);
-                        
+
                     return Ok(warning);
                 }
-                
+
                 // Log normal communication
                 await _contractorService.LogCommunicationAsync(
-                    fromUserId, 
-                    dto.ToUserId, 
-                    dto.Content, 
+                    fromUserId,
+                    dto.ToUserId,
+                    dto.Content,
                     Domain.Enums.CommunicationType.Chat,
                     dto.ProjectId);
-                
+
                 return Ok();
             }
             catch (Exception ex)

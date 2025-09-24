@@ -1,1 +1,0 @@
-namespace OCSP.AI.Services.Interfaces { public interface IAIAssistantService { } }

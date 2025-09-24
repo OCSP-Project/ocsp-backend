@@ -1,1 +1,0 @@
-namespace OCSP.AI.Models { public record RecommendationModel(string Suggestion); }

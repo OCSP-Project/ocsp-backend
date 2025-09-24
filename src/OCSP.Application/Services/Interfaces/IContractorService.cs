@@ -1,6 +1,6 @@
 
 using OCSP.Application.DTOs.Contractor;
-
+using OCSP.Application.DTOs.Contracts;
 
 
 using OCSP.Domain.Enums;
@@ -8,6 +8,7 @@ namespace OCSP.Application.Services.Interfaces
 {
     public interface IContractorService
     {
+        Task<BulkContractorResponseDto> BulkCreateContractorsAsync(BulkContractorRequestDto request);
         Task<ContractorListResponseDto> SearchContractorsAsync(ContractorSearchDto searchDto);
         Task<ContractorListResponseDto> GetAllContractorsAsync(int page = 1, int pageSize = 10);
         Task<ContractorProfileDto?> GetContractorProfileAsync(Guid contractorId);

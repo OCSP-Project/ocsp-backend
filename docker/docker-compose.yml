@@ -74,10 +74,12 @@ services:
     networks:
       - ocsp-network
 
+
+
 volumes:
   db_data:
-  pgadmin_data:  # Thêm volume cho pgAdmin
-
+  pgadmin_data:  
+  hf_cache: {}
 networks:
   ocsp-network:
     driver: bridge

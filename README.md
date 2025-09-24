@@ -175,21 +175,6 @@ OCSP.Backend/
 │ │ ├── Migrations/ (3 files)
 │ │ └── Repositories/ (10 files)
 │ │
-│ └── OCSP.AI/ # AI Services (tách riêng)
-│ ├── Configurations/
-│ │ └── AIConfiguration.cs
-│ ├── Models/
-│ │ ├── AIRequest.cs
-│ │ ├── AIResponse.cs
-│ │ └── RecommendationModel.cs
-│ └── Services/
-│ ├── Interfaces/ (4 files)
-│ ├── AnomalyDetectionService.cs
-│ ├── AssistantService.cs
-│ ├── GeminiService.cs
-│ ├── RecommendationService.cs
-│ └── ReportSummaryService.cs
-│
 ├── tests/
 │ ├── OCSP.API.Tests/
 │ ├── OCSP.IntegrationTests/

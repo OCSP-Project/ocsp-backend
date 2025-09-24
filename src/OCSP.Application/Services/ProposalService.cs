@@ -246,7 +246,7 @@ namespace OCSP.Application.Services
                 Qty = i.Qty,
                 UnitPrice = i.UnitPrice
             }).ToList(),
-            Contractor = contractorInfo != null ? new ContractorSummaryDto
+            Contractor = contractorInfo != null ? new ProposalContractorSummaryDto 
             {
                 CompanyName = contractorInfo.CompanyName ?? "",
                 ContactPerson = profileInfo != null ? $"{profileInfo.FirstName ?? ""} {profileInfo.LastName ?? ""}".Trim() : "",

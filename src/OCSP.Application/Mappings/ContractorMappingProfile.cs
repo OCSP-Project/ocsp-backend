@@ -10,7 +10,7 @@ namespace OCSP.Application.Mappings
     {
         public ContractorMappingProfile()
         {
-            CreateMap<Contractor, ContractorSummaryDto>()
+            CreateMap<Contractor, ContractorProfileSummaryDto>()
                 .ForMember(dest => dest.Specialties, opt => opt.MapFrom(src => src.Specialties.Select(s => s.SpecialtyName).ToList()))
                 .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.Portfolios.OrderBy(p => p.DisplayOrder).FirstOrDefault()!.ImageUrl));
 

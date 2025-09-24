@@ -2,7 +2,7 @@ using OCSP.Domain.Enums;
 
 namespace OCSP.Application.DTOs.Contractor
 {
- public class ContractorSummaryDto
+ public class ContractorProfileSummaryDto
     {
         public Guid Id { get; set; }
         public string CompanyName { get; set; } = string.Empty;

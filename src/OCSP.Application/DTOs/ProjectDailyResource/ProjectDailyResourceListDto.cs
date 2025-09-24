@@ -5,6 +5,13 @@ namespace OCSP.Application.DTOs.ProjectDailyResource
         public Guid Id { get; set; }
         public DateTime ResourceDate { get; set; }
 
+        // Trạng thái từng thiết bị trong ngày
+        public bool TowerCrane { get; set; }
+        public bool ConcreteMixer { get; set; }
+        public bool MaterialHoist { get; set; }
+        public bool PassengerHoist { get; set; }
+        public bool Vibrator { get; set; }
+
         // Tổng thiết bị được sử dụng
         public int EquipmentCount { get; set; }
 

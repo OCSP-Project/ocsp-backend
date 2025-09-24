@@ -206,6 +206,20 @@ namespace OCSP.API.Controllers
             try
             {
                 var result = await _service.GetDailyResourcesByProjectAsync(projectId, cancellationToken);
+                _logger.LogInformation("[ProjectDailyResource] List for project {ProjectId} -> Count: {Count}", projectId, result?.Count);
+                if (result != null && result.Count > 0)
+                {
+                    var first = result[0];
+                    _logger.LogInformation(
+                        "[ProjectDailyResource] First item {Id} on {Date} flags => TowerCrane:{TowerCrane}, ConcreteMixer:{ConcreteMixer}, MaterialHoist:{MaterialHoist}, PassengerHoist:{PassengerHoist}, Vibrator:{Vibrator}",
+                        first.Id,
+                        first.ResourceDate,
+                        first.TowerCrane,
+                        first.ConcreteMixer,
+                        first.MaterialHoist,
+                        first.PassengerHoist,
+                        first.Vibrator);
+                }
                 return Ok(result);
             }
             catch (Exception ex)

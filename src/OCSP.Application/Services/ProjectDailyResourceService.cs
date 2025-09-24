@@ -116,6 +116,11 @@ namespace OCSP.Application.Services
             {
                 Id = e.Id,
                 ResourceDate = e.ResourceDate,
+                TowerCrane = e.TowerCrane,
+                ConcreteMixer = e.ConcreteMixer,
+                MaterialHoist = e.MaterialHoist,
+                PassengerHoist = e.PassengerHoist,
+                Vibrator = e.Vibrator,
                 EquipmentCount = GetEquipmentCount(e),
                 TotalCementConsumed = e.CementConsumed,
                 TotalSandConsumed = e.SandConsumed,
@@ -136,6 +141,11 @@ namespace OCSP.Application.Services
             {
                 Id = e.Id,
                 ResourceDate = e.ResourceDate,
+                TowerCrane = e.TowerCrane,
+                ConcreteMixer = e.ConcreteMixer,
+                MaterialHoist = e.MaterialHoist,
+                PassengerHoist = e.PassengerHoist,
+                Vibrator = e.Vibrator,
                 EquipmentCount = GetEquipmentCount(e),
                 TotalCementConsumed = e.CementConsumed,
                 TotalSandConsumed = e.SandConsumed,

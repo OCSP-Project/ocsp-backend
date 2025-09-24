@@ -1,1 +1,9 @@
-namespace OCSP.Domain.Enums { public enum PaymentStatus { Pending, Paid, Failed, Refunded } }
+namespace OCSP.Domain.Enums
+{
+    public enum PaymentStatus
+    {
+        Pending = 0,
+        Succeeded = 1,
+        Failed = 2
+    }
+}

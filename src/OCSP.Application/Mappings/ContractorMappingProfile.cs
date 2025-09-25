@@ -14,7 +14,8 @@ namespace OCSP.Application.Mappings
                 .ForMember(dest => dest.Specialties, opt => opt.MapFrom(src => src.Specialties.Select(s => s.SpecialtyName).ToList()))
                 .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.Portfolios.OrderBy(p => p.DisplayOrder).FirstOrDefault()!.ImageUrl));
 
-            CreateMap<Contractor, ContractorProfileDto>();
+            CreateMap<Contractor, ContractorProfileDto>()
+                .ForMember(dest => dest.OwnerUserId, opt => opt.MapFrom(src => (Guid?)src.UserId));
             CreateMap<ContractorSpecialty, ContractorSpecialtyDto>();
             CreateMap<ContractorDocument, ContractorDocumentDto>();
             CreateMap<ContractorPortfolio, ContractorPortfolioDto>();

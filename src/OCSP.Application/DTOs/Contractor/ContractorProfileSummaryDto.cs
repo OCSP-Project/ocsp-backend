@@ -2,7 +2,7 @@ using OCSP.Domain.Enums;
 
 namespace OCSP.Application.DTOs.Contractor
 {
- public class ContractorProfileSummaryDto
+    public class ContractorProfileSummaryDto
     {
         public Guid Id { get; set; }
         public string CompanyName { get; set; } = string.Empty;
@@ -21,4 +21,6 @@ namespace OCSP.Application.DTOs.Contractor
         public string? FeaturedImageUrl { get; set; }
         public DateTime CreatedAt { get; set; }
         public int ProfileCompletionPercentage { get; set; }
-    }}
+    }
+}
+

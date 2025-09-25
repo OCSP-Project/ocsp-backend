@@ -8,7 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OCSP.Application\OCSP.Application.csproj" />
     <ProjectReference Include="..\OCSP.Infrastructure\OCSP.Infrastructure.csproj" />
-    <ProjectReference Include="..\OCSP.AI\OCSP.AI.csproj" />
+    
   </ItemGroup>
   
   <ItemGroup>

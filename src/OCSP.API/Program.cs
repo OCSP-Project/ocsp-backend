@@ -36,10 +36,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2) Services Registration
 //────────────────────────────────────────────────────────
 builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "OCSP API", Version = "v1" });
+    c.CustomSchemaIds(t => t.FullName!.Replace("+", "."));
 
     // 🔐 Bearer
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -156,12 +158,13 @@ using (var scope = app.Services.CreateScope())
 //────────────────────────────────────────────────────────
 // 6) Middleware Pipeline
 //────────────────────────────────────────────────────────
- if (app.Environment.IsDevelopment())
- {
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
     app.UseSwaggerUI();
 
- }
+}
+
 
 if (!app.Environment.IsDevelopment())
 {

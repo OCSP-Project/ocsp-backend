@@ -72,7 +72,7 @@ builder.Services.AddSwaggerGen(c =>
 
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfile));
+builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.ContractorMappingProfile).Assembly);
 
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -91,7 +91,7 @@ builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Pay
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
@@ -99,7 +99,7 @@ builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
 builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
 builder.Services.AddScoped<IContractMilestoneRepository, ContractMilestoneRepository>();
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
-builder.Services.AddScoped<IContractRepository, ContractRepository>();
+
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();

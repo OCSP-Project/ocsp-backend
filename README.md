@@ -21,6 +21,8 @@ cd OCSP.Backend
 
 # Thay your-email@gmail.com và your-app-password
 
+TempPassword123!
+
 # Start toàn bộ hệ thống
 
 cd docker

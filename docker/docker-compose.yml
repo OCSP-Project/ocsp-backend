@@ -2,7 +2,9 @@ version: "3.9"
 
 services:
   db:
-    image: postgres:16
+    build:
+      context: ..
+      dockerfile: docker/postgres/Dockerfile
     container_name: ocsp-postgres
     env_file:
       - .env
@@ -72,10 +74,12 @@ services:
     networks:
       - ocsp-network
 
+
+
 volumes:
   db_data:
-  pgadmin_data:  # Thêm volume cho pgAdmin
-
+  pgadmin_data:  
+  hf_cache: {}
 networks:
   ocsp-network:
     driver: bridge

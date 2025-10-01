@@ -36,10 +36,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2) Services Registration
 //────────────────────────────────────────────────────────
 builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "OCSP API", Version = "v1" });
+    c.CustomSchemaIds(t => t.FullName!.Replace("+", "."));
 
     // 🔐 Bearer
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -70,7 +72,7 @@ builder.Services.AddSwaggerGen(c =>
 
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfile));
+builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.ContractorMappingProfile).Assembly);
 
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -89,7 +91,7 @@ builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Pay
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
@@ -97,7 +99,7 @@ builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
 builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
 builder.Services.AddScoped<IContractMilestoneRepository, ContractMilestoneRepository>();
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
-builder.Services.AddScoped<IContractRepository, ContractRepository>();
+
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();
@@ -156,12 +158,13 @@ using (var scope = app.Services.CreateScope())
 //────────────────────────────────────────────────────────
 // 6) Middleware Pipeline
 //────────────────────────────────────────────────────────
- if (app.Environment.IsDevelopment())
- {
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
     app.UseSwaggerUI();
 
- }
+}
+
 
 if (!app.Environment.IsDevelopment())
 {

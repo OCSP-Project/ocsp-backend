@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OCSP.Application.Services.Interfaces;
+using OCSP.Application.DTOs.Chat;
+using OCSP.Domain.Entities;
 
 namespace OCSP.API.Controllers
 {
@@ -14,31 +16,32 @@ namespace OCSP.API.Controllers
             _chatService = chatService;
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // 1) Bắt đầu conversation (Homeowner ↔ Contractor hoặc Group)
-        // ─────────────────────────────────────────────────────────────
         [HttpPost("start")]
         [ProducesResponseType(typeof(ConversationCreatedDto), StatusCodes.Status200OK)]
         public async Task<IActionResult> StartConversation([FromBody] StartChatRequest request)
         {
-            if (request is null || request.ProjectId == Guid.Empty || request.UserIds is null || request.UserIds.Length == 0)
-                return BadRequest("projectId và userIds là bắt buộc.");
+            if (request is null || request.UserIds is null || request.UserIds.Length == 0)
+                return BadRequest("userIds là bắt buộc.");
 
+            // projectId is now optional for consultation chats
             var conversation = await _chatService.StartConversationAsync(request.ProjectId, request.UserIds);
 
             var result = new ConversationCreatedDto
             {
                 ConversationId = conversation.Id,
-                ProjectId      = conversation.ProjectId,
+                ProjectId = conversation.ProjectId ?? Guid.Empty, // Handle null
                 ParticipantIds = conversation.Participants?.Select(p => p.UserId).ToArray() ?? Array.Empty<Guid>()
             };
 
             return Ok(result);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // 2) Lấy danh sách tin nhắn
-        // ─────────────────────────────────────────────────────────────
+        public class StartChatRequest
+        {
+            public Guid? ProjectId { get; set; } // Make nullable
+            public Guid[] UserIds { get; set; } = Array.Empty<Guid>();
+        }
+
         [HttpGet("{conversationId:guid}/messages")]
         [ProducesResponseType(typeof(IEnumerable<MessageDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetMessages([FromRoute] Guid conversationId)
@@ -49,70 +52,49 @@ namespace OCSP.API.Controllers
 
             var result = messages.Select(m => new MessageDto
             {
-                Id             = m.Id,
+                Id = m.Id,
                 ConversationId = m.ConversationId,
-                SenderId       = m.SenderId,
-                Content        = m.Content,
-                CreatedAt      = m.CreatedAt   // 🔹 Dùng CreatedAt thay cho SentAt
+                SenderId = m.SenderId,
+                Content = m.Content,
+                CreatedAt = m.CreatedAt
             });
 
             return Ok(result);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // 3) Gửi tin nhắn
-        // ─────────────────────────────────────────────────────────────
         [HttpPost("{conversationId:guid}/send")]
-        [ProducesResponseType(typeof(MessageDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SendMessageResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> SendMessage([FromRoute] Guid conversationId, [FromBody] SendMessageRequest request)
         {
             if (conversationId == Guid.Empty) return BadRequest("conversationId không hợp lệ.");
             if (request is null || request.SenderId == Guid.Empty || string.IsNullOrWhiteSpace(request.Content))
                 return BadRequest("senderId và content là bắt buộc.");
 
-            var message = await _chatService.SendMessageAsync(conversationId, request.SenderId, request.Content);
+            var result = await _chatService.SendMessageAsync(conversationId, request.SenderId, request.Content);
 
-            var result = new MessageDto
+            var response = new SendMessageResponse
             {
-                Id             = message.Id,
-                ConversationId = message.ConversationId,
-                SenderId       = message.SenderId,
-                Content        = message.Content,
-                CreatedAt      = message.CreatedAt   // 🔹 Dùng CreatedAt thay cho SentAt
+                Message = new MessageDto
+                {
+                    Id = result.Message.Id,
+                    ConversationId = result.Message.ConversationId,
+                    SenderId = result.Message.SenderId,
+                    Content = result.Message.Content,
+                    CreatedAt = result.Message.CreatedAt
+                },
+                Warning = result.Warning,
+                RequiresAcknowledgment = result.Warning?.RequiresAcknowledgment ?? false
             };
 
-            return Ok(result);
+            return Ok(response);
         }
-    }
 
-    // ─────────────────────────────────────────────────────────────
-    // Request/Response DTOs
-    // ─────────────────────────────────────────────────────────────
-    public class StartChatRequest
-    {
-        public Guid   ProjectId { get; set; }
-        public Guid[] UserIds   { get; set; } = Array.Empty<Guid>();
-    }
-
-    public class SendMessageRequest
-    {
-        public Guid   SenderId { get; set; }
-        public string Content  { get; set; } = string.Empty;
-    }
-
-    public class ConversationCreatedDto
-    {
-        public Guid   ConversationId { get; set; }
-        public Guid   ProjectId      { get; set; }
-        public Guid[] ParticipantIds { get; set; } = Array.Empty<Guid>();
-    }
-
-    public class MessageDto
-    {
-        public Guid   Id             { get; set; }
-        public Guid   ConversationId { get; set; }
-        public Guid   SenderId       { get; set; }
-        public string Content        { get; set; } = string.Empty;
-        public DateTimeOffset CreatedAt { get; set; }   // 🔹 Đổi từ SentAt sang CreatedAt
+        // New endpoint for acknowledging warnings
+        [HttpPost("acknowledge-warning")]
+        public IActionResult AcknowledgeWarning([FromBody] AcknowledgeWarningRequest request)
+        {
+            // Remove async since no await operations
+            return Ok(new { Message = "Cảnh báo đã được ghi nhận" });
+        }
     }
 }

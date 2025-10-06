@@ -37,15 +37,8 @@ namespace OCSP.Infrastructure.Data
 
 
         // NEW: Contract
-
-        public DbSet<Contract> Contracts { get; set; }
-        public DbSet<ContractItem> ContractItems { get; set; }
-        // NEW: Milestone & Escrow
-        public DbSet<ContractMilestone> ContractMilestones { get; set; }
-        public DbSet<EscrowAccount> EscrowAccounts { get; set; }
-        public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
-
-
+            public DbSet<Contract> Contracts { get; set; }
+            public DbSet<ContractItem> ContractItems { get; set; }
 
         // Contractor-related entities
         public DbSet<Contractor> Contractors { get; set; }
@@ -54,17 +47,30 @@ namespace OCSP.Infrastructure.Data
         public DbSet<ContractorPortfolio> ContractorPortfolios { get; set; }
         public DbSet<Communication> Communications { get; set; }
         public DbSet<Review> Reviews { get; set; } // Add if not exists
+        public DbSet<ProjectTimeline> ProjectTimelines { get; set; }
+        public DbSet<Milestone> Milestones { get; set; }
+        public DbSet<Deliverable> Deliverables { get; set; }
+
+        public DbSet<ProgressMedia> ProgressMedias { get; set; }
+
+        // NEW: Project Daily Resources
+        public DbSet<ProjectDailyResource> ProjectDailyResources { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Apply contractor configurations
-            modelBuilder.ApplyConfiguration(new ContractorConfiguration());
-            modelBuilder.ApplyConfiguration(new ContractorSpecialtyConfiguration());
-            modelBuilder.ApplyConfiguration(new ContractorDocumentConfiguration());
-            modelBuilder.ApplyConfiguration(new ContractorPortfolioConfiguration());
-            modelBuilder.ApplyConfiguration(new CommunicationConfiguration());
+                  // Apply contractor configurations
+                  modelBuilder.ApplyConfiguration(new ContractorConfiguration());
+                  modelBuilder.ApplyConfiguration(new ContractorSpecialtyConfiguration());
+                  modelBuilder.ApplyConfiguration(new ContractorDocumentConfiguration());
+                  modelBuilder.ApplyConfiguration(new ContractorPortfolioConfiguration());
+                  modelBuilder.ApplyConfiguration(new CommunicationConfiguration());
+
+// Apply project timeline configurations
+            modelBuilder.ApplyConfiguration(new ProjectTimelineConfiguration());
+            modelBuilder.ApplyConfiguration(new MilestoneConfiguration());
+            modelBuilder.ApplyConfiguration(new DeliverableConfiguration());
 
             // ✅ Apply contract configuration (quan trọng để dẹp lỗi mơ hồ FK)
             modelBuilder.ApplyConfiguration(new ContractConfiguration());
@@ -130,11 +136,11 @@ namespace OCSP.Infrastructure.Data
           .HasForeignKey(e => e.SupervisorId)
           .OnDelete(DeleteBehavior.SetNull);   // <-- bỏ .IsRequired()
 
-                // Homeowner (khóa ngoại tới User), nên Restrict xóa
-                entity.HasOne(e => e.Homeowner)
-          .WithMany()
-          .HasForeignKey(e => e.HomeownerId)
-          .OnDelete(DeleteBehavior.Restrict);
+                        // Homeowner (khóa ngoại tới User), nên Restrict xóa
+                        entity.HasOne(e => e.Homeowner)
+            .WithMany()
+            .HasForeignKey(e => e.HomeownerId)
+            .OnDelete(DeleteBehavior.Restrict);
 
                 // (Optional) nếu bạn muốn cấu hình Contracts rõ ràng:
                 // entity.HasMany(p => p.Contracts)
@@ -167,16 +173,15 @@ namespace OCSP.Infrastructure.Data
             });
 
 
-            // Existing Conversation configuration
-            modelBuilder.Entity<Conversation>(e =>
-            {
-                e.HasKey(x => x.Id);
-                e.HasOne(x => x.Project)
-                 .WithMany(p => p.Conversations!)
-                 .HasForeignKey(x => x.ProjectId)
-                 .IsRequired(false)
-                 .OnDelete(DeleteBehavior.SetNull);
-            });
+                  // Existing Conversation configuration
+                  modelBuilder.Entity<Conversation>(e =>
+                  {
+                        e.HasKey(x => x.Id);
+                        e.HasOne(x => x.Project)
+                   .WithMany(p => p.Conversations!)
+                   .HasForeignKey(x => x.ProjectId)
+                   .OnDelete(DeleteBehavior.Cascade);
+                  });
 
             // Existing ConversationParticipant configuration
             modelBuilder.Entity<ConversationParticipant>(entity =>
@@ -287,11 +292,44 @@ namespace OCSP.Infrastructure.Data
                       .HasForeignKey(e => e.ContractorId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(e => e.Project)
-                      .WithMany()
-                      .HasForeignKey(e => e.ProjectId)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
+                        entity.HasOne(e => e.Project)
+                        .WithMany()
+                        .HasForeignKey(e => e.ProjectId)
+                        .OnDelete(DeleteBehavior.Restrict);
+                  });
+
+                  // ProgressMedia entity configuration
+                  modelBuilder.Entity<ProgressMedia>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+
+                        entity.Property(e => e.Url)
+                        .IsRequired()
+                        .HasMaxLength(1000);
+
+                        entity.Property(e => e.Caption)
+                        .HasMaxLength(500);
+
+                        entity.Property(e => e.FileName)
+                        .IsRequired()
+                        .HasMaxLength(255);
+
+                        entity.Property(e => e.ContentType)
+                        .IsRequired()
+                        .HasMaxLength(100);
+
+                        entity.HasOne(e => e.Project)
+                        .WithMany()
+                        .HasForeignKey(e => e.ProjectId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Creator)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatorId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                        entity.HasIndex(e => new { e.ProjectId, e.CreatedAt });
+                  });
             // QuoteRequest
             modelBuilder.Entity<QuoteRequest>(e =>
             {
@@ -345,79 +383,84 @@ namespace OCSP.Infrastructure.Data
             {
                 e.HasKey(x => x.Id);
 
-                e.Property(x => x.Name).HasMaxLength(300);
-                e.Property(x => x.Unit).HasMaxLength(50);
-                e.Property(x => x.Qty).HasColumnType("numeric(18,2)");
-                e.Property(x => x.UnitPrice).HasColumnType("numeric(18,2)");
+    e.Property(x => x.Name).HasMaxLength(300);
+    e.Property(x => x.Unit).HasMaxLength(50);
+    e.Property(x => x.Qty).HasColumnType("numeric(18,2)");
+    e.Property(x => x.UnitPrice).HasColumnType("numeric(18,2)");
 
+    e.HasOne(x => x.Proposal)
+     .WithMany(p => p.Items)
+     .HasForeignKey(x => x.ProposalId)
+     .OnDelete(DeleteBehavior.Cascade);
+});
 
-                e.HasOne(x => x.Proposal)
-                 .WithMany(p => p.Items)
-                 .HasForeignKey(x => x.ProposalId)
-                 .OnDelete(DeleteBehavior.Cascade);
-            });
-            // ContractMilestone
-            modelBuilder.Entity<ContractMilestone>(e =>
+            // ProjectDailyResource configuration
+            modelBuilder.Entity<ProjectDailyResource>(entity =>
             {
-                e.HasKey(x => x.Id);
-                e.Property(x => x.Name).HasMaxLength(200);
-                e.Property(x => x.Amount).HasColumnType("numeric(18,2)");
-                e.Property(x => x.Status).HasConversion<int>();
+                entity.HasKey(e => e.Id);
 
-                // ✅ cấu hình Note
-                e.Property(x => x.Note).HasMaxLength(500);
+                // Foreign key to Project
+                entity.HasOne(e => e.Project)
+                      .WithMany(p => p.DailyResources)
+                      .HasForeignKey(e => e.ProjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
 
-                e.HasOne(x => x.Contract)
-                    .WithMany(c => c.Milestones)
-                    .HasForeignKey(x => x.ContractId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                // Indexes for better performance
+                entity.HasIndex(e => new { e.ProjectId, e.ResourceDate });
+                entity.HasIndex(e => e.ResourceDate);
 
-                e.HasIndex(x => new { x.ContractId, x.Status });
+                // Decimal precision for material quantities
+                entity.Property(e => e.CementConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CementRemaining)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SandConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SandRemaining)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.AggregateConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.AggregateRemaining)
+                      .HasColumnType("decimal(18,2)");
+
+                // Notes field
+                entity.Property(e => e.Notes)
+                      .HasMaxLength(1000);
             });
 
-            // EscrowAccount (1-1 Contract)
-            modelBuilder.Entity<EscrowAccount>(e =>
+            // ProjectDailyResource configuration
+            modelBuilder.Entity<ProjectDailyResource>(entity =>
             {
-                e.HasKey(x => x.Id);
-                e.Property(x => x.Provider).HasConversion<int>();
-                e.Property(x => x.Status).HasConversion<int>();
-                e.Property(x => x.ExternalAccountId).HasMaxLength(100);
-                e.Property(x => x.Balance).HasColumnType("numeric(18,2)");
+                entity.HasKey(e => e.Id);
 
-                e.HasOne(x => x.Contract)
-                 .WithOne(c => c.Escrow)
-                 .HasForeignKey<EscrowAccount>(x => x.ContractId)
-                 .OnDelete(DeleteBehavior.Cascade);
+                // Foreign key to Project
+                entity.HasOne(e => e.Project)
+                      .WithMany(p => p.DailyResources)
+                      .HasForeignKey(e => e.ProjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
 
-                e.HasIndex(x => x.ContractId).IsUnique();
+                // Indexes for better performance
+                entity.HasIndex(e => new { e.ProjectId, e.ResourceDate });
+                entity.HasIndex(e => e.ResourceDate);
+
+                // Decimal precision for material quantities
+                entity.Property(e => e.CementConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CementRemaining)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SandConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SandRemaining)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.AggregateConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.AggregateRemaining)
+                      .HasColumnType("decimal(18,2)");
+
+                // Notes field
+                entity.Property(e => e.Notes)
+                      .HasMaxLength(1000);
             });
-
-            // PaymentTransaction
-            modelBuilder.Entity<PaymentTransaction>(e =>
-            {
-                e.HasKey(x => x.Id);
-                e.Property(x => x.Amount).HasColumnType("numeric(18,2)");
-                e.Property(x => x.Type).HasConversion<int>();
-                e.Property(x => x.Status).HasConversion<int>();
-                e.Property(x => x.Provider).HasConversion<int>();
-                e.Property(x => x.ProviderTxnId).HasMaxLength(120);
-
-                e.HasOne(x => x.Contract)
-                 .WithMany()
-                 .HasForeignKey(x => x.ContractId)
-                 .OnDelete(DeleteBehavior.Cascade);
-
-                e.HasOne(x => x.Milestone)
-                 .WithMany()
-                 .HasForeignKey(x => x.MilestoneId)
-                 .OnDelete(DeleteBehavior.SetNull);
-
-                e.HasIndex(x => new { x.ContractId, x.MilestoneId, x.Type });
-                e.HasIndex(x => new { x.Provider, x.ProviderTxnId });
-            });
-
-
-
 
 
         }

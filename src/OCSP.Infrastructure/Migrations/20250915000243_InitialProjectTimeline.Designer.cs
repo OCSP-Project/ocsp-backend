@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OCSP.Infrastructure.Data;
@@ -11,9 +12,11 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250915000243_InitialProjectTimeline")]
+    partial class InitialProjectTimeline
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -161,6 +164,9 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ProjectId1")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ProposalId")
                         .HasColumnType("uuid");
 
@@ -182,8 +188,7 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<string>("Terms")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
+                        .HasColumnType("varchar(2000)")
                         .HasDefaultValue("");
 
                     b.Property<decimal>("TotalPrice")
@@ -199,11 +204,9 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.HasIndex("ContractorId");
 
-                    b.HasIndex("ContractorUserId");
-
-                    b.HasIndex("HomeownerUserId");
-
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("ProjectId1");
 
                     b.HasIndex("Status");
 
@@ -252,52 +255,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.HasIndex("ContractId");
 
                     b.ToTable("ContractItems", (string)null);
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.ContractMilestone", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("ContractId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ContractId", "Status");
-
-                    b.ToTable("ContractMilestones");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Contractor", b =>
@@ -570,7 +527,7 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("ProjectId")
+                    b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -622,59 +579,14 @@ namespace OCSP.Infrastructure.Migrations
                     b.ToTable("ConversationParticipants");
                 });
 
-            modelBuilder.Entity("OCSP.Domain.Entities.EscrowAccount", b =>
+            modelBuilder.Entity("OCSP.Domain.Entities.Deliverable", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("ContractId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime?>("ActualCompletionDate")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ExternalAccountId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("Provider")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ContractId")
-                        .IsUnique();
-
-                    b.ToTable("EscrowAccounts");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.PaymentTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("ContractId")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -683,22 +595,24 @@ namespace OCSP.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
-                    b.Property<Guid?>("MilestoneId")
+                    b.Property<Guid>("MilestoneId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Provider")
-                        .HasColumnType("integer");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
-                    b.Property<string>("ProviderTxnId")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                    b.Property<DateTime>("PlannedDueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ProgressPercentage")
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Type")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -711,11 +625,62 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.HasIndex("MilestoneId");
 
-                    b.HasIndex("Provider", "ProviderTxnId");
+                    b.ToTable("Deliverables");
+                });
 
-                    b.HasIndex("ContractId", "MilestoneId", "Type");
+            modelBuilder.Entity("OCSP.Domain.Entities.Milestone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-                    b.ToTable("PaymentTransactions");
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("PlannedEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("PlannedStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ProgressPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("ProjectTimelineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectTimelineId");
+
+                    b.ToTable("Milestones");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Profile", b =>
@@ -1394,10 +1359,14 @@ namespace OCSP.Infrastructure.Migrations
                         .HasForeignKey("ContractorId");
 
                     b.HasOne("OCSP.Domain.Entities.Project", "Project")
-                        .WithMany("Contracts")
+                        .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("OCSP.Domain.Entities.Project", null)
+                        .WithMany("Contracts")
+                        .HasForeignKey("ProjectId1");
 
                     b.Navigation("Project");
                 });
@@ -1406,17 +1375,6 @@ namespace OCSP.Infrastructure.Migrations
                 {
                     b.HasOne("OCSP.Domain.Entities.Contract", "Contract")
                         .WithMany("Items")
-                        .HasForeignKey("ContractId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Contract");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.ContractMilestone", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.Contract", "Contract")
-                        .WithMany("Milestones")
                         .HasForeignKey("ContractId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1473,7 +1431,8 @@ namespace OCSP.Infrastructure.Migrations
                     b.HasOne("OCSP.Domain.Entities.Project", "Project")
                         .WithMany("Conversations")
                         .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Project");
                 });
@@ -1497,33 +1456,26 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("OCSP.Domain.Entities.EscrowAccount", b =>
+            modelBuilder.Entity("OCSP.Domain.Entities.Deliverable", b =>
                 {
-                    b.HasOne("OCSP.Domain.Entities.Contract", "Contract")
-                        .WithOne("Escrow")
-                        .HasForeignKey("OCSP.Domain.Entities.EscrowAccount", "ContractId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Contract");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.PaymentTransaction", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.Contract", "Contract")
-                        .WithMany()
-                        .HasForeignKey("ContractId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("OCSP.Domain.Entities.ContractMilestone", "Milestone")
-                        .WithMany()
+                    b.HasOne("OCSP.Domain.Entities.Milestone", "Milestone")
+                        .WithMany("Deliverables")
                         .HasForeignKey("MilestoneId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Contract");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Milestone");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.Milestone", b =>
+                {
+                    b.HasOne("OCSP.Domain.Entities.ProjectTimeline", "ProjectTimeline")
+                        .WithMany("Milestones")
+                        .HasForeignKey("ProjectTimelineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProjectTimeline");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Profile", b =>
@@ -1692,11 +1644,7 @@ namespace OCSP.Infrastructure.Migrations
 
             modelBuilder.Entity("OCSP.Domain.Entities.Contract", b =>
                 {
-                    b.Navigation("Escrow");
-
                     b.Navigation("Items");
-
-                    b.Navigation("Milestones");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Contractor", b =>
@@ -1739,90 +1687,7 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.Navigation("Conversations");
 
-                    b.Navigation("DailyResources");
-
                     b.Navigation("Participants");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.ProjectDailyResource", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("AggregateConsumed")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("AggregateRemaining")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("CementConsumed")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("CementRemaining")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("ConcreteMixer")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("MaterialHoist")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("PassengerHoist")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ResourceDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("SandConsumed")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("SandRemaining")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("TowerCrane")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("Vibrator")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId", "ResourceDate");
-
-                    b.HasIndex("ResourceDate");
-
-                    b.ToTable("ProjectDailyResources");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.ProjectDailyResource", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
-                        .WithMany("DailyResources")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.ProjectTimeline", b =>

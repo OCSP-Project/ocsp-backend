@@ -13,6 +13,7 @@ using OCSP.API.Hubs;
 using System.IO;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Infrastructure.Repositories;
+using OCSP.Application.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,12 +36,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2) Services Registration
 //────────────────────────────────────────────────────────
 builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "OCSP API", Version = "v1" });
-    
-    c.CustomSchemaIds(type => type.FullName);
+    c.CustomSchemaIds(t => t.FullName!.Replace("+", "."));
 
     // 🔐 Bearer
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -71,7 +72,7 @@ builder.Services.AddSwaggerGen(c =>
 
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfile));
+builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.ContractorMappingProfile).Assembly);
 
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -82,18 +83,25 @@ builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
 builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IContractorService, ContractorService>();
+builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>();
+builder.Services.AddScoped<IEscrowService, EscrowService>();
+builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VnPay"));
+builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Payments"));
 builder.Services.AddScoped<IProgressMediaService, ProgressMediaService>();
 builder.Services.AddScoped<IProjectTimelineService, ProjectTimelineService>();
 builder.Services.AddScoped<IProjectDailyResourceService, ProjectDailyResourceService>();
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
 builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
 builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
+builder.Services.AddScoped<IContractMilestoneRepository, ContractMilestoneRepository>();
+builder.Services.AddScoped<IContractRepository, ContractRepository>();
 builder.Services.AddScoped<IProgressMediaRepository, ProgressMediaRepository>();
 builder.Services.AddScoped<IProjectTimelineRepository, ProjectTimelineRepository>();
 builder.Services.AddScoped<IProjectDailyResourceRepository, ProjectDailyResourceRepository>();
@@ -155,11 +163,13 @@ using (var scope = app.Services.CreateScope())
 //────────────────────────────────────────────────────────
 // 6) Middleware Pipeline
 //────────────────────────────────────────────────────────
- if (app.Environment.IsDevelopment())
- {
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
     app.UseSwaggerUI();
- }
+
+}
+
 
 if (!app.Environment.IsDevelopment())
 {

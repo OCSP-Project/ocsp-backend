@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OCSP.Domain.Entities;
-using OCSP.Domain.Enums;
 
 namespace OCSP.Infrastructure.Data.Configurations
 {
@@ -13,29 +12,49 @@ namespace OCSP.Infrastructure.Data.Configurations
             b.ToTable("Contracts");
             b.HasKey(x => x.Id);
 
-            // FKs
+            // ---------------- Relations ----------------
+
+            // 1 Project - N Contracts  (Project đã có ICollection<Contract> Contracts)
             b.HasOne(x => x.Project)
-             .WithMany()                    // hoặc .WithMany(p => p.Contracts) nếu có navigation ở Project
+             .WithMany(p => p.Contracts)
              .HasForeignKey(x => x.ProjectId)
              .OnDelete(DeleteBehavior.Restrict);
 
-            // scalar
+            // 1 Contract - N Items
+            b.HasMany(x => x.Items)
+             .WithOne(i => i.Contract)
+             .HasForeignKey(i => i.ContractId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            // 1 Contract - N Milestones
+            b.HasMany(x => x.Milestones)
+             .WithOne(m => m.Contract)
+             .HasForeignKey(m => m.ContractId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            // 1 Contract - 1 Escrow (optional)
+            b.HasOne(x => x.Escrow)
+             .WithOne(e => e.Contract)
+             .HasForeignKey<EscrowAccount>(e => e.ContractId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            // ---------------- Scalars ----------------
             b.Property(x => x.TotalPrice).HasColumnType("numeric(18,2)");
             b.Property(x => x.DurationDays).IsRequired();
 
             b.Property(x => x.Terms)
-             .HasColumnType("varchar(2000)")
+             .HasMaxLength(2000)        // để provider tự chọn kiểu (Postgres sẽ ra varchar(2000))
              .HasDefaultValue(string.Empty);
 
             b.Property(x => x.Status)
-             .HasConversion<int>()         // enum -> int
+             .HasConversion<int>()      // enum -> int
              .IsRequired();
 
-            // Index gợi ý
+            // ---------------- Indexes ----------------
             b.HasIndex(x => x.ProjectId);
             b.HasIndex(x => x.Status);
-
-            // Timestamps (AuditableEntity đã tự set trong SaveChanges)
+            b.HasIndex(x => x.HomeownerUserId);
+            b.HasIndex(x => x.ContractorUserId);
         }
     }
 }

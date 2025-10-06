@@ -5,13 +5,16 @@ using OCSP.Domain.Entities;
 using OCSP.Domain.Enums;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using System.Text.RegularExpressions;
-
-
+using Microsoft.EntityFrameworkCore;
+using OCSP.Infrastructure.Data;
+using OCSP.Application.Common.Helpers;
+using OCSP.Application.DTOs.Contracts;
 
 namespace OCSP.Application.Services
 {
     public class ContractorService : IContractorService
     {
+        private readonly ApplicationDbContext _context;
         private readonly IContractorRepository _contractorRepository;
         private readonly ICommunicationRepository _communicationRepository;
         private readonly IMapper _mapper;
@@ -30,12 +33,14 @@ namespace OCSP.Application.Services
             IContractorRepository contractorRepository,
             ICommunicationRepository communicationRepository,
             IMapper mapper,
-            IAIRecommendationService aiService)
+            IAIRecommendationService aiService,
+            ApplicationDbContext context)
         {
             _contractorRepository = contractorRepository;
             _communicationRepository = communicationRepository;
             _mapper = mapper;
             _aiService = aiService;
+            _context = context;
         }
 
         // UC-16: Search Contractors
@@ -68,8 +73,11 @@ namespace OCSP.Application.Services
                 isPremium: searchDto.IsPremium
             );
 
+
             var contractorDtos = _mapper.Map<List<ContractorSummaryDto>>(contractors);
-            
+
+
+
             return new ContractorListResponseDto
             {
                 Contractors = contractorDtos,
@@ -99,7 +107,7 @@ namespace OCSP.Application.Services
         public async Task<ContractorProfileDto?> GetContractorProfileAsync(Guid contractorId)
         {
             var contractor = await _contractorRepository.GetByIdWithDetailsAsync(contractorId);
-            
+
             if (contractor == null)
                 return null;
 
@@ -129,7 +137,7 @@ namespace OCSP.Application.Services
 
             // Use AI to rank and match contractors
             var recommendations = new List<ContractorRecommendationDto>();
-            
+
             foreach (var contractor in contractors)
             {
                 var matchScore = await _aiService.CalculateMatchScoreAsync(contractor, requestDto);
@@ -170,7 +178,7 @@ namespace OCSP.Application.Services
             {
                 // Check user's warning history
                 var warningCount = await _communicationRepository.GetUserWarningCountAsync(fromUserId);
-                
+
                 var warningLevel = warningCount switch
                 {
                     < 0 => 0, // Invalid negative count
@@ -197,6 +205,138 @@ namespace OCSP.Application.Services
 
             return null;
         }
+        public async Task<BulkContractorResponseDto> BulkCreateContractorsAsync(BulkContractorRequestDto request)
+        {
+            var response = new BulkContractorResponseDto
+            {
+                CreatedContractors = new List<ContractorSummaryDto>(),
+                Errors = new List<string>()
+            };
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                foreach (var contractorData in request.Contractors)
+                {
+                    try
+                    {
+                        // Check if email already exists
+                        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == contractorData.Email);
+                        if (existingUser != null)
+                        {
+                            response.Errors.Add($"Email {contractorData.Email} already exists");
+                            continue;
+                        }
+
+                        // Check if username already exists
+                        var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == contractorData.Username);
+                        if (existingUsername != null)
+                        {
+                            response.Errors.Add($"Username {contractorData.Username} already exists");
+                            continue;
+                        }
+
+                        // Create User first
+                        var user = new User
+                        {
+                            Id = Guid.NewGuid(),
+                            Username = contractorData.Username,
+                            Email = contractorData.Email,
+                            PasswordHash = PasswordHelper.HashPassword("TempPassword123!"), // Should be changed on first login
+                            Role = UserRole.Contractor,
+                            IsEmailVerified = true,
+
+                        };
+
+                        await _context.Users.AddAsync(user);
+                        await _context.SaveChangesAsync();
+
+                        // Create Contractor
+                        var contractor = new Contractor
+                        {
+                            Id = Guid.NewGuid(),
+                            UserId = user.Id,
+                            CompanyName = contractorData.CompanyName,
+                            BusinessLicense = contractorData.BusinessLicense,
+                            TaxCode = contractorData.TaxCode,
+                            Description = contractorData.Description,
+                            Website = contractorData.Website,
+                            ContactPhone = contractorData.ContactPhone,
+                            ContactEmail = contractorData.ContactEmail ?? contractorData.Email,
+                            Address = contractorData.Address,
+                            City = contractorData.City ?? "Da Nang",
+                            Province = contractorData.Province ?? "Da Nang",
+                            YearsOfExperience = contractorData.YearsOfExperience,
+                            TeamSize = contractorData.TeamSize,
+                            MinProjectBudget = contractorData.MinProjectBudget,
+                            MaxProjectBudget = contractorData.MaxProjectBudget,
+                            AverageRating = contractorData.AverageRating ?? 0,
+                            TotalReviews = contractorData.TotalReviews ?? 0,
+                            CompletedProjects = contractorData.CompletedProjects ?? 0,
+                            OngoingProjects = contractorData.OngoingProjects ?? 0,
+                            IsVerified = contractorData.IsVerified ?? false,
+                            VerifiedAt = contractorData.IsVerified == true ? DateTime.UtcNow : null,
+                            IsActive = true,
+                            IsPremium = contractorData.IsPremium ?? false,
+                            PremiumExpiryDate = contractorData.IsPremium == true ? DateTime.UtcNow.AddMonths(12) : null,
+                            ProfileCompletionPercentage = 75,
+                            WarningCount = 0,
+                            IsRestricted = false,
+
+                        };
+
+                        await _context.Contractors.AddAsync(contractor);
+                        await _context.SaveChangesAsync();
+
+                        // Add Specialties
+                        if (contractorData.Specialties?.Any() == true)
+                        {
+                            foreach (var specialtyName in contractorData.Specialties)
+                            {
+                                var specialty = new ContractorSpecialty
+                                {
+                                    Id = Guid.NewGuid(),
+                                    ContractorId = contractor.Id,
+                                    SpecialtyName = specialtyName,
+                                    Description = $"Chuyên môn về {specialtyName}",
+                                    ExperienceYears = Math.Max(1, contractorData.YearsOfExperience - 2),
+
+                                };
+                                await _context.ContractorSpecialties.AddAsync(specialty);
+                            }
+                            await _context.SaveChangesAsync();
+                        }
+
+                        // Load contractor with details for mapping
+                        var createdContractor = await _context.Contractors
+                            .Include(c => c.Specialties)
+                            .FirstAsync(c => c.Id == contractor.Id);
+
+                        // Map to DTO for response
+                        var contractorDto = _mapper.Map<ContractorSummaryDto>(createdContractor);
+                        response.CreatedContractors.Add(contractorDto);
+                    }
+                    catch (Exception ex)
+                    {
+                        response.Errors.Add($"Error creating {contractorData.CompanyName}: {ex.Message}");
+                    }
+                }
+
+                await transaction.CommitAsync();
+
+                response.SuccessfulCount = response.CreatedContractors.Count;
+                response.FailedCount = request.Contractors.Count - response.SuccessfulCount;
+
+                return response;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
 
         // Anti-Circumvention: Log Communication
         public async Task LogCommunicationAsync(Guid fromUserId, Guid toUserId, string content, Domain.Enums.CommunicationType type, Guid? projectId = null)

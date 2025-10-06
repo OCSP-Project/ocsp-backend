@@ -37,8 +37,8 @@ namespace OCSP.Infrastructure.Data
 
 
         // NEW: Contract
-        public DbSet<Contract> Contracts { get; set; }
-        public DbSet<ContractItem> ContractItems { get; set; }
+            public DbSet<Contract> Contracts { get; set; }
+            public DbSet<ContractItem> ContractItems { get; set; }
 
         // Contractor-related entities
         public DbSet<Contractor> Contractors { get; set; }
@@ -56,18 +56,18 @@ namespace OCSP.Infrastructure.Data
         // NEW: Project Daily Resources
         public DbSet<ProjectDailyResource> ProjectDailyResources { get; set; }
 
-            protected override void OnModelCreating(ModelBuilder modelBuilder)
-            {
-                  base.OnModelCreating(modelBuilder);
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
 
-            // Apply contractor configurations
-            modelBuilder.ApplyConfiguration(new ContractorConfiguration());
-            modelBuilder.ApplyConfiguration(new ContractorSpecialtyConfiguration());
-            modelBuilder.ApplyConfiguration(new ContractorDocumentConfiguration());
-            modelBuilder.ApplyConfiguration(new ContractorPortfolioConfiguration());
-            modelBuilder.ApplyConfiguration(new CommunicationConfiguration());
+                  // Apply contractor configurations
+                  modelBuilder.ApplyConfiguration(new ContractorConfiguration());
+                  modelBuilder.ApplyConfiguration(new ContractorSpecialtyConfiguration());
+                  modelBuilder.ApplyConfiguration(new ContractorDocumentConfiguration());
+                  modelBuilder.ApplyConfiguration(new ContractorPortfolioConfiguration());
+                  modelBuilder.ApplyConfiguration(new CommunicationConfiguration());
 
-            // Apply project timeline configurations
+// Apply project timeline configurations
             modelBuilder.ApplyConfiguration(new ProjectTimelineConfiguration());
             modelBuilder.ApplyConfiguration(new MilestoneConfiguration());
             modelBuilder.ApplyConfiguration(new DeliverableConfiguration());
@@ -142,8 +142,6 @@ namespace OCSP.Infrastructure.Data
             .HasForeignKey(e => e.HomeownerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-                        
-
                 // (Optional) nếu bạn muốn cấu hình Contracts rõ ràng:
                 // entity.HasMany(p => p.Contracts)
                 //       .WithOne(c => c.Project)
@@ -175,15 +173,15 @@ namespace OCSP.Infrastructure.Data
             });
 
 
-            // Existing Conversation configuration
-            modelBuilder.Entity<Conversation>(e =>
-            {
-                e.HasKey(x => x.Id);
-                e.HasOne(x => x.Project)
-                 .WithMany(p => p.Conversations!)
-                 .HasForeignKey(x => x.ProjectId)
-                 .OnDelete(DeleteBehavior.Cascade);
-            });
+                  // Existing Conversation configuration
+                  modelBuilder.Entity<Conversation>(e =>
+                  {
+                        e.HasKey(x => x.Id);
+                        e.HasOne(x => x.Project)
+                   .WithMany(p => p.Conversations!)
+                   .HasForeignKey(x => x.ProjectId)
+                   .OnDelete(DeleteBehavior.Cascade);
+                  });
 
             // Existing ConversationParticipant configuration
             modelBuilder.Entity<ConversationParticipant>(entity =>
@@ -385,15 +383,49 @@ namespace OCSP.Infrastructure.Data
             {
                 e.HasKey(x => x.Id);
 
-                e.Property(x => x.Name).HasMaxLength(300);
-                e.Property(x => x.Unit).HasMaxLength(50);
-                e.Property(x => x.Qty).HasColumnType("numeric(18,2)");
-                e.Property(x => x.UnitPrice).HasColumnType("numeric(18,2)");
+    e.Property(x => x.Name).HasMaxLength(300);
+    e.Property(x => x.Unit).HasMaxLength(50);
+    e.Property(x => x.Qty).HasColumnType("numeric(18,2)");
+    e.Property(x => x.UnitPrice).HasColumnType("numeric(18,2)");
 
-                e.HasOne(x => x.Proposal)
-                 .WithMany(p => p.Items)
-                 .HasForeignKey(x => x.ProposalId)
-                 .OnDelete(DeleteBehavior.Cascade);
+    e.HasOne(x => x.Proposal)
+     .WithMany(p => p.Items)
+     .HasForeignKey(x => x.ProposalId)
+     .OnDelete(DeleteBehavior.Cascade);
+});
+
+            // ProjectDailyResource configuration
+            modelBuilder.Entity<ProjectDailyResource>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // Foreign key to Project
+                entity.HasOne(e => e.Project)
+                      .WithMany(p => p.DailyResources)
+                      .HasForeignKey(e => e.ProjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Indexes for better performance
+                entity.HasIndex(e => new { e.ProjectId, e.ResourceDate });
+                entity.HasIndex(e => e.ResourceDate);
+
+                // Decimal precision for material quantities
+                entity.Property(e => e.CementConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CementRemaining)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SandConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SandRemaining)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.AggregateConsumed)
+                      .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.AggregateRemaining)
+                      .HasColumnType("decimal(18,2)");
+
+                // Notes field
+                entity.Property(e => e.Notes)
+                      .HasMaxLength(1000);
             });
 
             // ProjectDailyResource configuration

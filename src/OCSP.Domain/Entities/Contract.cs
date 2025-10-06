@@ -1,11 +1,13 @@
 // OCSP.Domain/Entities/Contract.cs
 using OCSP.Domain.Common;
 using OCSP.Domain.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OCSP.Domain.Entities
 {
     public class Contract : AuditableEntity
     {
+        [ForeignKey("ProjectId")]
         public Guid ProjectId { get; set; }
         public Project Project { get; set; } = default!;
 
@@ -28,7 +30,10 @@ namespace OCSP.Domain.Entities
         public DateTime? SignedByContractorAt { get; set; }
 
         public ICollection<ContractItem> Items { get; set; } = new List<ContractItem>();
+        public ICollection<ContractMilestone> Milestones { get; set; } = new List<ContractMilestone>();
+public EscrowAccount? Escrow { get; set; }
+
     }
 
-    
+
 }

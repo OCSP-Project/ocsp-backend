@@ -1,27 +1,36 @@
 using System.Linq;
 using AutoMapper;
+
 using OCSP.Application.DTOs.Contractor;
 using OCSP.Domain.Entities;
 
 namespace OCSP.Application.Mappings
 {
-    // Kế thừa rõ ràng AutoMapper.Profile để tránh trùng tên
     public class ContractorMappingProfile : AutoMapper.Profile
     {
         public ContractorMappingProfile()
         {
-            CreateMap<Contractor, ContractorSummaryDto>()
-                .ForMember(dest => dest.Specialties, opt => opt.MapFrom(src => src.Specialties.Select(s => s.SpecialtyName).ToList()))
-                .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.Portfolios.OrderBy(p => p.DisplayOrder).FirstOrDefault()!.ImageUrl));
+            CreateMap<Contractor, ContractorProfileSummaryDto>()
+                .ForMember(d => d.Specialties, o => o.MapFrom(s => s.Specialties.Select(x => x.SpecialtyName)))
+                .ForMember(d => d.FeaturedImageUrl, o => o.MapFrom(s =>
+                    s.Portfolios.OrderBy(p => p.DisplayOrder).Select(p => p.ImageUrl).FirstOrDefault()));
 
-            CreateMap<Contractor, ContractorProfileDto>();
+            CreateMap<Contractor, ContractorProfileDto>()
+                .ForMember(d => d.OwnerUserId, o => o.MapFrom(s => (Guid?)s.UserId));
             CreateMap<ContractorSpecialty, ContractorSpecialtyDto>();
             CreateMap<ContractorDocument, ContractorDocumentDto>();
             CreateMap<ContractorPortfolio, ContractorPortfolioDto>();
 
-            // CreateMap<Review, ReviewSummaryDto>()
-            //     .ForMember(dest => dest.ReviewerName, opt => opt.MapFrom(src => src.Reviewer.Username))
-            //     .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project.ProjectName));
+
+            CreateMap<Contractor, ContractorSummaryDto>()
+                .ForMember(d => d.Specialties, o => o.MapFrom(s => s.Specialties.Select(x => x.SpecialtyName)))
+                .ForMember(d => d.FeaturedImageUrl, o => o.MapFrom(s =>
+                    s.Portfolios.OrderBy(p => p.DisplayOrder).Select(p => p.ImageUrl).FirstOrDefault()))
+                .ForMember(d => d.AverageRating, o => o.MapFrom(s => s.AverageRating))
+                .ForMember(d => d.TotalReviews, o => o.MapFrom(s => s.TotalReviews))
+                .ForMember(d => d.CompletedProjects, o => o.MapFrom(s => s.CompletedProjects))
+                .ForMember(d => d.IsVerified, o => o.MapFrom(s => s.IsVerified))
+                .ForMember(d => d.IsPremium, o => o.MapFrom(s => s.IsPremium));
         }
     }
 }

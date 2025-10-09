@@ -27,6 +27,9 @@
     
     <!-- Entity Framework -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    
+    <!-- ASP.NET Core -->
+    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
 
      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>

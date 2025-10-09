@@ -83,6 +83,12 @@ namespace OCSP.Infrastructure.Data.Configurations
                 .WithOne(p => p.Contractor)
                 .HasForeignKey(p => p.ContractorId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            
+            builder.HasMany(c => c.Projects)
+                .WithOne(p => p.Contractor)
+                .HasForeignKey(p => p.ContractorId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 

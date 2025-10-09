@@ -8,3 +8,4 @@ namespace OCSP.Application.DTOs.Contractor
         public List<string> MatchingFactors { get; set; } = new List<string>();
     }
 }
+    

@@ -1,1 +1,0 @@
-namespace OCSP.AI.Configurations { public static class AIConfiguration {} }

@@ -1,11 +1,17 @@
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using OCSP.Infrastructure.Data;
 
 #nullable disable
 
 namespace OCSP.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddProjectDailyResource : Migration
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20250929120000_AddProjectDailyResource_Final")]
+    public partial class AddProjectDailyResource_Final : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -64,3 +70,5 @@ namespace OCSP.Infrastructure.Migrations
         }
     }
 }
+
+

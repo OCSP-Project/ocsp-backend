@@ -5,6 +5,8 @@ using OCSP.Application.DTOs.Payments;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Domain.Entities;
 using OCSP.Domain.Enums;
+// Alias to ensure we reference the enum with Planned/Submitted/Funded/Approved/Released
+using MilestoneStatusEnum = OCSP.Domain.Enums.MilestoneStatus;
 using OCSP.Infrastructure.Data;
 
 namespace OCSP.Application.Services
@@ -92,14 +94,14 @@ namespace OCSP.Application.Services
             if (ms.Contract.Escrow == null || ms.Contract.Escrow.Status == EscrowStatus.Closed)
                 throw new InvalidOperationException("Escrow not found/closed");
 
-            if (ms.Status != MilestoneStatus.Planned && ms.Status != MilestoneStatus.Submitted)
+            if (ms.Status != MilestoneStatusEnum.Planned && ms.Status != MilestoneStatusEnum.Submitted)
                 throw new InvalidOperationException("Milestone must be Planned or Submitted to fund");
 
             if (dto.Amount <= 0 || dto.Amount > ms.Amount)
                 throw new InvalidOperationException("Invalid funding amount");
 
             ms.Contract.Escrow.Balance += dto.Amount;
-            ms.Status = MilestoneStatus.Funded;
+            ms.Status = MilestoneStatusEnum.Funded;
 
             var txn = new PaymentTransaction
             {
@@ -128,10 +130,10 @@ namespace OCSP.Application.Services
             if (ms.Contract.HomeownerUserId != homeownerId)
                 throw new UnauthorizedAccessException("Only homeowner can approve milestone");
 
-            if (ms.Status != MilestoneStatus.Submitted && ms.Status != MilestoneStatus.Funded)
+            if (ms.Status != MilestoneStatusEnum.Submitted && ms.Status != MilestoneStatusEnum.Funded)
                 throw new InvalidOperationException("Milestone is not submitted/funded");
 
-            ms.Status = MilestoneStatus.Approved;
+            ms.Status = MilestoneStatusEnum.Approved;
             await _db.SaveChangesAsync(ct);
 
             return new MilestonePayoutResultDto
@@ -158,7 +160,7 @@ namespace OCSP.Application.Services
             if (ms.Contract.Escrow == null || ms.Contract.Escrow.Status == EscrowStatus.Closed)
                 throw new InvalidOperationException("Escrow not found/closed");
 
-            if (ms.Status != MilestoneStatus.Approved && ms.Status != MilestoneStatus.Funded)
+            if (ms.Status != MilestoneStatusEnum.Approved && ms.Status != MilestoneStatusEnum.Funded)
                 throw new InvalidOperationException("Milestone must be Approved or Funded to release");
 
             var rate = dto.CommissionRate ?? DEFAULT_COMMISSION;
@@ -196,7 +198,7 @@ namespace OCSP.Application.Services
                 Description = "Release to contractor"
             });
 
-            ms.Status = MilestoneStatus.Released;
+            ms.Status = MilestoneStatusEnum.Released;
             await _db.SaveChangesAsync(ct);
 
             return new MilestonePayoutResultDto

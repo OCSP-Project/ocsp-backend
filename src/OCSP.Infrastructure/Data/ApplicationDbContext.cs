@@ -39,6 +39,9 @@ namespace OCSP.Infrastructure.Data
         // NEW: Contract
             public DbSet<Contract> Contracts { get; set; }
             public DbSet<ContractItem> ContractItems { get; set; }
+            public DbSet<ContractMilestone> ContractMilestones { get; set; }
+            public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+            public DbSet<EscrowAccount> EscrowAccounts { get; set; }
 
         // Contractor-related entities
         public DbSet<Contractor> Contractors { get; set; }

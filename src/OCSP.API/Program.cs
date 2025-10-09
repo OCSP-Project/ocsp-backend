@@ -14,6 +14,8 @@ using System.IO;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Infrastructure.Repositories;
 using OCSP.Application.Options;
+using OCSP.Application.Services;
+using OCSP.Application.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,6 +88,15 @@ builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>(
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VnPay"));
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Payments"));
+// MoMo options + PaymentService
+builder.Services.AddSingleton(sp =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var opt = new MomoOptions();
+    cfg.GetSection("Momo").Bind(opt);
+    return opt;
+});
+builder.Services.AddHttpClient<IPaymentService, PaymentService>();
 
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();

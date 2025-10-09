@@ -11,6 +11,8 @@ namespace OCSP.Application.Services.Interfaces
         Task<IEnumerable<MilestoneDto>> ListByContractAsync(Guid contractId, Guid currentUserId, CancellationToken ct = default);
         Task<MilestoneDto> SubmitAsync(SubmitMilestoneDto dto, Guid contractorUserId, CancellationToken ct = default);
         Task<IEnumerable<MilestoneDto>> BulkCreateAsync(BulkCreateMilestonesDto dto, Guid currentUserId, CancellationToken ct = default);
+        Task<MilestoneDto> UpdateAsync(Guid milestoneId, UpdateMilestoneDto dto, Guid currentUserId, CancellationToken ct = default);
+        Task DeleteAsync(Guid milestoneId, Guid currentUserId, CancellationToken ct = default);
 
     }
 }

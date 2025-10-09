@@ -43,6 +43,9 @@ public DbSet<ProposalItem> ProposalItems { get; set; }
             public DbSet<ContractMilestone> ContractMilestones { get; set; }
 public DbSet<EscrowAccount> EscrowAccounts { get; set; }
 public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+        public DbSet<Wallet> Wallets { get; set; }
+        public DbSet<WalletTransaction> WalletTransactions { get; set; }
+        public DbSet<LedgerEntry> LedgerEntries { get; set; }
 
 
         // Contractor-related entities
@@ -411,6 +414,39 @@ modelBuilder.Entity<PaymentTransaction>(e =>
     e.HasIndex(x => new { x.ContractId, x.MilestoneId, x.Type });
     e.HasIndex(x => new { x.Provider, x.ProviderTxnId });
 });
+
+            // Wallet
+            modelBuilder.Entity<Wallet>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Available).HasColumnType("numeric(18,2)");
+                e.HasIndex(x => x.UserId).IsUnique();
+            });
+
+            // WalletTransaction
+            modelBuilder.Entity<WalletTransaction>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+                e.Property(x => x.MomoOrderId).HasMaxLength(64);
+                e.Property(x => x.MomoRequestId).HasMaxLength(64);
+                e.Property(x => x.Status).HasMaxLength(50);
+                e.HasIndex(x => new { x.UserId, x.MomoOrderId, x.MomoRequestId }).IsUnique();
+            });
+
+            // LedgerEntry
+            modelBuilder.Entity<LedgerEntry>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Type).HasConversion<int>();
+                e.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+                e.Property(x => x.RefId).HasMaxLength(100);
+                e.HasOne<Wallet>()
+                 .WithMany()
+                 .HasForeignKey(x => x.WalletId)
+                 .OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(x => new { x.WalletId, x.CreatedAt });
+            });
 
 
 

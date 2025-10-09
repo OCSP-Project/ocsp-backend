@@ -25,8 +25,8 @@ namespace OCSP.Application.Services
             if (c.HomeownerUserId != homeownerId)
                 throw new UnauthorizedAccessException("Only homeowner can setup escrow");
 
-            if (c.Status != ContractStatus.Active && c.Status != ContractStatus.PendingSignatures)
-                throw new InvalidOperationException("Contract must be Active or PendingSignatures");
+            if (c.Status != ContractStatus.Active && c.Status != ContractStatus.PendingSignatures && c.Status != ContractStatus.Completed)
+                throw new InvalidOperationException("Contract must be Active, PendingSignatures, or Completed");
 
             if (c.Escrow == null)
             {
@@ -48,22 +48,7 @@ namespace OCSP.Application.Services
                     c.Escrow.ExternalAccountId = dto.ExternalAccountId!.Trim();
             }
 
-            if (dto.Amount > 0)
-            {
-                c.Escrow.Balance += dto.Amount;
-                c.Escrow.Status = EscrowStatus.Funded;
-
-                _db.PaymentTransactions.Add(new PaymentTransaction
-                {
-                    ContractId = c.Id,
-                    MilestoneId = null,
-                    Provider = dto.Provider,
-                    Type = PaymentType.Fund,
-                    Status = PaymentStatus.Succeeded,
-                    Amount = dto.Amount,
-                    Description = "Initial escrow funding"
-                });
-            }
+            // Direct balance top-up via setup is disabled. Use wallet/MoMo flow instead.
 
             await _db.SaveChangesAsync(ct);
 

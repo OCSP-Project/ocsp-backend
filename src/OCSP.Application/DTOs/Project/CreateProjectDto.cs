@@ -10,7 +10,9 @@ namespace OCSP.Application.DTOs.Project
         // ✅ OCR data từ frontend (client-side OCR)
         public decimal FloorArea { get; set; }
         public int NumberOfFloors { get; set; }
+
         public string? PermitNumber { get; set; }
         public string? BuildingType { get; set; }
+
     }
 }

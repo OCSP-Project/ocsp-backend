@@ -8,16 +8,29 @@ public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projectRepository;
     private readonly IUserRepository _userRepository;
+<<<<<<< HEAD
     private readonly IProjectDocumentService _documentService;
+=======
+    private readonly IContractorRepository _contractorRepository;
+
+>>>>>>> 534010e58df290d50acc383510252452373b6c4c
 
     public ProjectService(
         IProjectRepository projectRepository,
         IUserRepository userRepository,
+<<<<<<< HEAD
         IProjectDocumentService documentService)
     {
         _projectRepository = projectRepository;
         _userRepository = userRepository;
         _documentService = documentService;
+=======
+        IContractorRepository contractorRepository)
+    {
+        _projectRepository = projectRepository;
+        _userRepository = userRepository;
+        _contractorRepository = contractorRepository;
+>>>>>>> 534010e58df290d50acc383510252452373b6c4c
     }
 
     public async Task<List<ProjectResponseDto>> GetProjectsByHomeownerAsync(Guid homeownerId, CancellationToken ct = default)
@@ -103,12 +116,16 @@ public class ProjectService : IProjectService
         _ = await _userRepository.GetByIdAsync(homeownerId)
             ?? throw new ArgumentException("Homeowner not found");
 
+<<<<<<< HEAD
         // ✅ SỬ DỤNG DỮ LIỆU OCR TỪ FRONTEND THAY VÌ SCAN LẠI
         if (dto.FloorArea <= 0)
             throw new ArgumentException("Diện tích phải lớn hơn 0");
         if (dto.NumberOfFloors <= 0)
             throw new ArgumentException("Số tầng phải lớn hơn 0");
 
+=======
+        // Khởi tạo project (có thể gán Contractor)
+>>>>>>> 534010e58df290d50acc383510252452373b6c4c
         var project = new Project
         {
             Name = dto.Name.Trim(),
@@ -121,11 +138,12 @@ public class ProjectService : IProjectService
             EstimatedCompletionDate = null,
             Status = ProjectStatus.Active,
             HomeownerId = homeownerId,
-            SupervisorId = null
+            SupervisorId = null,
+            ContractorId = dto.ContractorId // Gán contractor nếu có
         };
 
         // Thêm participant: Homeowner
-        project.Participants = new List<ProjectParticipant>
+        var participants = new List<ProjectParticipant>
         {
             new ProjectParticipant
             {
@@ -136,6 +154,26 @@ public class ProjectService : IProjectService
                 JoinedAt = DateTime.UtcNow
             }
         };
+
+        // Thêm Contractor vào participants nếu có
+        if (dto.ContractorId.HasValue)
+        {
+            // Lấy UserId từ ContractorId
+            var contractor = await _contractorRepository.GetByIdAsync(dto.ContractorId.Value);
+            if (contractor != null)
+            {
+                participants.Add(new ProjectParticipant
+                {
+                    Project = project,
+                    UserId = contractor.UserId, // Dùng UserId thay vì ContractorId
+                    Role = ProjectRole.Contractor,
+                    Status = ParticipantStatus.Active,
+                    JoinedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        project.Participants = participants;
 
         await _projectRepository.AddAsync(project);
         await _projectRepository.SaveChangesAsync();

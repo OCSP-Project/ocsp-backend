@@ -24,7 +24,7 @@ var builder = WebApplication.CreateBuilder(args);
 //────────────────────────────────────────────────────────
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=root";
+    ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=123";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -103,6 +103,9 @@ builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>(
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VnPay"));
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Payments"));
+builder.Services.AddScoped<IProgressMediaService, ProgressMediaService>();
+builder.Services.AddScoped<IProjectTimelineService, ProjectTimelineService>();
+builder.Services.AddScoped<IProjectDailyResourceService, ProjectDailyResourceService>();
 
 // Project Document Services
 builder.Services.AddScoped<IProjectDocumentService, ProjectDocumentService>();
@@ -117,7 +120,9 @@ builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
 builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
 builder.Services.AddScoped<IContractMilestoneRepository, ContractMilestoneRepository>();
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
-
+builder.Services.AddScoped<IProgressMediaRepository, ProgressMediaRepository>();
+builder.Services.AddScoped<IProjectTimelineRepository, ProjectTimelineRepository>();
+builder.Services.AddScoped<IProjectDailyResourceRepository, ProjectDailyResourceRepository>();
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();

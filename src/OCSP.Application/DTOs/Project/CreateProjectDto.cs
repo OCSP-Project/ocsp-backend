@@ -13,6 +13,13 @@ namespace OCSP.Application.DTOs.Project
 
         public string? PermitNumber { get; set; }
         public string? BuildingType { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime? EstimatedCompletionDate { get; set; }
 
+        // Supervisor chỉ định (optional)
+        // public Guid? SupervisorId { get; set; }
+        
+        // Contractor chỉ định (optional)
+        public Guid? ContractorId { get; set; }
     }
 }

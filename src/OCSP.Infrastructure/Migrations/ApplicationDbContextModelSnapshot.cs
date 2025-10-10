@@ -1919,11 +1919,8 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.Navigation("Conversations");
 
-<<<<<<< HEAD
                     b.Navigation("Documents");
-=======
                     b.Navigation("DailyResources");
->>>>>>> 534010e58df290d50acc383510252452373b6c4c
 
                     b.Navigation("Participants");
                 });

@@ -28,16 +28,13 @@ namespace OCSP.Domain.Entities
         // Supervisor chính (tùy chọn)
         public Guid? SupervisorId { get; set; }
         public Supervisor? Supervisor { get; set; }
-<<<<<<< HEAD
-        // NEW: Project Documents
-        public virtual ICollection<ProjectDocument> Documents { get; set; } = new List<ProjectDocument>();
-=======
 
         // Contractor chính (tùy chọn)
         public Guid? ContractorId { get; set; }
         public Contractor? Contractor { get; set; }
 
->>>>>>> 534010e58df290d50acc383510252452373b6c4c
+        // NEW: Project Documents
+        public virtual ICollection<ProjectDocument> Documents { get; set; } = new List<ProjectDocument>();
         // Nav
         public ICollection<ProjectParticipant> Participants { get; set; } = new List<ProjectParticipant>();
         public ICollection<Contract> Contracts { get; set; } = new List<Contract>();

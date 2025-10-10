@@ -28,7 +28,8 @@ namespace OCSP.Domain.Entities
         // Supervisor chính (tùy chọn)
         public Guid? SupervisorId { get; set; }
         public Supervisor? Supervisor { get; set; }
-
+        // NEW: Project Documents
+        public virtual ICollection<ProjectDocument> Documents { get; set; } = new List<ProjectDocument>();
         // Nav
         public ICollection<ProjectParticipant> Participants { get; set; } = new List<ProjectParticipant>();
         public ICollection<Contract> Contracts { get; set; } = new List<Contract>();

@@ -35,7 +35,9 @@ namespace OCSP.Infrastructure.Data
         public DbSet<ProposalItem> ProposalItems { get; set; }
 
 
-
+        // NEW: Project Documents
+        public DbSet<ProjectDocument> ProjectDocuments { get; set; }
+        public DbSet<PermitMetadata> PermitMetadata { get; set; }
         // NEW: Contract
 
         public DbSet<Contract> Contracts { get; set; }
@@ -94,6 +96,71 @@ namespace OCSP.Infrastructure.Data
 
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.Username).IsUnique();
+            });
+            // NEW: Project Documents
+            modelBuilder.Entity<ProjectDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.FileName)
+                  .IsRequired()
+                  .HasMaxLength(255);
+
+            entity.Property(e => e.FileUrl)
+                  .IsRequired()
+                  .HasMaxLength(500);
+
+            entity.Property(e => e.FileHash)
+                  .IsRequired()
+                  .HasMaxLength(64); // SHA256
+
+            entity.Property(e => e.DocumentType)
+                  .HasConversion<int>();
+
+            // FK to Project
+            entity.HasOne(e => e.Project)
+                  .WithMany(p => p.Documents) // Thêm navigation property vào Project
+                  .HasForeignKey(e => e.ProjectId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // FK to User (uploader)
+            entity.HasOne(e => e.UploadedBy)
+                  .WithMany()
+                  .HasForeignKey(e => e.UploadedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => new { e.ProjectId, e.DocumentType });
+            entity.HasIndex(e => new { e.ProjectId, e.IsLatest });
+            entity.HasIndex(e => e.FileHash);
+        });
+
+            // ✅ PermitMetadata Configuration
+            modelBuilder.Entity<PermitMetadata>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.PermitNumber)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(e => e.Area)
+                      .HasColumnType("numeric(18,2)");
+
+                entity.Property(e => e.Address)
+                      .HasMaxLength(500);
+
+                entity.Property(e => e.Owner)
+                      .HasMaxLength(200);
+
+                // 1-1 relationship with ProjectDocument
+                entity.HasOne(e => e.ProjectDocument)
+                      .WithOne() // hoặc .WithOne(pd => pd.PermitMetadata)
+                      .HasForeignKey<PermitMetadata>(e => e.ProjectDocumentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.PermitNumber);
+                entity.HasIndex(e => e.ExpiryDate);
             });
 
             // Existing Supervisor configuration

@@ -490,30 +490,6 @@ public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
             });
 
 
-                // Indexes for better performance
-                entity.HasIndex(e => new { e.ProjectId, e.ResourceDate });
-                entity.HasIndex(e => e.ResourceDate);
-
-                // Decimal precision for material quantities
-                entity.Property(e => e.CementConsumed)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.CementRemaining)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.SandConsumed)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.SandRemaining)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.AggregateConsumed)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.AggregateRemaining)
-                      .HasColumnType("decimal(18,2)");
-
-                // Notes field
-                entity.Property(e => e.Notes)
-                      .HasMaxLength(1000);
-            });
-
-
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

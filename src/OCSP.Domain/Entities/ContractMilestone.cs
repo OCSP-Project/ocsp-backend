@@ -12,6 +12,6 @@ namespace OCSP.Domain.Entities
         public decimal Amount { get; set; }
         public DateTime? DueDate { get; set; }
 public string? Note { get; set; }
-        public MilestoneStatus Status { get; set; } = MilestoneStatus.Planned;
+        public OCSP.Domain.Enums.MilestoneStatus Status { get; set; } = OCSP.Domain.Enums.MilestoneStatus.Planned;
     }
 }

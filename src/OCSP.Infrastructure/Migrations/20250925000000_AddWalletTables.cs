@@ -10,112 +10,62 @@ namespace OCSP.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "Wallets",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Available = table.Column<decimal>(type: "numeric(18,2)", nullable: false, defaultValue: 0m),
-                    Pending = table.Column<decimal>(type: "numeric(18,2)", nullable: false, defaultValue: 0m),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Wallets", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Wallets_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+            // Idempotent DDL to ensure Wallet tables exist on clean databases
+            migrationBuilder.Sql(@"
+CREATE TABLE IF NOT EXISTS ""Wallets"" (
+  ""Id"" uuid NOT NULL,
+  ""UserId"" uuid NOT NULL,
+  ""Available"" numeric(18,2) NOT NULL DEFAULT 0.0,
+  ""Pending"" numeric(18,2) NOT NULL DEFAULT 0.0,
+  ""CreatedAt"" timestamptz NOT NULL,
+  ""UpdatedAt"" timestamptz NOT NULL,
+  CONSTRAINT ""PK_Wallets"" PRIMARY KEY (""Id""),
+  CONSTRAINT ""FK_Wallets_Users_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
+);
 
-            migrationBuilder.CreateTable(
-                name: "WalletTransactions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    WalletId = table.Column<Guid>(type: "uuid", nullable: false),
-                    MomoOrderId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    MomoRequestId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    RawResponse = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_WalletTransactions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_WalletTransactions_Wallets_WalletId",
-                        column: x => x.WalletId,
-                        principalTable: "Wallets",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Wallets_UserId"" ON ""Wallets"" (""UserId"");
 
-            migrationBuilder.CreateTable(
-                name: "LedgerEntries",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    WalletId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Type = table.Column<int>(type: "integer", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    RefId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LedgerEntries", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_LedgerEntries_Wallets_WalletId",
-                        column: x => x.WalletId,
-                        principalTable: "Wallets",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+CREATE TABLE IF NOT EXISTS ""WalletTransactions"" (
+  ""Id"" uuid NOT NULL,
+  ""WalletId"" uuid NOT NULL,
+  ""MomoOrderId"" varchar(100),
+  ""MomoRequestId"" varchar(100),
+  ""Amount"" numeric(18,2) NOT NULL,
+  ""Status"" int NOT NULL,
+  ""RawResponse"" text NULL,
+  ""CreatedAt"" timestamptz NOT NULL,
+  CONSTRAINT ""PK_WalletTransactions"" PRIMARY KEY (""Id""),
+  CONSTRAINT ""FK_WalletTransactions_Wallets_WalletId"" FOREIGN KEY (""WalletId"") REFERENCES ""Wallets"" (""Id"") ON DELETE CASCADE
+);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Wallets_UserId",
-                table: "Wallets",
-                column: "UserId",
-                unique: true);
+CREATE INDEX IF NOT EXISTS ""IX_WalletTransactions_MomoOrderId"" ON ""WalletTransactions"" (""MomoOrderId"");
+CREATE INDEX IF NOT EXISTS ""IX_WalletTransactions_MomoRequestId"" ON ""WalletTransactions"" (""MomoRequestId"");
+CREATE INDEX IF NOT EXISTS ""IX_WalletTransactions_WalletId"" ON ""WalletTransactions"" (""WalletId"");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_WalletTransactions_MomoOrderId",
-                table: "WalletTransactions",
-                column: "MomoOrderId");
+CREATE TABLE IF NOT EXISTS ""LedgerEntries"" (
+  ""Id"" uuid NOT NULL,
+  ""WalletId"" uuid NOT NULL,
+  ""Type"" int NOT NULL,
+  ""Amount"" numeric(18,2) NOT NULL,
+  ""RefId"" varchar(100),
+  ""CreatedAt"" timestamptz NOT NULL,
+  CONSTRAINT ""PK_LedgerEntries"" PRIMARY KEY (""Id""),
+  CONSTRAINT ""FK_LedgerEntries_Wallets_WalletId"" FOREIGN KEY (""WalletId"") REFERENCES ""Wallets"" (""Id"") ON DELETE CASCADE
+);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_WalletTransactions_MomoRequestId",
-                table: "WalletTransactions",
-                column: "MomoRequestId");
+CREATE INDEX IF NOT EXISTS ""IX_LedgerEntries_WalletId_CreatedAt"" ON ""LedgerEntries"" (""WalletId"", ""CreatedAt"");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_WalletTransactions_WalletId",
-                table: "WalletTransactions",
-                column: "WalletId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_LedgerEntries_WalletId",
-                table: "LedgerEntries",
-                column: "WalletId");
+");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "LedgerEntries");
-
-            migrationBuilder.DropTable(
-                name: "WalletTransactions");
-
-            migrationBuilder.DropTable(
-                name: "Wallets");
+            migrationBuilder.Sql(@"
+DROP TABLE IF EXISTS ""LedgerEntries"" CASCADE;
+DROP TABLE IF EXISTS ""WalletTransactions"" CASCADE;
+DROP TABLE IF EXISTS ""Wallets"" CASCADE;
+");
         }
     }
 }

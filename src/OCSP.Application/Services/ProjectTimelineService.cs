@@ -1,12 +1,15 @@
 using OCSP.Application.DTOs.ProjectTimeline;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Domain.Entities;
+using OCSP.Domain.Enums;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+// Use alias to disambiguate enum
+using MilestoneStatusEnum = OCSP.Domain.Enums.MilestoneStatus;
 
 namespace OCSP.Application.Services
 {
@@ -72,7 +75,7 @@ namespace OCSP.Application.Services
                 if (dto.ActualEndDate.HasValue && dto.ActualEndDate.Value < milestone.PlannedEndDate)
                     throw new ArgumentException("ActualEndDate cannot be earlier than PlannedEndDate");
                 milestone.ProgressPercentage = dto.ProgressPercentage;
-                if (!string.IsNullOrWhiteSpace(dto.Status) && Enum.TryParse<MilestoneStatus>(dto.Status, true, out var status))
+                if (!string.IsNullOrWhiteSpace(dto.Status) && Enum.TryParse<MilestoneStatusEnum>(dto.Status, true, out var status))
                     milestone.Status = status;
                 if (dto.ActualStartDate.HasValue)
                     milestone.ActualStartDate = dto.ActualStartDate;
@@ -101,7 +104,7 @@ namespace OCSP.Application.Services
                     Description = m.Description?.Trim(),
                     PlannedStartDate = m.PlannedStartDate,
                     PlannedEndDate = m.PlannedEndDate,
-                    Status = MilestoneStatus.NotStarted,
+                    Status = MilestoneStatusEnum.Planned,
                     Deliverables = m.Deliverables.Select(d => new Deliverable
                     {
                         Name = d.Name.Trim(),

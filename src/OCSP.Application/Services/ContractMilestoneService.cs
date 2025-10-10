@@ -4,6 +4,8 @@ using OCSP.Application.DTOs.Milestones;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Domain.Entities;
 using OCSP.Domain.Enums;
+// Use alias to disambiguate enum with Planned/Submitted/Funded/Approved/Released
+using MilestoneStatusEnum = OCSP.Domain.Enums.MilestoneStatus;
 using OCSP.Infrastructure.Data;
 
 namespace OCSP.Application.Services
@@ -47,7 +49,7 @@ namespace OCSP.Application.Services
         Amount = dto.Amount,
         DueDate = NormalizeUtc(dto.DueDate),
         Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
-        Status = MilestoneStatus.Planned,
+        Status = MilestoneStatusEnum.Planned,
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };
@@ -104,7 +106,7 @@ namespace OCSP.Application.Services
     Amount = m.Amount,
                 DueDate = NormalizeUtc(m.DueDate),
     Note = string.IsNullOrWhiteSpace(m.Note) ? null : m.Note!.Trim(),
-    Status = MilestoneStatus.Planned,
+    Status = MilestoneStatusEnum.Planned,
     CreatedAt = DateTime.UtcNow,
     UpdatedAt = DateTime.UtcNow
 }).ToList();
@@ -159,10 +161,10 @@ namespace OCSP.Application.Services
             if (ms.Contract.ContractorUserId != contractorUserId)
                 throw new UnauthorizedAccessException("Only the contractor of this contract can submit");
 
-            if (ms.Status != MilestoneStatus.Planned && ms.Status != MilestoneStatus.Funded)
+            if (ms.Status != MilestoneStatusEnum.Planned && ms.Status != MilestoneStatusEnum.Funded)
                 throw new InvalidOperationException("Milestone must be Planned or Funded to submit");
 
-            ms.Status = MilestoneStatus.Submitted;
+            ms.Status = MilestoneStatusEnum.Submitted;
             if (!string.IsNullOrWhiteSpace(dto.Note))
                 ms.Note = dto.Note!.Trim();
 
@@ -202,7 +204,7 @@ namespace OCSP.Application.Services
             if (ms.Contract.Status != ContractStatus.Completed)
                 throw new InvalidOperationException("Contract must be Completed to update milestones");
 
-            if (ms.Status != MilestoneStatus.Planned)
+            if (ms.Status != MilestoneStatusEnum.Planned)
                 throw new InvalidOperationException("Only Planned milestones can be updated");
 
             // Validate tổng không vượt quá tổng hợp đồng
@@ -237,7 +239,7 @@ namespace OCSP.Application.Services
             if (ms.Contract.Status != ContractStatus.Completed)
                 throw new InvalidOperationException("Contract must be Completed to delete milestones");
 
-            if (ms.Status != MilestoneStatus.Planned)
+            if (ms.Status != MilestoneStatusEnum.Planned)
                 throw new InvalidOperationException("Only Planned milestones can be deleted");
 
             _db.ContractMilestones.Remove(ms);

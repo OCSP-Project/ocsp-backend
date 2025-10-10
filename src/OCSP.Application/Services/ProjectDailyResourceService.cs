@@ -179,15 +179,24 @@ namespace OCSP.Application.Services
             {
                 var isParticipant = await _context.ProjectParticipants
                     .AnyAsync(pp => pp.ProjectId == projectId && pp.UserId == userId, cancellationToken);
-                
                 if (isParticipant) return true;
 
                 // Kiểm tra xem có phải supervisor/contractor chính của project không
-                var project = await _context.Projects.FindAsync(projectId);
+                var project = await _context.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == projectId, cancellationToken);
                 if (project == null) return false;
 
-                return (user.Role == UserRole.Supervisor && project.SupervisorId == userId) ||
-                       (user.Role == UserRole.Contractor && project.ContractorId == userId);
+                var isProjectSupervisor = project.SupervisorId == userId;
+
+                bool isProjectContractor = false;
+                if (project.ContractorId.HasValue)
+                {
+                    var contractor = await _context.Contractors.AsNoTracking()
+                        .FirstOrDefaultAsync(c => c.Id == project.ContractorId.Value, cancellationToken);
+                    isProjectContractor = contractor != null && contractor.UserId == userId;
+                }
+
+                return (user.Role == UserRole.Supervisor && isProjectSupervisor) ||
+                       (user.Role == UserRole.Contractor && isProjectContractor);
             }
 
             return false;

@@ -446,15 +446,7 @@ public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
                       .WithMany(p => p.DailyResources)
                       .HasForeignKey(e => e.ProjectId)
                       .OnDelete(DeleteBehavior.Cascade);
-
-    e.HasOne(x => x.Milestone)
-     .WithMany()
-     .HasForeignKey(x => x.MilestoneId)
-     .OnDelete(DeleteBehavior.SetNull);
-
-    e.HasIndex(x => new { x.ContractId, x.MilestoneId, x.Type });
-    e.HasIndex(x => new { x.Provider, x.ProviderTxnId });
-});
+            });
 
             // Wallet
             modelBuilder.Entity<Wallet>(e =>

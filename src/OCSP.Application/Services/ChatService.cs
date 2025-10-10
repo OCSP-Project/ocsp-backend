@@ -111,6 +111,7 @@ namespace OCSP.Application.Services
         {
             return await _context.Conversations
                 .Include(c => c.Participants)
+                    .ThenInclude(p => p.User)
                 .Include(c => c.Messages)
                 .Where(c => c.Participants.Any(p => p.UserId == userId))
                 .ToListAsync();

@@ -14,6 +14,8 @@ using System.IO;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Infrastructure.Repositories;
 using OCSP.Application.Options;
+using Microsoft.AspNetCore.Server.IISIntegration;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2) Services Registration
 //────────────────────────────────────────────────────────
 builder.Services.AddControllers();
+
+// Configure request timeout and size limits
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = 100_000_000; // 100MB
+});
+
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = 100_000_000; // 100MB
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(5);
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -92,6 +107,9 @@ builder.Services.AddScoped<IProgressMediaService, ProgressMediaService>();
 builder.Services.AddScoped<IProjectTimelineService, ProjectTimelineService>();
 builder.Services.AddScoped<IProjectDailyResourceService, ProjectDailyResourceService>();
 
+// Project Document Services
+builder.Services.AddScoped<IProjectDocumentService, ProjectDocumentService>();
+builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
 
@@ -117,7 +135,6 @@ builder.Services.AddSignalR();
 //────────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var secretKey = jwtSettings["SecretKey"] ?? "your-very-secure-secret-key-that-is-at-least-32-characters-long";
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

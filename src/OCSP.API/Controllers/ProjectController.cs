@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using OCSP.Application.DTOs.Project;
 using OCSP.Application.Services.Interfaces;
 using System.Security.Claims;
@@ -41,15 +42,15 @@ namespace OCSP.API.Controllers
             return Ok(projects);
         }
 
-        // POST api/projects
-        [HttpPost]
+
+        // POST api/projects/create-with-files
+        [HttpPost("create-with-files")]
+        [RequestSizeLimit(100_000_000)] // 100MB limit
         [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ProjectDetailDto>> CreateProject(
-            [FromBody] CreateProjectDto createDto,
-            CancellationToken ct)
+        public async Task<ActionResult<ProjectDetailDto>> CreateProjectWithFiles(
+            [FromForm] CreateProjectDto dto,
+            [FromForm] IFormFile drawingFile,
+            [FromForm] IFormFile permitFile)
         {
             try
             {
@@ -57,9 +58,41 @@ namespace OCSP.API.Controllers
                 if (homeownerId == Guid.Empty)
                     return Unauthorized(new { message = "User not authenticated" });
 
-                var project = await _projectService.CreateProjectAsync(createDto, homeownerId);
+                var project = await _projectService.CreateProjectWithFilesAsync(
+                    dto, drawingFile, permitFile, homeownerId);
 
-                // 201 + Location header đến GET /api/projects/{id}
+                return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Bad request creating project");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error creating project");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // POST api/projects (legacy endpoint - kept for backward compatibility)
+        [HttpPost]
+        [RequestSizeLimit(100_000_000)] // 100MB limit
+        [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status201Created)]
+        public async Task<ActionResult<ProjectDetailDto>> CreateProject(
+            [FromForm] CreateProjectDto dto,
+            [FromForm] IFormFile drawingFile,
+            [FromForm] IFormFile permitFile)
+        {
+            try
+            {
+                var homeownerId = GetCurrentUserId();
+                if (homeownerId == Guid.Empty)
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                var project = await _projectService.CreateProjectWithFilesAsync(
+                    dto, drawingFile, permitFile, homeownerId);
+
                 return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
             }
             catch (ArgumentException ex)

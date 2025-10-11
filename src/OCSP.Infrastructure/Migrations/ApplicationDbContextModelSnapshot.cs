@@ -570,7 +570,7 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("ProjectId")
+                    b.Property<Guid?>("ProjectId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -664,6 +664,35 @@ namespace OCSP.Infrastructure.Migrations
                     b.ToTable("EscrowAccounts");
                 });
 
+            modelBuilder.Entity("OCSP.Domain.Entities.LedgerEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RefId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalletId", "CreatedAt");
+
+                    b.ToTable("LedgerEntries");
+                });
+
             modelBuilder.Entity("OCSP.Domain.Entities.PaymentTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -716,6 +745,76 @@ namespace OCSP.Infrastructure.Migrations
                     b.HasIndex("ContractId", "MilestoneId", "Type");
 
                     b.ToTable("PaymentTransactions");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.PermitMetadata", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal?>("Area")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ExpiryDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExtractedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("IssueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<float?>("OcrConfidence")
+                        .HasColumnType("real");
+
+                    b.Property<string>("Owner")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PermitNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ProjectDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiryDate");
+
+                    b.HasIndex("PermitNumber");
+
+                    b.HasIndex("ProjectDocumentId")
+                        .IsUnique();
+
+                    b.ToTable("PermitMetadata");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Profile", b =>
@@ -917,6 +1016,86 @@ namespace OCSP.Infrastructure.Migrations
                     b.ToTable("Projects");
                 });
 
+            modelBuilder.Entity("OCSP.Domain.Entities.ProjectDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EncryptionKeyId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExtractedDataJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsEncrypted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLatest")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileHash");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("ProjectId", "DocumentType");
+
+                    b.HasIndex("ProjectId", "IsLatest");
+
+                    b.ToTable("ProjectDocuments");
+                });
+
             modelBuilder.Entity("OCSP.Domain.Entities.ProjectParticipant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -960,6 +1139,51 @@ namespace OCSP.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ProjectParticipants");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.ProjectTimeline", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContractorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractorId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("ProjectTimelines");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Proposal", b =>
@@ -1294,6 +1518,73 @@ namespace OCSP.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("OCSP.Domain.Entities.Wallet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Available")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Wallets");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.WalletTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MomoOrderId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("MomoRequestId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RawResponse")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "MomoOrderId", "MomoRequestId")
+                        .IsUnique();
+
+                    b.ToTable("WalletTransactions");
+                });
+
             modelBuilder.Entity("OCSP.Domain.Entities.ChatMessage", b =>
                 {
                     b.HasOne("OCSP.Domain.Entities.Conversation", "Conversation")
@@ -1428,8 +1719,7 @@ namespace OCSP.Infrastructure.Migrations
                     b.HasOne("OCSP.Domain.Entities.Project", "Project")
                         .WithMany("Conversations")
                         .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Project");
                 });
@@ -1464,6 +1754,15 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("Contract");
                 });
 
+            modelBuilder.Entity("OCSP.Domain.Entities.LedgerEntry", b =>
+                {
+                    b.HasOne("OCSP.Domain.Entities.Wallet", null)
+                        .WithMany()
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OCSP.Domain.Entities.PaymentTransaction", b =>
                 {
                     b.HasOne("OCSP.Domain.Entities.Contract", "Contract")
@@ -1480,6 +1779,17 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("Contract");
 
                     b.Navigation("Milestone");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.PermitMetadata", b =>
+                {
+                    b.HasOne("OCSP.Domain.Entities.ProjectDocument", "ProjectDocument")
+                        .WithOne()
+                        .HasForeignKey("OCSP.Domain.Entities.PermitMetadata", "ProjectDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProjectDocument");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Profile", b =>
@@ -1526,6 +1836,25 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("Supervisor");
                 });
 
+            modelBuilder.Entity("OCSP.Domain.Entities.ProjectDocument", b =>
+                {
+                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
+                        .WithMany("Documents")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OCSP.Domain.Entities.User", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("UploadedBy");
+                });
+
             modelBuilder.Entity("OCSP.Domain.Entities.ProjectParticipant", b =>
                 {
                     b.HasOne("OCSP.Domain.Entities.Project", "Project")
@@ -1543,6 +1872,25 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.ProjectTimeline", b =>
+                {
+                    b.HasOne("OCSP.Domain.Entities.Contractor", "Contractor")
+                        .WithMany()
+                        .HasForeignKey("ContractorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contractor");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Proposal", b =>
@@ -1660,6 +2008,11 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("Participants");
                 });
 
+            modelBuilder.Entity("OCSP.Domain.Entities.Milestone", b =>
+                {
+                    b.Navigation("Deliverables");
+                });
+
             modelBuilder.Entity("OCSP.Domain.Entities.Profile", b =>
                 {
                     b.Navigation("ProfileDocuments");
@@ -1671,7 +2024,96 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.Navigation("Conversations");
 
+                    b.Navigation("Documents");
+                    b.Navigation("DailyResources");
+
                     b.Navigation("Participants");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.ProjectDailyResource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AggregateConsumed")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("AggregateRemaining")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("CementConsumed")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("CementRemaining")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("ConcreteMixer")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("MaterialHoist")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("PassengerHoist")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ResourceDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("SandConsumed")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("SandRemaining")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("TowerCrane")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Vibrator")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "ResourceDate");
+
+                    b.HasIndex("ResourceDate");
+
+                    b.ToTable("ProjectDailyResources");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.ProjectDailyResource", b =>
+                {
+                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
+                        .WithMany("DailyResources")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("OCSP.Domain.Entities.ProjectTimeline", b =>
+                {
+                    b.Navigation("Milestones");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.Proposal", b =>

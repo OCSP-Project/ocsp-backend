@@ -14,6 +14,10 @@ using System.IO;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Infrastructure.Repositories;
 using OCSP.Application.Options;
+using OCSP.Application.Services;
+using OCSP.Application.Services.Interfaces;
+using Microsoft.AspNetCore.Server.IISIntegration;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +26,7 @@ var builder = WebApplication.CreateBuilder(args);
 //────────────────────────────────────────────────────────
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=root";
+    ?? "Host=db;Port=5432;Database=postgres;Username=postgres;Password=123";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -36,10 +40,25 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 2) Services Registration
 //────────────────────────────────────────────────────────
 builder.Services.AddControllers();
+
+// Configure request timeout and size limits
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = 100_000_000; // 100MB
+});
+
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = 100_000_000; // 100MB
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(5);
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "OCSP API", Version = "v1" });
+    c.CustomSchemaIds(t => t.FullName!.Replace("+", "."));
 
     // 🔐 Bearer
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -70,7 +89,7 @@ builder.Services.AddSwaggerGen(c =>
 
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.AutoMapperProfile));
+builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.ContractorMappingProfile).Assembly);
 
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -86,10 +105,25 @@ builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>(
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VnPay"));
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Payments"));
+builder.Services.AddScoped<IProgressMediaService, ProgressMediaService>();
+builder.Services.AddScoped<IProjectTimelineService, ProjectTimelineService>();
+builder.Services.AddScoped<IProjectDailyResourceService, ProjectDailyResourceService>();
+// MoMo options + PaymentService
+builder.Services.AddSingleton(sp =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var opt = new MomoOptions();
+    cfg.GetSection("Momo").Bind(opt);
+    return opt;
+});
+builder.Services.AddHttpClient<IPaymentService, PaymentService>();
 
+// Project Document Services
+builder.Services.AddScoped<IProjectDocumentService, ProjectDocumentService>();
+builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 // Infrastructure Services
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
@@ -97,7 +131,9 @@ builder.Services.AddScoped<IContractorRepository, ContractorRepository>();
 builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
 builder.Services.AddScoped<IContractMilestoneRepository, ContractMilestoneRepository>();
 builder.Services.AddScoped<IContractRepository, ContractRepository>();
-builder.Services.AddScoped<IContractRepository, ContractRepository>();
+builder.Services.AddScoped<IProgressMediaRepository, ProgressMediaRepository>();
+builder.Services.AddScoped<IProjectTimelineRepository, ProjectTimelineRepository>();
+builder.Services.AddScoped<IProjectDailyResourceRepository, ProjectDailyResourceRepository>();
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();
@@ -110,7 +146,6 @@ builder.Services.AddSignalR();
 //────────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var secretKey = jwtSettings["SecretKey"] ?? "your-very-secure-secret-key-that-is-at-least-32-characters-long";
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -156,12 +191,13 @@ using (var scope = app.Services.CreateScope())
 //────────────────────────────────────────────────────────
 // 6) Middleware Pipeline
 //────────────────────────────────────────────────────────
- if (app.Environment.IsDevelopment())
- {
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
     app.UseSwaggerUI();
 
- }
+}
+
 
 if (!app.Environment.IsDevelopment())
 {

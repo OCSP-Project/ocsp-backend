@@ -24,16 +24,28 @@ namespace OCSP.API.Hubs
 
         public async Task SendMessage(string conversationId, string senderId, string content)
         {
-            var message = await _chatService.SendMessageAsync(Guid.Parse(conversationId), Guid.Parse(senderId), content);
+            var result = await _chatService.SendMessageAsync(
+                Guid.Parse(conversationId),
+                Guid.Parse(senderId),
+                content);
 
-            // Broadcast tới các client trong group
-            await Clients.Group(conversationId).SendAsync("ReceiveMessage", new
+            // Access properties from result.Message, not result directly
+            var messageDto = new
             {
-                message.Id,
-                message.SenderId,
-                message.Content,
-                message.CreatedAt
-            });
+                Id = result.Message.Id,                    // result.Message.Id instead of result.Id
+                SenderId = result.Message.SenderId,        // result.Message.SenderId
+                Content = result.Message.Content,          // result.Message.Content
+                CreatedAt = result.Message.CreatedAt,      // result.Message.CreatedAt
+                Warning = result.Warning                   // Include warning info
+            };
+
+            await Clients.Group(conversationId).SendAsync("ReceiveMessage", messageDto);
+
+            // If there's a warning, send it separately to the sender
+            if (result.Warning != null)
+            {
+                await Clients.Caller.SendAsync("ReceiveWarning", result.Warning);
+            }
         }
     }
 }

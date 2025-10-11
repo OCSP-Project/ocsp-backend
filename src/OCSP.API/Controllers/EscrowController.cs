@@ -30,19 +30,7 @@ namespace OCSP.API.Controllers
             catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
         }
 
-        [HttpPost("milestones/fund")]
-        public async Task<ActionResult<PaymentTransactionDto>> FundMilestone([FromBody] FundMilestoneDto dto, CancellationToken ct)
-        {
-            try
-            {
-                var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
-                var res = await _svc.FundMilestoneAsync(dto, uid, ct);
-                return Ok(res);
-            }
-            catch (ArgumentException ex) { return NotFound(ex.Message); }
-            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
-            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
-        }
+        // Direct milestone funding endpoint disabled. Use wallet/MoMo flow via PaymentsController and webhook credit.
 
         [HttpPost("milestones/{milestoneId:guid}/approve")]
         public async Task<ActionResult<MilestonePayoutResultDto>> Approve(Guid milestoneId, CancellationToken ct)

@@ -1,1 +1,7 @@
-namespace OCSP.Application.Common.Helpers { public static class FileHelper { } }
+namespace OCSP.Application.Common.Helpers
+{
+    public static class FileHelper
+    {
+
+    }
+}

@@ -1,5 +1,7 @@
 using OCSP.Domain.Common;
 using OCSP.Domain.Enums;
+// Alias to disambiguate from OCSP.Domain.Entities.MilestoneStatus defined in ProjectTimeline.cs
+using MilestoneStatusEnum = OCSP.Domain.Enums.MilestoneStatus;
 
 namespace OCSP.Domain.Entities
 {
@@ -12,6 +14,6 @@ namespace OCSP.Domain.Entities
         public decimal Amount { get; set; }
         public DateTime? DueDate { get; set; }
 public string? Note { get; set; }
-        public MilestoneStatus Status { get; set; } = MilestoneStatus.Planned;
+        public OCSP.Domain.Enums.MilestoneStatus Status { get; set; } = OCSP.Domain.Enums.MilestoneStatus.Planned;
     }
 }

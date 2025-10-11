@@ -41,9 +41,14 @@ namespace OCSP.Infrastructure.Data
         // NEW: Contract
             public DbSet<Contract> Contracts { get; set; }
             public DbSet<ContractItem> ContractItems { get; set; }
+// NEW: Milestone & Escrow
             public DbSet<ContractMilestone> ContractMilestones { get; set; }
-            public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
-            public DbSet<EscrowAccount> EscrowAccounts { get; set; }
+public DbSet<EscrowAccount> EscrowAccounts { get; set; }
+public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+        public DbSet<Wallet> Wallets { get; set; }
+        public DbSet<WalletTransaction> WalletTransactions { get; set; }
+        public DbSet<LedgerEntry> LedgerEntries { get; set; }
+
 
         // Contractor-related entities
         public DbSet<Contractor> Contractors { get; set; }
@@ -508,28 +513,39 @@ namespace OCSP.Infrastructure.Data
                       .WithMany(p => p.DailyResources)
                       .HasForeignKey(e => e.ProjectId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
 
-                // Indexes for better performance
-                entity.HasIndex(e => new { e.ProjectId, e.ResourceDate });
-                entity.HasIndex(e => e.ResourceDate);
+            // Wallet
+            modelBuilder.Entity<Wallet>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Available).HasColumnType("numeric(18,2)");
+                e.HasIndex(x => x.UserId).IsUnique();
+            });
 
-                // Decimal precision for material quantities
-                entity.Property(e => e.CementConsumed)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.CementRemaining)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.SandConsumed)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.SandRemaining)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.AggregateConsumed)
-                      .HasColumnType("decimal(18,2)");
-                entity.Property(e => e.AggregateRemaining)
-                      .HasColumnType("decimal(18,2)");
+            // WalletTransaction
+            modelBuilder.Entity<WalletTransaction>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+                e.Property(x => x.MomoOrderId).HasMaxLength(64);
+                e.Property(x => x.MomoRequestId).HasMaxLength(64);
+                e.Property(x => x.Status).HasMaxLength(50);
+                e.HasIndex(x => new { x.UserId, x.MomoOrderId, x.MomoRequestId }).IsUnique();
+            });
 
-                // Notes field
-                entity.Property(e => e.Notes)
-                      .HasMaxLength(1000);
+            // LedgerEntry
+            modelBuilder.Entity<LedgerEntry>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Type).HasConversion<int>();
+                e.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+                e.Property(x => x.RefId).HasMaxLength(100);
+                e.HasOne<Wallet>()
+                 .WithMany()
+                 .HasForeignKey(x => x.WalletId)
+                 .OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(x => new { x.WalletId, x.CreatedAt });
             });
 
 

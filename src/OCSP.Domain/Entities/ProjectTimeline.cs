@@ -1,4 +1,5 @@
 using OCSP.Domain.Common;
+using OCSP.Domain.Enums;
 using System;
 using System.Collections.Generic;
 
@@ -26,7 +27,7 @@ namespace OCSP.Domain.Entities
         public DateTime PlannedEndDate { get; set; }
         public DateTime? ActualStartDate { get; set; }
         public DateTime? ActualEndDate { get; set; }
-        public MilestoneStatus Status { get; set; } = MilestoneStatus.NotStarted;
+        public OCSP.Domain.Enums.MilestoneStatus Status { get; set; } = OCSP.Domain.Enums.MilestoneStatus.Planned;
         public decimal ProgressPercentage { get; set; } = 0;
         public ICollection<Deliverable> Deliverables { get; set; } = new List<Deliverable>();
     }

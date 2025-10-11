@@ -13,7 +13,7 @@ namespace OCSP.Domain.Entities
         public string Name { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public DateTime? DueDate { get; set; }
-        public string? Note { get; set; }
-        public MilestoneStatusEnum Status { get; set; } = MilestoneStatusEnum.Planned;
+public string? Note { get; set; }
+        public OCSP.Domain.Enums.MilestoneStatus Status { get; set; } = OCSP.Domain.Enums.MilestoneStatus.Planned;
     }
 }

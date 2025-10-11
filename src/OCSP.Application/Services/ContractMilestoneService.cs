@@ -31,8 +31,8 @@ namespace OCSP.Application.Services
     if (contract.HomeownerUserId != currentUserId)
         throw new UnauthorizedAccessException("Only homeowner can create milestones");
 
-    if (contract.Status != ContractStatus.Active)
-    throw new InvalidOperationException("Contract must be Active (both parties signed) to create milestones");
+    if (contract.Status != ContractStatus.Completed)
+    throw new InvalidOperationException("Contract must be Completed to create milestones");
 
 
     var totalExisting = await _db.ContractMilestones
@@ -47,7 +47,7 @@ namespace OCSP.Application.Services
         ContractId = contract.Id,
         Name = dto.Name.Trim(),
         Amount = dto.Amount,
-        DueDate = dto.DueDate,
+        DueDate = NormalizeUtc(dto.DueDate),
         Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
         Status = MilestoneStatusEnum.Planned,
         CreatedAt = DateTime.UtcNow,
@@ -74,8 +74,8 @@ namespace OCSP.Application.Services
             if (contract.HomeownerUserId != currentUserId)
                 throw new UnauthorizedAccessException("Only homeowner can create milestones");
 
-            if (contract.Status != ContractStatus.Active)
-    throw new InvalidOperationException("Contract must be Active (both parties signed) to create milestones");
+            if (contract.Status != ContractStatus.Completed)
+    throw new InvalidOperationException("Contract must be Completed to create milestones");
 
 
             // Validate từng item & tính tổng new
@@ -104,7 +104,7 @@ namespace OCSP.Application.Services
     ContractId = contract.Id,
     Name = m.Name.Trim(),
     Amount = m.Amount,
-    DueDate = m.DueDate,
+                DueDate = NormalizeUtc(m.DueDate),
     Note = string.IsNullOrWhiteSpace(m.Note) ? null : m.Note!.Trim(),
     Status = MilestoneStatusEnum.Planned,
     CreatedAt = DateTime.UtcNow,
@@ -116,6 +116,18 @@ namespace OCSP.Application.Services
             await _db.SaveChangesAsync(ct);
 
             return milestones.Select(Map).ToList();
+        }
+
+        private static DateTime? NormalizeUtc(DateTime? input)
+        {
+            if (input == null) return null;
+            var value = input.Value;
+            if (value.Kind == DateTimeKind.Unspecified)
+            {
+                // Treat unspecified as UTC to satisfy timestamptz
+                return DateTime.SpecifyKind(value, DateTimeKind.Utc);
+            }
+            return value.ToUniversalTime();
         }
 
         // Danh sách milestones theo hợp đồng
@@ -172,5 +184,66 @@ namespace OCSP.Application.Services
             Note = m.Note,
             CreatedAt = m.CreatedAt
         };
+
+        // Cập nhật milestone (homeowner)
+        public async Task<MilestoneDto> UpdateAsync(Guid milestoneId, UpdateMilestoneDto dto, Guid currentUserId, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ArgumentException("Name is required");
+            if (dto.Amount <= 0)
+                throw new ArgumentException("Amount must be > 0");
+
+            var ms = await _db.ContractMilestones
+                .Include(m => m.Contract)
+                .FirstOrDefaultAsync(m => m.Id == milestoneId, ct)
+                ?? throw new ArgumentException("Milestone not found");
+
+            if (ms.Contract.HomeownerUserId != currentUserId)
+                throw new UnauthorizedAccessException();
+
+            if (ms.Contract.Status != ContractStatus.Completed)
+                throw new InvalidOperationException("Contract must be Completed to update milestones");
+
+            if (ms.Status != MilestoneStatusEnum.Planned)
+                throw new InvalidOperationException("Only Planned milestones can be updated");
+
+            // Validate tổng không vượt quá tổng hợp đồng
+            var totalOther = await _db.ContractMilestones
+                .Where(x => x.ContractId == ms.ContractId && x.Id != ms.Id)
+                .SumAsync(x => x.Amount, ct);
+
+            if (totalOther + dto.Amount > ms.Contract.TotalPrice)
+                throw new InvalidOperationException("Total milestone amount cannot exceed contract total price");
+
+            ms.Name = dto.Name.Trim();
+            ms.Amount = dto.Amount;
+            ms.DueDate = NormalizeUtc(dto.DueDate);
+            ms.Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
+            ms.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+            return Map(ms);
+        }
+
+        // Xóa milestone (homeowner)
+        public async Task DeleteAsync(Guid milestoneId, Guid currentUserId, CancellationToken ct = default)
+        {
+            var ms = await _db.ContractMilestones
+                .Include(m => m.Contract)
+                .FirstOrDefaultAsync(m => m.Id == milestoneId, ct)
+                ?? throw new ArgumentException("Milestone not found");
+
+            if (ms.Contract.HomeownerUserId != currentUserId)
+                throw new UnauthorizedAccessException();
+
+            if (ms.Contract.Status != ContractStatus.Completed)
+                throw new InvalidOperationException("Contract must be Completed to delete milestones");
+
+            if (ms.Status != MilestoneStatusEnum.Planned)
+                throw new InvalidOperationException("Only Planned milestones can be deleted");
+
+            _db.ContractMilestones.Remove(ms);
+            await _db.SaveChangesAsync(ct);
+        }
     }
 }

@@ -14,6 +14,8 @@ using System.IO;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Infrastructure.Repositories;
 using OCSP.Application.Options;
+using OCSP.Application.Services;
+using OCSP.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
@@ -106,6 +108,15 @@ builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Pay
 builder.Services.AddScoped<IProgressMediaService, ProgressMediaService>();
 builder.Services.AddScoped<IProjectTimelineService, ProjectTimelineService>();
 builder.Services.AddScoped<IProjectDailyResourceService, ProjectDailyResourceService>();
+// MoMo options + PaymentService
+builder.Services.AddSingleton(sp =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var opt = new MomoOptions();
+    cfg.GetSection("Momo").Bind(opt);
+    return opt;
+});
+builder.Services.AddHttpClient<IPaymentService, PaymentService>();
 
 // Project Document Services
 builder.Services.AddScoped<IProjectDocumentService, ProjectDocumentService>();

@@ -31,4 +31,13 @@ namespace OCSP.Application.DTOs.Milestones
         public Guid MilestoneId { get; set; }
         public string? Note { get; set; }
     }
+
+    // DTO dùng để cập nhật milestone (homeowner)
+    public class UpdateMilestoneDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public DateTime? DueDate { get; set; }
+        public string? Note { get; set; }
+    }
 }

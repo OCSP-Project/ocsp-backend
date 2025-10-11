@@ -4,6 +4,7 @@ namespace OCSP.Domain.Enums
     {
         Manual = 0,
         VnPay  = 1,
-        ZaloPay = 2
+        ZaloPay = 2,
+        MoMo = 3
     }
 }

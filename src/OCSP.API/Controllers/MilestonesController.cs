@@ -73,6 +73,34 @@ public async Task<ActionResult<IEnumerable<MilestoneDto>>> BulkCreate([FromBody]
 }
 
 
+        [HttpPut("{milestoneId:guid}")]
+        public async Task<ActionResult<MilestoneDto>> Update(Guid milestoneId, [FromBody] UpdateMilestoneDto dto, CancellationToken ct)
+        {
+            try
+            {
+                var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+                var result = await _svc.UpdateAsync(milestoneId, dto, uid, ct);
+                return Ok(result);
+            }
+            catch (ArgumentException ex) { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException) { return Forbid(); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpDelete("{milestoneId:guid}")]
+        public async Task<IActionResult> Delete(Guid milestoneId, CancellationToken ct)
+        {
+            try
+            {
+                var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+                await _svc.DeleteAsync(milestoneId, uid, ct);
+                return NoContent();
+            }
+            catch (ArgumentException ex) { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException) { return Forbid(); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
         private Guid Me()
         {
             var v = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

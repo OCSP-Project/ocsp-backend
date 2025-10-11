@@ -223,6 +223,51 @@ namespace OCSP.Application.Services
             if (c.HomeownerUserId != currentUserId && c.ContractorUserId != currentUserId)
                 throw new UnauthorizedAccessException("No access to this contract");
 
+            // Fetch homeowner information
+            var homeowner = await _db.Users
+                .Where(u => u.Id == c.HomeownerUserId)
+                .Select(u => new { u.Username, u.Email })
+                .FirstOrDefaultAsync(ct);
+
+            // Fetch homeowner profile information
+            var homeownerProfile = await _db.Profiles
+                .Where(p => p.UserId == c.HomeownerUserId)
+                .Select(p => new { p.FirstName, p.LastName })
+                .FirstOrDefaultAsync(ct);
+
+            // Fetch contractor information
+            var contractor = await _db.Users
+                .Where(u => u.Id == c.ContractorUserId)
+                .Select(u => new { u.Username, u.Email })
+                .FirstOrDefaultAsync(ct);
+
+            // Fetch contractor profile information
+            var contractorProfile = await _db.Profiles
+                .Where(p => p.UserId == c.ContractorUserId)
+                .Select(p => new { p.FirstName, p.LastName })
+                .FirstOrDefaultAsync(ct);
+
+            // Fetch contractor business information
+            var contractorBusiness = await _db.Contractors
+                .Where(ctr => ctr.UserId == c.ContractorUserId)
+                .Select(ctr => new
+                {
+                    ctr.CompanyName,
+                    ctr.ContactPhone,
+                    ctr.ContactEmail,
+                    ctr.Address,
+                    ctr.City,
+                    ctr.Province,
+                    ctr.YearsOfExperience,
+                    ctr.TeamSize,
+                    ctr.AverageRating,
+                    ctr.TotalReviews,
+                    ctr.CompletedProjects,
+                    ctr.IsVerified,
+                    ctr.IsPremium
+                })
+                .FirstOrDefaultAsync(ct);
+
             return new ContractDetailDto
             {
                 Id               = c.Id,
@@ -242,7 +287,34 @@ namespace OCSP.Application.Services
                     Qty       = i.Qty,
                     Unit      = i.Unit,
                     UnitPrice = i.UnitPrice
-                }).ToList()
+                }).ToList(),
+                Homeowner = homeowner != null ? new HomeownerInfoDto
+                {
+                    Username  = homeowner.Username,
+                    Email     = homeowner.Email,
+                    FirstName = homeownerProfile?.FirstName,
+                    LastName  = homeownerProfile?.LastName
+                } : null,
+                Contractor = contractor != null && contractorBusiness != null ? new ContractorInfoDto
+                {
+                    Username          = contractor.Username,
+                    Email             = contractor.Email,
+                    FirstName         = contractorProfile?.FirstName,
+                    LastName          = contractorProfile?.LastName,
+                    CompanyName       = contractorBusiness.CompanyName,
+                    ContactPhone      = contractorBusiness.ContactPhone,
+                    ContactEmail      = contractorBusiness.ContactEmail,
+                    Address           = contractorBusiness.Address,
+                    City              = contractorBusiness.City,
+                    Province          = contractorBusiness.Province,
+                    YearsOfExperience = contractorBusiness.YearsOfExperience,
+                    TeamSize          = contractorBusiness.TeamSize,
+                    AverageRating     = contractorBusiness.AverageRating,
+                    TotalReviews      = contractorBusiness.TotalReviews,
+                    CompletedProjects = contractorBusiness.CompletedProjects,
+                    IsVerified        = contractorBusiness.IsVerified,
+                    IsPremium         = contractorBusiness.IsPremium
+                } : null
             };
         }
     }

@@ -16,6 +16,42 @@ namespace OCSP.API.Controllers
             _chatService = chatService;
         }
 
+        [HttpGet("users/{userId:guid}/conversations")]
+        [ProducesResponseType(typeof(IEnumerable<ConversationDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetUserConversations([FromRoute] Guid userId)
+        {
+            if (userId == Guid.Empty) return BadRequest("userId không hợp lệ.");
+
+            var conversations = await _chatService.GetUserConversationsAsync(userId);
+
+            var result = conversations.Select(c => new ConversationDto
+            {
+                Id = c.Id,
+                ProjectId = c.ProjectId,
+                Participants = c.Participants?.Select(p => new ParticipantDto
+                {
+                    UserId = p.UserId,
+                    Username = p.User?.Username ?? string.Empty,
+                    Role = p.Role
+                }).ToArray() ?? Array.Empty<ParticipantDto>(),
+                LastMessage = c.Messages
+                    ?.OrderByDescending(m => m.CreatedAt)
+                    .Select(m => new MessageDto
+                    {
+                        Id = m.Id,
+                        ConversationId = m.ConversationId,
+                        SenderId = m.SenderId,
+                        Content = m.Content,
+                        CreatedAt = m.CreatedAt
+                    })
+                    .FirstOrDefault(),
+                UnreadCount = c.Messages?.Count(m => !m.IsRead) ?? 0,
+                UpdatedAt = c.Messages?.OrderByDescending(m => m.CreatedAt).FirstOrDefault()?.CreatedAt ?? c.CreatedAt
+            });
+
+            return Ok(result);
+        }
+
         [HttpPost("start")]
         [ProducesResponseType(typeof(ConversationCreatedDto), StatusCodes.Status200OK)]
         public async Task<IActionResult> StartConversation([FromBody] StartChatRequest request)

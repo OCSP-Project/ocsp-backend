@@ -154,7 +154,6 @@ namespace OCSP.Application.DTOs.Contractor
         public int ProfileCompletionPercentage { get; set; }
     }
 
-
     public class ContractorSearchDto
     {
         public string? Query { get; set; }

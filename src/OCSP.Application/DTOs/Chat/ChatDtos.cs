@@ -32,6 +32,23 @@ namespace OCSP.Application.DTOs.Chat
         public Guid[] ParticipantIds { get; set; } = Array.Empty<Guid>();
     }
 
+    public class ConversationDto
+    {
+        public Guid Id { get; set; }
+        public Guid? ProjectId { get; set; }
+        public ParticipantDto[] Participants { get; set; } = Array.Empty<ParticipantDto>();
+        public MessageDto? LastMessage { get; set; }
+        public int UnreadCount { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class ParticipantDto
+    {
+        public Guid UserId { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public int Role { get; set; }
+    }
+
     public class StartChatRequest
     {
         public Guid? ProjectId { get; set; } // Make optional

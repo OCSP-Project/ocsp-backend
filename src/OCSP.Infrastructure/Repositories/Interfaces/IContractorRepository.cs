@@ -38,6 +38,11 @@ namespace OCSP.Infrastructure.Repositories.Interfaces
         Task<List<Contractor>> GetFeaturedContractorsAsync(int count = 10);
         Task<List<Contractor>> GetBySpecialtyAsync(string specialty);
         Task UpdateRatingAsync(Guid contractorId, decimal newRating, int newReviewCount);
+        Task<ContractorPost?> GetPostByIdAsync(Guid postId);
+        Task<List<ContractorPost>> GetPostsByContractorAsync(Guid contractorId, int page, int pageSize);
+        Task AddPostAsync(ContractorPost post);
+        Task AddPostImagesAsync(IEnumerable<ContractorPostImage> images);
+        Task DeletePostAsync(Guid postId, Guid contractorId);
     }
 
     public interface ICommunicationRepository : IGenericRepository<Communication>
@@ -46,4 +51,5 @@ namespace OCSP.Infrastructure.Repositories.Interfaces
         Task IncrementWarningCountAsync(Guid userId);
         Task<List<Communication>> GetFlaggedCommunicationsAsync();
         Task<List<Communication>> GetUserCommunicationsAsync(Guid userId, DateTime from, DateTime to);
-    }}
+    }
+}

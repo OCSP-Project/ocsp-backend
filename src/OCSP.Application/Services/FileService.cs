@@ -21,25 +21,39 @@ namespace OCSP.Application.Services
         {
             try
             {
-                // Tạo thư mục con nếu chưa tồn tại
-                var folderPath = Path.Combine(_uploadPath, folder);
-                if (!Directory.Exists(folderPath))
+                // Hỗ trợ đường dẫn con trong fileName (ví dụ: projectId/drawings/abc.pdf)
+                var safeFileName = Path.GetFileName(fileName);
+                var subDirectory = Path.GetDirectoryName(fileName)?.Replace('\\', '/') ?? string.Empty;
+
+                // Tạo thư mục gốc + thư mục con nếu chưa tồn tại
+                var destinationDir = string.IsNullOrEmpty(subDirectory)
+                    ? Path.Combine(_uploadPath, folder)
+                    : Path.Combine(_uploadPath, folder, subDirectory);
+
+                if (!Directory.Exists(destinationDir))
                 {
-                    Directory.CreateDirectory(folderPath);
+                    Directory.CreateDirectory(destinationDir);
                 }
 
                 // Tạo tên file unique
-                var uniqueFileName = $"{Guid.NewGuid()}_{fileName}";
-                var filePath = Path.Combine(folderPath, uniqueFileName);
+                var uniqueFileName = $"{Guid.NewGuid()}_{safeFileName}";
+                var filePath = Path.Combine(destinationDir, uniqueFileName);
+
+                // Đảm bảo stream ở vị trí bắt đầu
+                if (fileStream.CanSeek) fileStream.Position = 0;
 
                 // Lưu file
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
                     await fileStream.CopyToAsync(stream);
                 }
 
-                // Trả về đường dẫn tương đối
-                return $"/uploads/{folder}/{uniqueFileName}";
+                // Trả về đường dẫn tương đối (URL)
+                var relativePath = string.IsNullOrEmpty(subDirectory)
+                    ? $"/uploads/{folder}/{uniqueFileName}"
+                    : $"/uploads/{folder}/{subDirectory}/{uniqueFileName}".Replace("\\", "/");
+
+                return relativePath;
             }
             catch (Exception ex)
             {
@@ -68,7 +82,7 @@ namespace OCSP.Application.Services
                 // Log lỗi nhưng không throw exception để tránh ảnh hưởng đến flow chính
                 Console.WriteLine($"Lỗi khi xóa file: {ex.Message}");
             }
-            
+
             return Task.CompletedTask;
         }
 

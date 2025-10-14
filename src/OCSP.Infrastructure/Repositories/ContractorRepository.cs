@@ -228,6 +228,44 @@ namespace OCSP.Infrastructure.Repositories
 
             await UpdateAsync(contractor);
         }
+
+        public async Task<ContractorPost?> GetPostByIdAsync(Guid postId)
+        {
+            return await _context.ContractorPosts
+                .Include(p => p.Images)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+        }
+
+        public async Task<List<ContractorPost>> GetPostsByContractorAsync(Guid contractorId, int page, int pageSize)
+        {
+            return await _context.ContractorPosts
+                .Include(p => p.Images)
+                .Where(p => p.ContractorId == contractorId)
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task AddPostAsync(ContractorPost post)
+        {
+            await _context.ContractorPosts.AddAsync(post);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddPostImagesAsync(IEnumerable<ContractorPostImage> images)
+        {
+            await _context.ContractorPostImages.AddRangeAsync(images);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeletePostAsync(Guid postId, Guid contractorId)
+        {
+            var post = await _context.ContractorPosts.FirstOrDefaultAsync(p => p.Id == postId && p.ContractorId == contractorId);
+            if (post == null) return;
+            _context.ContractorPosts.Remove(post);
+            await _context.SaveChangesAsync();
+        }
     }
 
     public class CommunicationRepository : GenericRepository<Communication>, ICommunicationRepository

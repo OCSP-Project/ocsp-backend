@@ -362,5 +362,75 @@ namespace OCSP.Application.Services
                 await _communicationRepository.IncrementWarningCountAsync(fromUserId);
             }
         }
+
+        public async Task<ContractorPostDto> CreatePostAsync(Guid contractorId, ContractorPostCreateDto dto)
+        {
+            var contractor = await _contractorRepository.GetByIdAsync(contractorId);
+            if (contractor == null) throw new Exception("Contractor not found");
+
+            var post = new ContractorPost
+            {
+                Id = Guid.NewGuid(),
+                ContractorId = contractorId,
+                Title = dto.Title,
+                Description = dto.Description
+            };
+
+            await _contractorRepository.AddPostAsync(post);
+
+            if (dto.ImageUrls?.Any() == true)
+            {
+                var images = dto.ImageUrls.Select(url => new ContractorPostImage
+                {
+                    Id = Guid.NewGuid(),
+                    ContractorPostId = post.Id,
+                    Url = url
+                }).ToList();
+
+                await _contractorRepository.AddPostImagesAsync(images);
+                post.Images = images;
+            }
+
+            return new ContractorPostDto
+            {
+                Id = post.Id,
+                ContractorId = post.ContractorId,
+                Title = post.Title,
+                Description = post.Description,
+                CreatedAt = post.CreatedAt,
+                UpdatedAt = post.UpdatedAt,
+                Images = post.Images.Select(i => new ContractorPostImageDto
+                {
+                    Id = i.Id,
+                    Url = i.Url,
+                    Caption = i.Caption
+                }).ToList()
+            };
+        }
+
+        public async Task<List<ContractorPostDto>> GetContractorPostsAsync(Guid contractorId, int page = 1, int pageSize = 10)
+        {
+            var posts = await _contractorRepository.GetPostsByContractorAsync(contractorId, page, pageSize);
+            return posts.Select(p => new ContractorPostDto
+            {
+                Id = p.Id,
+                ContractorId = p.ContractorId,
+                Title = p.Title,
+                Description = p.Description,
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt,
+                Images = p.Images.Select(i => new ContractorPostImageDto
+                {
+                    Id = i.Id,
+                    Url = i.Url,
+                    Caption = i.Caption
+                }).ToList()
+            }).ToList();
+        }
+
+        public async Task DeletePostAsync(Guid contractorId, Guid postId)
+        {
+            await _contractorRepository.DeletePostAsync(postId, contractorId);
+        }
     }
 }

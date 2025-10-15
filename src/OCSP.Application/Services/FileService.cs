@@ -1,5 +1,6 @@
 using OCSP.Application.Services.Interfaces;
 using System.IO;
+using System.Net.Http;
 
 namespace OCSP.Application.Services
 {
@@ -93,7 +94,15 @@ namespace OCSP.Application.Services
                 if (string.IsNullOrEmpty(fileUrl))
                     throw new ArgumentException("File URL không được để trống");
 
-                // Chuyển đổi URL thành đường dẫn file system
+                // Nếu là URL tuyệt đối (http/https) → tải qua HTTP
+                if (Uri.TryCreate(fileUrl, UriKind.Absolute, out var absoluteUri) &&
+                    (absoluteUri.Scheme == Uri.UriSchemeHttp || absoluteUri.Scheme == Uri.UriSchemeHttps))
+                {
+                    using var http = new HttpClient();
+                    return await http.GetByteArrayAsync(absoluteUri);
+                }
+
+                // Ngược lại: coi như đường dẫn tương đối trong app (/uploads/...)
                 var relativePath = fileUrl.TrimStart('/');
                 var fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
 

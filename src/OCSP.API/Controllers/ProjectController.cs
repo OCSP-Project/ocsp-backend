@@ -166,37 +166,41 @@ namespace OCSP.API.Controllers
             }
         }
 
-        // GET api/projects/{id}/download-drawing - For contractors to download drawings
-        [HttpGet("{id:guid}/download-drawing")]
+        
+
+        // GET api/projects/documents/{documentId}/download - Download any project document by its id
+        [HttpGet("documents/{documentId:guid}/download")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> DownloadDrawing([FromRoute] Guid id)
+        public async Task<IActionResult> DownloadDocument([FromRoute] Guid documentId)
         {
             try
             {
-                var contractorId = GetCurrentUserId();
-                if (contractorId == Guid.Empty)
+                var userId = GetCurrentUserId();
+                if (userId == Guid.Empty)
                     return Unauthorized(new { message = "User not authenticated" });
 
-                var (fileStream, fileName, contentType) = await _projectService.DownloadDrawingAsync(id, contractorId);
-
+                // Use ProjectDocumentService via ProjectService if exposed; otherwise inject service directly.
+                // Here we rely on ProjectService exposing a passthrough (already available in ProjectDocumentService).
+                // For simplicity, resolve via ProjectService when available.
+                var (fileStream, fileName, contentType) = await _projectService.DownloadDocumentByIdAsync(documentId, userId);
                 return File(fileStream, contentType, fileName);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Bad request downloading drawing");
+                _logger.LogWarning(ex, "Bad request downloading document");
                 return NotFound(new { message = ex.Message });
             }
             catch (UnauthorizedAccessException ex)
             {
-                _logger.LogWarning(ex, "Forbidden downloading drawing");
+                _logger.LogWarning(ex, "Forbidden downloading document");
                 return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled error downloading drawing");
+                _logger.LogError(ex, "Unhandled error downloading document");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

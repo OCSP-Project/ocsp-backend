@@ -284,32 +284,10 @@ public class ProjectService : IProjectService
         };
     }
 
-    public async Task<(Stream FileStream, string FileName, string ContentType)> DownloadDrawingAsync(Guid projectId, Guid contractorId)
+    public async Task<(Stream FileStream, string FileName, string ContentType)> DownloadDocumentByIdAsync(Guid documentId, Guid userId)
     {
-        // 1. Kiểm tra project tồn tại và contractor có tham gia không
-        var project = await _projectRepository.GetByIdAsync(projectId);
-        if (project == null)
-            throw new ArgumentException("Dự án không tồn tại");
-
-        // 2. Kiểm tra contractor có tham gia project không
-        var participant = project.Participants?.FirstOrDefault(p =>
-            p.UserId == contractorId &&
-            p.Role == ProjectRole.Contractor &&
-            p.Status == ParticipantStatus.Active);
-
-        if (participant == null)
-            throw new UnauthorizedAccessException("Bạn không có quyền truy cập dự án này");
-
-        // 3. Tìm bản vẽ mới nhất (DocumentType = Drawing, IsLatest = true)
-        var drawingDocument = await _documentService.GetProjectDocumentsAsync(projectId)
-            .ContinueWith(task => task.Result.FirstOrDefault(d =>
-                d.DocumentType == 1 && d.IsLatest)); // DocumentType.Drawing = 1
-
-        if (drawingDocument == null)
-            throw new ArgumentException("Không tìm thấy bản vẽ cho dự án này");
-
-        // 4. Download file từ ProjectDocumentService
-        return await _documentService.GetDocumentFileAsync(drawingDocument.Id, contractorId);
+        // Ủy quyền việc lấy file (giải mã nếu cần) cho ProjectDocumentService
+        return await _documentService.GetDocumentFileAsync(documentId, userId);
     }
 
 }

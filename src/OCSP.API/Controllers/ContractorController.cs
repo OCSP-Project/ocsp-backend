@@ -142,7 +142,7 @@ namespace OCSP.API.Controllers
         /// Get featured/premium contractors for homepage
         /// </summary>
         [HttpGet("featured")]
-        public async Task<ActionResult<List<ContractorProfileSummaryDto >>> GetFeaturedContractors([FromQuery] int count = 6)
+        public async Task<ActionResult<List<ContractorProfileSummaryDto>>> GetFeaturedContractors([FromQuery] int count = 6)
         {
             try
             {
@@ -268,6 +268,55 @@ namespace OCSP.API.Controllers
             {
                 _logger.LogError(ex, "Error getting contractor statistics");
                 return StatusCode(500, new { Message = "An error occurred while retrieving statistics." });
+            }
+        }
+
+        // ===== Contractor Posts =====
+        [HttpPost("{contractorId}/posts")]
+        [Authorize(Roles = "Contractor")]
+        public async Task<ActionResult<ContractorPostDto>> CreatePost(Guid contractorId, [FromBody] ContractorPostCreateDto dto)
+        {
+            try
+            {
+                var result = await _contractorService.CreatePostAsync(contractorId, dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating contractor post");
+                return StatusCode(500, new { Message = "An error occurred while creating post." });
+            }
+        }
+
+        [HttpGet("{contractorId}/posts")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<ContractorPostDto>>> GetPosts(Guid contractorId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var posts = await _contractorService.GetContractorPostsAsync(contractorId, page, pageSize);
+                return Ok(posts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching contractor posts");
+                return StatusCode(500, new { Message = "An error occurred while fetching posts." });
+            }
+        }
+
+        [HttpDelete("{contractorId}/posts/{postId}")]
+        [Authorize(Roles = "Contractor")]
+        public async Task<IActionResult> DeletePost(Guid contractorId, Guid postId)
+        {
+            try
+            {
+                await _contractorService.DeletePostAsync(contractorId, postId);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting contractor post");
+                return StatusCode(500, new { Message = "An error occurred while deleting post." });
             }
         }
     }

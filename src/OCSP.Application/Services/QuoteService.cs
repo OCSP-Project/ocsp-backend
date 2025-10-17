@@ -5,6 +5,8 @@ using OCSP.Application.Services.Interfaces;
 using OCSP.Domain.Enums;
 using OCSP.Domain.Entities;
 using OCSP.Infrastructure.Data;
+using OCSP.Application.DTOs.Project;
+
 
 namespace OCSP.Application.Services
 {
@@ -205,14 +207,17 @@ public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync
 {
     // 1) Lấy toàn bộ quote đã SENT có mời mình
     var quotes = await _db.QuoteRequests
-        .AsNoTracking()
-        .Include(q => q.Invites)
-        .Include(q => q.Project)
-            .ThenInclude(p => p.Homeowner) // navigation User
-        .Where(q => q.Status == QuoteStatus.Sent &&
-                    q.Invites.Any(i => i.ContractorUserId == contractorUserId))
-        .OrderByDescending(q => q.CreatedAt)
-        .ToListAsync(ct);
+    .AsNoTracking()
+    .Include(q => q.Invites)
+    .Include(q => q.Project)
+        .ThenInclude(p => p.Homeowner)
+    .Include(q => q.Project)
+        .ThenInclude(p => p.Documents) // ✅ Thêm dòng này
+    .Where(q => q.Status == QuoteStatus.Sent &&
+                q.Invites.Any(i => i.ContractorUserId == contractorUserId))
+    .OrderByDescending(q => q.CreatedAt)
+    .ToListAsync(ct);
+
 
     if (quotes.Count == 0) return Enumerable.Empty<QuoteRequestDetailDto>();
 
@@ -311,84 +316,123 @@ public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync
     
 
     public async Task<QuoteRequestDetailDto> GetDetailForUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+{
+    var q = await _db.QuoteRequests
+        .AsNoTracking()
+        .Include(x => x.Invites)
+        .Include(x => x.Project)
+            .ThenInclude(p => p.Homeowner)
+        .Include(x => x.Project)
+            .ThenInclude(p => p.Documents)          // ✅ Load Project Documents
+                .ThenInclude(d => d.UploadedBy)     // để lấy tên người upload
+        .FirstOrDefaultAsync(x => x.Id == id, ct)
+        ?? throw new ArgumentException("Quote request not found");
+
+    var isHomeowner = q.Project.HomeownerId == userId;
+    var isInvited   = q.Invites.Any(i => i.ContractorUserId == userId);
+    if (!isHomeowner && !isInvited)
+        throw new UnauthorizedAccessException("You don't have access to this quote");
+
+    // 🔹 Lấy danh sách user được mời
+    var inviteUserIds = q.Invites.Select(i => i.ContractorUserId).ToList();
+    var users = await _db.Users
+        .Where(u => inviteUserIds.Contains(u.Id) || u.Id == q.Project.HomeownerId)
+        .Select(u => new { u.Id, u.Username, u.Email })
+        .ToListAsync(ct);
+
+    // 🔹 Lấy công ty theo userId
+    var companyByUser = await _db.Contractors
+        .Where(c => inviteUserIds.Contains(c.UserId))
+        .Select(c => new { c.UserId, c.CompanyName })
+        .ToListAsync(ct);
+
+    // 🔹 Lấy proposal của contractor hiện tại (nếu có)
+    var myProp = await _db.Proposals
+        .Where(p => p.QuoteRequestId == q.Id && p.ContractorUserId == userId)
+        .Select(p => new { p.Id, p.Status, p.PriceTotal, p.DurationDays })
+        .FirstOrDefaultAsync(ct);
+
+    var hoUser = users.FirstOrDefault(u => u.Id == q.Project.HomeownerId);
+
+    // ✅ Mapping đầy đủ
+    return new QuoteRequestDetailDto
     {
-        var q = await _db.QuoteRequests
-            .AsNoTracking()
-            .Include(x => x.Invites)
-            .Include(x => x.Project).ThenInclude(p => p.Homeowner)
-            .FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw new ArgumentException("Quote request not found");
+        Id = q.Id,
+        Scope = q.Scope,
+        DueDate = q.DueDate,
+        Status = q.Status.ToString(),
+        CreatedAt = q.CreatedAt,
+        UpdatedAt = q.UpdatedAt,
 
-        var isHomeowner = q.Project.HomeownerId == userId;
-        var isInvited   = q.Invites.Any(i => i.ContractorUserId == userId);
-        if (!isHomeowner && !isInvited)
-            throw new UnauthorizedAccessException("You don't have access to this quote");
-
-        // Lấy bảng phụ
-        var inviteUserIds = q.Invites.Select(i => i.ContractorUserId).ToList();
-        var users = await _db.Users
-            .Where(u => inviteUserIds.Contains(u.Id) || u.Id == q.Project.HomeownerId)
-            .Select(u => new { u.Id, u.Username, u.Email })
-            .ToListAsync(ct);
-        var companyByUser = await _db.Contractors
-            .Where(c => inviteUserIds.Contains(c.UserId))
-            .Select(c => new { c.UserId, c.CompanyName })
-            .ToListAsync(ct);
-
-        var myProp = await _db.Proposals
-            .Where(p => p.QuoteRequestId == q.Id && p.ContractorUserId == userId)
-            .Select(p => new { p.Id, p.Status, p.PriceTotal, p.DurationDays })
-            .FirstOrDefaultAsync(ct);
-
-        var hoUser = users.FirstOrDefault(u => u.Id == q.Project.HomeownerId);
-
-        return new QuoteRequestDetailDto
+        Project = new ProjectSummaryDto
         {
-            Id = q.Id,
-            Scope = q.Scope,
-            DueDate = q.DueDate,
-            Status = q.Status.ToString(),
-            CreatedAt = q.CreatedAt,
-            UpdatedAt = q.UpdatedAt,
-            Project = new ProjectSummaryDto
-            {
-                Id = q.ProjectId,
-                Name = q.Project.Name,
-                Description = q.Project.Description,
-                Address = q.Project.Address,
-                Budget = q.Project.Budget,
-                ActualBudget = q.Project.ActualBudget,
-                NumberOfFloors = q.Project.NumberOfFloors,
-                FloorArea = q.Project.FloorArea,
-                StartDate = q.Project.StartDate,
-                EstimatedCompletionDate = q.Project.EstimatedCompletionDate
-            },
-            Homeowner = new HomeownerSummaryDto
-            {
-                UserId = q.Project.HomeownerId,
-                Username = hoUser?.Username ?? "",
-                Email = hoUser?.Email ?? ""
-            },
-            Invitees = q.Invites.Select(i =>
-            {
-                var u = users.FirstOrDefault(x => x.Id == i.ContractorUserId);
-                var comp = companyByUser.FirstOrDefault(x => x.UserId == i.ContractorUserId)?.CompanyName;
-                return new InviteeSummaryDto
+            Id = q.ProjectId,
+            Name = q.Project.Name,
+            Description = q.Project.Description,
+            Address = q.Project.Address,
+            Budget = q.Project.Budget,
+            ActualBudget = q.Project.ActualBudget,
+            NumberOfFloors = q.Project.NumberOfFloors,
+            FloorArea = q.Project.FloorArea,
+            StartDate = q.Project.StartDate,
+            EstimatedCompletionDate = q.Project.EstimatedCompletionDate,
+
+            // ✅ Thêm Documents (Drawing + Permit)
+            Documents = q.Project.Documents
+                .Where(d => d.IsLatest) // chỉ lấy version mới nhất
+                .Select(d => new ProjectDocumentDto
                 {
-                    UserId = i.ContractorUserId,
-                    Username = u?.Username ?? "",
-                    CompanyName = comp
-                };
-            }).ToList(),
-            MyProposal = myProp == null ? new MyProposalSummaryDto() : new MyProposalSummaryDto
+                    Id = d.Id,
+                    ProjectId = d.ProjectId,
+                    DocumentType = (int)d.DocumentType,
+                    DocumentTypeName = d.DocumentType.ToString(),
+                    FileName = d.FileName,
+                    FileUrl = d.FileUrl,
+                    FileType = d.FileType,
+                    FileSize = d.FileSize,
+                    FileSizeFormatted = $"{Math.Round(d.FileSize / 1024.0 / 1024.0, 2)} MB",
+                    IsEncrypted = d.IsEncrypted,
+                    FileHash = d.FileHash,
+                    UploadedByUserId = d.UploadedByUserId,
+                    UploadedByUsername = d.UploadedBy.Username,
+                    UploadedAt = d.UploadedAt,
+                    Version = d.Version,
+                    IsLatest = d.IsLatest
+                })
+                .ToList()
+        },
+
+        Homeowner = new HomeownerSummaryDto
+        {
+            UserId = q.Project.HomeownerId,
+            Username = hoUser?.Username ?? "",
+            Email = hoUser?.Email ?? ""
+        },
+
+        Invitees = q.Invites.Select(i =>
+        {
+            var u = users.FirstOrDefault(x => x.Id == i.ContractorUserId);
+            var comp = companyByUser.FirstOrDefault(x => x.UserId == i.ContractorUserId)?.CompanyName;
+            return new InviteeSummaryDto
+            {
+                UserId = i.ContractorUserId,
+                Username = u?.Username ?? "",
+                CompanyName = comp
+            };
+        }).ToList(),
+
+        MyProposal = myProp == null
+            ? new MyProposalSummaryDto()
+            : new MyProposalSummaryDto
             {
                 Id = myProp.Id,
                 Status = myProp.Status.ToString(),
                 PriceTotal = myProp.PriceTotal,
                 DurationDays = myProp.DurationDays
             }
-        };
-    }
+    };
+}
+
 
         public async Task SendToAllContractorsAsync(Guid quoteId, Guid homeownerId, CancellationToken ct = default)
         {

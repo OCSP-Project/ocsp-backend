@@ -1,3 +1,5 @@
+using OCSP.Application.DTOs.Project;
+
 namespace OCSP.Application.DTOs.Quotes
 {
     public class ProjectSummaryDto
@@ -12,6 +14,7 @@ namespace OCSP.Application.DTOs.Quotes
         public decimal FloorArea { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime? EstimatedCompletionDate { get; set; }
+        public List<ProjectDocumentDto> Documents { get; set; } = new();
     }
 
     public class HomeownerSummaryDto

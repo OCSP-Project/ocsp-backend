@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using OCSP.Application.Services.Interfaces;
+using System.IO;
 
 namespace OCSP.Application.Services
 {
@@ -8,6 +9,16 @@ namespace OCSP.Application.Services
         // Trong production, dùng Azure Key Vault hoặc AWS KMS
         // Đây là demo đơn giản
         private readonly Dictionary<string, byte[]> _keyStore = new();
+        private readonly string _keysDir;
+
+        public EncryptionService()
+        {
+            // Lưu key ra đĩa để không bị mất sau khi restart (chỉ demo/dev)
+            var uploads = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+            if (!Directory.Exists(uploads)) Directory.CreateDirectory(uploads);
+            _keysDir = Path.Combine(uploads, "keys");
+            if (!Directory.Exists(_keysDir)) Directory.CreateDirectory(_keysDir);
+        }
 
         public async Task<EncryptionResult> EncryptFileAsync(byte[] data)
         {
@@ -23,6 +34,10 @@ namespace OCSP.Application.Services
             Buffer.BlockCopy(aes.Key, 0, keyData, 0, aes.Key.Length);
             Buffer.BlockCopy(aes.IV, 0, keyData, aes.Key.Length, aes.IV.Length);
             _keyStore[keyId] = keyData;
+
+            // Persist key to disk for later decryption (dev only)
+            var keyPath = Path.Combine(_keysDir, keyId + ".bin");
+            await File.WriteAllBytesAsync(keyPath, keyData);
 
             // Mã hóa
             using var encryptor = aes.CreateEncryptor();
@@ -42,7 +57,19 @@ namespace OCSP.Application.Services
         public async Task<byte[]> DecryptFileAsync(byte[] encryptedData, string keyId)
         {
             if (!_keyStore.TryGetValue(keyId, out var keyData))
-                throw new InvalidOperationException("Encryption key not found");
+            {
+                // Try load from disk (dev persistence)
+                var keyPath = Path.Combine(_keysDir, keyId + ".bin");
+                if (File.Exists(keyPath))
+                {
+                    keyData = await File.ReadAllBytesAsync(keyPath);
+                    _keyStore[keyId] = keyData;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Encryption key not found");
+                }
+            }
 
             using var aes = Aes.Create();
             aes.KeySize = 256;

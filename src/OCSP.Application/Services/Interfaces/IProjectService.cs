@@ -18,7 +18,7 @@ namespace OCSP.Application.Services.Interfaces
         // Update Project
         Task<ProjectDetailDto> UpdateProjectAsync(Guid projectId, UpdateProjectDto dto, Guid homeownerId);
 
-        // Download Drawing for Contractor
-        Task<(Stream FileStream, string FileName, string ContentType)> DownloadDrawingAsync(Guid projectId, Guid contractorId);
+        // Download any project document by its id (auto-decrypt if needed)
+        Task<(Stream FileStream, string FileName, string ContentType)> DownloadDocumentByIdAsync(Guid documentId, Guid userId);
     }
 }

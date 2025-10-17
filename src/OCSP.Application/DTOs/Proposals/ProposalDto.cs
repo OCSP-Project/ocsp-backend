@@ -13,5 +13,16 @@ namespace OCSP.Application.DTOs.Proposals
         public string? TermsSummary { get; set; }
         public List<ProposalItemDto> Items { get; set; } = new();
         public ProposalContractorSummaryDto? Contractor { get; set; }
+        
+        // Excel-based proposal info
+        public bool IsFromExcel { get; set; } = false;
+        public string? ExcelFileName { get; set; }
+        
+        // Project Information from Excel
+        public string? ProjectTitle { get; set; }
+        public string? ConstructionArea { get; set; }
+        public string? ConstructionTime { get; set; }
+        public string? NumberOfWorkers { get; set; }
+        public string? AverageSalary { get; set; }
     }
 }

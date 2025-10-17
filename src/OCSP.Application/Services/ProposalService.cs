@@ -4,6 +4,8 @@ using OCSP.Application.Services.Interfaces;
 using OCSP.Domain.Entities;
 using OCSP.Domain.Enums;
 using OCSP.Infrastructure.Data;
+using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 namespace OCSP.Application.Services
 {
@@ -33,7 +35,7 @@ namespace OCSP.Application.Services
             if (exists) throw new InvalidOperationException("You already submitted a proposal for this quote");
 
             // Tính tổng từ items
-            var total = dto.Items.Sum(i => i.Qty * i.UnitPrice);
+            var total = dto.Items.Sum(i => i.Price);
 
             var p = new Proposal
             {
@@ -51,9 +53,8 @@ namespace OCSP.Application.Services
                 p.Items.Add(new ProposalItem
                 {
                     Name = it.Name,
-                    Unit = it.Unit,
-                    Qty = it.Qty,
-                    UnitPrice = it.UnitPrice,
+                    Price = it.Price,
+                    Notes = it.Notes,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 });
@@ -63,6 +64,123 @@ namespace OCSP.Application.Services
             await _db.SaveChangesAsync(ct);
 
             return ToDto(p);
+        }
+
+        public async Task<string> UploadExcelAsync(Guid quoteId, Guid contractorUserId, IFormFile excelFile, CancellationToken ct = default)
+        {
+            // Validate quote, status, and invite
+            var qr = await _db.QuoteRequests
+                .Include(q => q.Invites)
+                .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
+                ?? throw new ArgumentException("Quote request not found");
+            if (qr.Status != QuoteStatus.Sent)
+                throw new InvalidOperationException("QuoteRequest must be Sent");
+            if (!qr.Invites.Any(i => i.ContractorUserId == contractorUserId))
+                throw new UnauthorizedAccessException("You are not invited to this quote");
+
+            // Basic validation
+            var ext = Path.GetExtension(excelFile.FileName).ToLowerInvariant();
+            if (ext != ".xlsx") throw new InvalidOperationException("Only .xlsx files are accepted");
+            if (excelFile.Length == 0) throw new InvalidOperationException("Empty file");
+
+            // Check if proposal already exists
+            var existingProposal = await _db.Proposals.FirstOrDefaultAsync(p =>
+                p.QuoteRequestId == quoteId && p.ContractorUserId == contractorUserId, ct);
+            
+            if (existingProposal != null)
+            {
+                // Update existing proposal
+                await UpdateProposalFromExcelAsync(existingProposal, excelFile, ct);
+                return $"Updated existing proposal from {excelFile.FileName}";
+            }
+            else
+            {
+                // Create new proposal from Excel
+                var proposal = await CreateProposalFromExcelAsync(quoteId, contractorUserId, excelFile, ct);
+                return $"Created new proposal from {excelFile.FileName}";
+            }
+        }
+
+        private async Task<Proposal> CreateProposalFromExcelAsync(Guid quoteId, Guid contractorUserId, IFormFile excelFile, CancellationToken ct)
+        {
+            // Parse Excel file
+            var parser = new ExcelProposalParser();
+            using var stream = excelFile.OpenReadStream();
+            var parsedData = await parser.ParseExcelAsync(stream);
+
+            // Create proposal with data from "Tổng hợp" tab
+            var proposal = new Proposal
+            {
+                QuoteRequestId = quoteId,
+                ContractorUserId = contractorUserId,
+                Status = ProposalStatus.Draft,
+                PriceTotal = parsedData.TotalCost,
+                DurationDays = parsedData.TotalDurationDays,
+                TermsSummary = BuildProjectInfoSummary(parsedData),
+                IsFromExcel = true,
+                ExcelFileName = excelFile.FileName,
+                
+                // Project Information from Excel
+                ProjectTitle = parsedData.ProjectTitle,
+                ConstructionArea = parsedData.GeneralInfo.TryGetValue("ConstructionArea", out var area) ? area?.ToString() : null,
+                ConstructionTime = parsedData.GeneralInfo.TryGetValue("ConstructionTime", out var time) ? time?.ToString() : null,
+                NumberOfWorkers = parsedData.GeneralInfo.TryGetValue("NumberOfWorkers", out var workers) ? workers?.ToString() : null,
+                AverageSalary = parsedData.GeneralInfo.TryGetValue("AverageSalary", out var salary) ? salary?.ToString() : null
+            };
+
+            _db.Proposals.Add(proposal);
+            await _db.SaveChangesAsync(ct);
+
+            // Add cost items from "Tổng hợp" tab as proposal items
+            foreach (var costItemData in parsedData.CostItems)
+            {
+                var proposalItem = new ProposalItem
+                {
+                    ProposalId = proposal.Id,
+                    Name = costItemData.Name,
+                    Price = costItemData.TotalAmount,
+                    Notes = costItemData.Notes
+                };
+                _db.ProposalItems.Add(proposalItem);
+            }
+
+            await _db.SaveChangesAsync(ct);
+            return proposal;
+        }
+
+        private async Task UpdateProposalFromExcelAsync(Proposal proposal, IFormFile excelFile, CancellationToken ct)
+        {
+            // Parse Excel file
+            var parser = new ExcelProposalParser();
+            using var stream = excelFile.OpenReadStream();
+            var parsedData = await parser.ParseExcelAsync(stream);
+
+            // Update proposal basic info
+            proposal.PriceTotal = parsedData.TotalCost;
+            proposal.DurationDays = parsedData.TotalDurationDays;
+            proposal.ExcelFileName = excelFile.FileName;
+
+            // Update terms summary
+            proposal.TermsSummary = $"Dự án: {parsedData.ProjectTitle}";
+
+            // Remove existing proposal items
+            var existingItems = await _db.ProposalItems.Where(i => i.ProposalId == proposal.Id).ToListAsync(ct);
+            _db.ProposalItems.RemoveRange(existingItems);
+
+            // Add cost items from "Tổng hợp" tab as proposal items
+            foreach (var costItemData in parsedData.CostItems)
+            {
+                var proposalItem = new ProposalItem
+                {
+                    ProposalId = proposal.Id,
+                    Name = costItemData.Name,
+                    Price = costItemData.TotalAmount,
+                    Notes = costItemData.Notes
+                };
+                _db.ProposalItems.Add(proposalItem);
+            }
+
+            await _db.SaveChangesAsync(ct);
         }
 
         public async Task SubmitAsync(Guid proposalId, Guid contractorUserId, CancellationToken ct = default)
@@ -155,7 +273,7 @@ namespace OCSP.Application.Services
             // Update scalar fields
             p.DurationDays = dto.DurationDays;
             p.TermsSummary = dto.TermsSummary;
-            p.PriceTotal = dto.Items.Sum(i => i.Qty * i.UnitPrice);
+            p.PriceTotal = dto.Items.Sum(i => i.Price);
             p.UpdatedAt = DateTime.UtcNow;
 
             // Replace items (simple approach)
@@ -166,9 +284,8 @@ namespace OCSP.Application.Services
                 p.Items.Add(new ProposalItem
                 {
                     Name = it.Name,
-                    Unit = it.Unit,
-                    Qty = it.Qty,
-                    UnitPrice = it.UnitPrice,
+                    Price = it.Price,
+                    Notes = it.Notes,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 });
@@ -221,13 +338,21 @@ namespace OCSP.Application.Services
             PriceTotal = p.PriceTotal,
             DurationDays = p.DurationDays,
             TermsSummary = p.TermsSummary,
-            Items = p.Items.Select(i => new ProposalItemDto
+            Items = p.Items.OrderBy(i => ExtractOrderFromName(i.Name)).Select(i => new ProposalItemDto
             {
                 Name = i.Name,
-                Unit = i.Unit,
-                Qty = i.Qty,
-                UnitPrice = i.UnitPrice
-            }).ToList()
+                Price = i.Price,
+                Notes = i.Notes
+            }).ToList(),
+            IsFromExcel = p.IsFromExcel,
+            ExcelFileName = p.ExcelFileName,
+            
+            // Project Information from Excel
+            ProjectTitle = p.ProjectTitle,
+            ConstructionArea = p.ConstructionArea,
+            ConstructionTime = p.ConstructionTime,
+            NumberOfWorkers = p.NumberOfWorkers,
+            AverageSalary = p.AverageSalary
         };
 
         private static ProposalDto ToDtoWithContractor(Proposal p, dynamic? contractorInfo, dynamic? profileInfo) => new ProposalDto
@@ -239,13 +364,21 @@ namespace OCSP.Application.Services
             PriceTotal = p.PriceTotal,
             DurationDays = p.DurationDays,
             TermsSummary = p.TermsSummary,
-            Items = p.Items.Select(i => new ProposalItemDto
+            Items = p.Items.OrderBy(i => ExtractOrderFromName(i.Name)).Select(i => new ProposalItemDto
             {
                 Name = i.Name,
-                Unit = i.Unit,
-                Qty = i.Qty,
-                UnitPrice = i.UnitPrice
+                Price = i.Price,
+                Notes = i.Notes
             }).ToList(),
+            IsFromExcel = p.IsFromExcel,
+            ExcelFileName = p.ExcelFileName,
+            
+            // Project Information from Excel
+            ProjectTitle = p.ProjectTitle,
+            ConstructionArea = p.ConstructionArea,
+            ConstructionTime = p.ConstructionTime,
+            NumberOfWorkers = p.NumberOfWorkers,
+            AverageSalary = p.AverageSalary,
             Contractor = contractorInfo != null ? new ProposalContractorSummaryDto 
             {
                 CompanyName = contractorInfo.CompanyName ?? "",
@@ -254,5 +387,47 @@ namespace OCSP.Application.Services
                 Email = contractorInfo.ContactEmail ?? ""
             } : null
         };
+
+        private static int ExtractOrderFromName(string name)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(name, @"^(\d+)\.\s*(.+)$");
+            if (match.Success && int.TryParse(match.Groups[1].Value, out int order))
+            {
+                return order;
+            }
+            return 999; // Put items without order at the end
+        }
+
+        private static string BuildProjectInfoSummary(ExcelProposalParser.ParsedProposalData parsedData)
+        {
+            var info = new List<string>();
+            
+            if (!string.IsNullOrEmpty(parsedData.ProjectTitle))
+            {
+                info.Add($"Dự án: {parsedData.ProjectTitle}");
+            }
+            
+            if (parsedData.GeneralInfo.TryGetValue("ConstructionArea", out var area))
+            {
+                info.Add($"Diện tích xây dựng: {area}");
+            }
+            
+            if (parsedData.GeneralInfo.TryGetValue("ConstructionTime", out var time))
+            {
+                info.Add($"Thời gian thi công: {time}");
+            }
+            
+            if (parsedData.GeneralInfo.TryGetValue("NumberOfWorkers", out var workers))
+            {
+                info.Add($"Số công nhân: {workers}");
+            }
+            
+            if (parsedData.GeneralInfo.TryGetValue("AverageSalary", out var salary))
+            {
+                info.Add($"Lương trung bình: {salary}");
+            }
+            
+            return string.Join("\n", info);
+        }
     }
 }

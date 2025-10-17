@@ -17,5 +17,41 @@ namespace OCSP.Domain.Entities
         public string? TermsSummary { get; set; }    // điều khoản tóm tắt
 
         public ICollection<ProposalItem> Items { get; set; } = new List<ProposalItem>();
+        
+        /// <summary>
+        /// Indicates if this proposal was created from Excel upload
+        /// </summary>
+        public bool IsFromExcel { get; set; } = false;
+        
+        /// <summary>
+        /// Original Excel filename
+        /// </summary>
+        public string? ExcelFileName { get; set; }
+        
+        // Project Information from Excel
+        /// <summary>
+        /// Project title from Excel
+        /// </summary>
+        public string? ProjectTitle { get; set; }
+        
+        /// <summary>
+        /// Construction area (e.g., "196.53 m²")
+        /// </summary>
+        public string? ConstructionArea { get; set; }
+        
+        /// <summary>
+        /// Construction time (e.g., "6 tháng")
+        /// </summary>
+        public string? ConstructionTime { get; set; }
+        
+        /// <summary>
+        /// Number of workers (e.g., "7 người")
+        /// </summary>
+        public string? NumberOfWorkers { get; set; }
+        
+        /// <summary>
+        /// Average salary (e.g., "12.000.000 đ/người/tháng")
+        /// </summary>
+        public string? AverageSalary { get; set; }
     }
 }

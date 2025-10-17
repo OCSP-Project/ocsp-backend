@@ -1204,6 +1204,13 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<int>("DurationDays")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ExcelFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsFromExcel")
+                        .HasColumnType("boolean");
+
                     b.Property<decimal>("PriceTotal")
                         .HasColumnType("numeric(18,2)");
 
@@ -1221,6 +1228,22 @@ namespace OCSP.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+                    
+                    // Project Information from Excel
+                    b.Property<string>("ProjectTitle")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConstructionArea")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConstructionTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NumberOfWorkers")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AverageSalary")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -1248,18 +1271,13 @@ namespace OCSP.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("ProposalId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("Qty")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("UnitPrice")
+                    b.Property<decimal>("Price")
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -1274,6 +1292,9 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.ToTable("ProposalItems");
                 });
+
+
+
 
             modelBuilder.Entity("OCSP.Domain.Entities.QuoteInvite", b =>
                 {

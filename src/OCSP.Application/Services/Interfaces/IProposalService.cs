@@ -1,4 +1,5 @@
 using OCSP.Application.DTOs.Proposals;
+using Microsoft.AspNetCore.Http;
 
 namespace OCSP.Application.Services.Interfaces
 {
@@ -20,5 +21,8 @@ namespace OCSP.Application.Services.Interfaces
         Task<ProposalDto> GetMyByIdAsync(Guid id, Guid contractorUserId, CancellationToken ct = default);
         Task<ProposalDto?> GetMyByQuoteAsync(Guid quoteId, Guid contractorUserId, CancellationToken ct = default);
         Task<ProposalDto> UpdateDraftAsync(Guid id, UpdateProposalDto dto, Guid contractorUserId, CancellationToken ct = default);
+
+        // Upload Excel for proposal (contractor)
+        Task<string> UploadExcelAsync(Guid quoteId, Guid contractorUserId, IFormFile excelFile, CancellationToken ct = default);
     }
 }

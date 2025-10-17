@@ -33,6 +33,7 @@ namespace OCSP.Infrastructure.Data
             public DbSet<QuoteInvite> QuoteInvites { get; set; }
             public DbSet<Proposal> Proposals { get; set; }
             public DbSet<ProposalItem> ProposalItems { get; set; }
+            
 
 
             // NEW: Project Documents
@@ -487,15 +488,15 @@ namespace OCSP.Infrastructure.Data
                         e.HasKey(x => x.Id);
 
                         e.Property(x => x.Name).HasMaxLength(300);
-                        e.Property(x => x.Unit).HasMaxLength(50);
-                        e.Property(x => x.Qty).HasColumnType("numeric(18,2)");
-                        e.Property(x => x.UnitPrice).HasColumnType("numeric(18,2)");
+                        e.Property(x => x.Price).HasColumnType("numeric(18,2)");
+                        e.Property(x => x.Notes).HasColumnType("text");
 
                         e.HasOne(x => x.Proposal)
                    .WithMany(p => p.Items)
                    .HasForeignKey(x => x.ProposalId)
                    .OnDelete(DeleteBehavior.Cascade);
                   });
+
 
                   // ProjectDailyResource configuration
                   modelBuilder.Entity<ProjectDailyResource>(entity =>

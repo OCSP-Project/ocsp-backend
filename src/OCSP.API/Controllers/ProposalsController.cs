@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OCSP.Application.DTOs.Proposals;
 using OCSP.Application.Services.Interfaces;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace OCSP.API.Controllers
 {
@@ -69,6 +70,23 @@ namespace OCSP.API.Controllers
             try { var list = await _svc.ListByQuoteAsync(quoteId, uid, ct); return Ok(list); }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
             catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        }
+
+        // Upload proposal Excel (.xlsx) for a quote (Contractor)
+        [HttpPost("by-quote/{quoteId:guid}/upload-excel")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<object>> UploadExcel(Guid quoteId, [FromForm] IFormFile file, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            if (file == null || file.Length == 0) return BadRequest("File is required");
+            try
+            {
+                var result = await _svc.UploadExcelAsync(quoteId, uid, file, ct);
+                return Ok(new { message = "Uploaded", result });
+            }
+            catch (ArgumentException ex)           { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
         }
 
         [HttpPost("{id:guid}/accept")] // homeowner accept 1 proposal

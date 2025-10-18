@@ -208,4 +208,41 @@ namespace OCSP.Application.DTOs.Contractor
         public DateTime CreatedAt { get; set; }
         public string? ProjectName { get; set; }
     }
+
+    public class ContractorStatisticsDto
+    {
+        public int TotalContractors { get; set; }
+        public int VerifiedContractors { get; set; }
+        public int PremiumContractors { get; set; }
+        public decimal AverageRating { get; set; }
+        public int RestrictedContractors { get; set; }
+    }
+}
+
+namespace OCSP.Application.DTOs.Contractor
+{
+    public class ContractorPostCreateDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public List<string> ImageUrls { get; set; } = new List<string>();
+    }
+
+    public class ContractorPostImageDto
+    {
+        public Guid Id { get; set; }
+        public string Url { get; set; } = string.Empty;
+        public string? Caption { get; set; }
+    }
+
+    public class ContractorPostDto
+    {
+        public Guid Id { get; set; }
+        public Guid ContractorId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public List<ContractorPostImageDto> Images { get; set; } = new List<ContractorPostImageDto>();
+    }
 }

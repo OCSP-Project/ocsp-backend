@@ -284,4 +284,10 @@ public class ProjectService : IProjectService
         };
     }
 
+    public async Task<(Stream FileStream, string FileName, string ContentType)> DownloadDocumentByIdAsync(Guid documentId, Guid userId)
+    {
+        // Ủy quyền việc lấy file (giải mã nếu cần) cho ProjectDocumentService
+        return await _documentService.GetDocumentFileAsync(documentId, userId);
+    }
+
 }

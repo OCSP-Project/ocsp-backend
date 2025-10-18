@@ -25,6 +25,9 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Copy published app
 COPY --from=build /app/publish .
 
+# Copy Templates directory
+COPY --from=build /src/src/OCSP.Infrastructure/Templates ./Templates
+
 # Expose port
 EXPOSE 8080
 

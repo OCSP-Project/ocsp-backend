@@ -1,6 +1,7 @@
 // OCSP.Application/Services/QuoteService.cs
 using Microsoft.EntityFrameworkCore;
 using OCSP.Application.DTOs.Quotes;
+using OCSP.Application.DTOs.Project;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Domain.Enums;
 using OCSP.Domain.Entities;
@@ -272,7 +273,30 @@ public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync
                 NumberOfFloors          = q.Project.NumberOfFloors,
                 FloorArea               = q.Project.FloorArea,
                 StartDate               = q.Project.StartDate,
-                EstimatedCompletionDate = q.Project.EstimatedCompletionDate
+                EstimatedCompletionDate = q.Project.EstimatedCompletionDate,
+                Documents               = _db.ProjectDocuments
+                    .AsNoTracking()
+                    .Where(d => d.ProjectId == q.Project.Id && d.IsLatest)
+                    .Select(d => new ProjectDocumentDto
+                    {
+                        Id = d.Id,
+                        ProjectId = d.ProjectId,
+                        DocumentType = (int)d.DocumentType,
+                        DocumentTypeName = d.DocumentType.ToString(),
+                        FileName = d.FileName,
+                        FileUrl = d.FileUrl,
+                        FileType = d.FileType,
+                        FileSize = d.FileSize,
+                        FileSizeFormatted = string.Empty,
+                        IsEncrypted = d.IsEncrypted,
+                        FileHash = d.FileHash,
+                        UploadedByUserId = d.UploadedByUserId,
+                        UploadedByUsername = string.Empty,
+                        UploadedAt = d.UploadedAt,
+                        Version = d.Version,
+                        IsLatest = d.IsLatest,
+                        PermitMetadata = null
+                    }).ToList()
             },
 
             Homeowner = new HomeownerSummaryDto
@@ -361,7 +385,30 @@ public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync
                 NumberOfFloors = q.Project.NumberOfFloors,
                 FloorArea = q.Project.FloorArea,
                 StartDate = q.Project.StartDate,
-                EstimatedCompletionDate = q.Project.EstimatedCompletionDate
+                EstimatedCompletionDate = q.Project.EstimatedCompletionDate,
+                Documents = _db.ProjectDocuments
+                    .AsNoTracking()
+                    .Where(d => d.ProjectId == q.ProjectId && d.IsLatest)
+                    .Select(d => new ProjectDocumentDto
+                    {
+                        Id = d.Id,
+                        ProjectId = d.ProjectId,
+                        DocumentType = (int)d.DocumentType,
+                        DocumentTypeName = d.DocumentType.ToString(),
+                        FileName = d.FileName,
+                        FileUrl = d.FileUrl,
+                        FileType = d.FileType,
+                        FileSize = d.FileSize,
+                        FileSizeFormatted = string.Empty,
+                        IsEncrypted = d.IsEncrypted,
+                        FileHash = d.FileHash,
+                        UploadedByUserId = d.UploadedByUserId,
+                        UploadedByUsername = string.Empty,
+                        UploadedAt = d.UploadedAt,
+                        Version = d.Version,
+                        IsLatest = d.IsLatest,
+                        PermitMetadata = null
+                    }).ToList()
             },
             Homeowner = new HomeownerSummaryDto
             {

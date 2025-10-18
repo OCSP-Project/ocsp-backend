@@ -99,6 +99,30 @@ namespace OCSP.API.Controllers
             catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
         }
 
+        [HttpPost("{id:guid}/request-revision")] // homeowner request revision
+        public async Task<IActionResult> RequestRevision(Guid id, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            try { await _svc.RequestRevisionAsync(id, uid, ct); return NoContent(); }
+            catch (ArgumentException ex)           { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
+        }
+
+        [HttpGet("{id:guid}/download-excel")] // homeowner download Excel file
+        public async Task<IActionResult> DownloadExcel(Guid id, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            try 
+            { 
+                var (fileStream, fileName, contentType) = await _svc.DownloadExcelAsync(id, uid, ct);
+                return File(fileStream, contentType, fileName);
+            }
+            catch (ArgumentException ex)           { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
+        }
+
         private Guid GetUserId()
         {
             var v = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

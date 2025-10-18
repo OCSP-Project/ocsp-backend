@@ -12,7 +12,13 @@ namespace OCSP.Application.Services
     public class ProposalService : IProposalService
     {
         private readonly ApplicationDbContext _db;
-        public ProposalService(ApplicationDbContext db) => _db = db;
+        private readonly IFileService _fileService;
+        
+        public ProposalService(ApplicationDbContext db, IFileService fileService)
+        {
+            _db = db;
+            _fileService = fileService;
+        }
 
         public async Task<ProposalDto> CreateAsync(CreateProposalDto dto, Guid contractorUserId, CancellationToken ct = default)
         {
@@ -108,6 +114,13 @@ namespace OCSP.Application.Services
             using var stream = excelFile.OpenReadStream();
             var parsedData = await parser.ParseExcelAsync(stream);
 
+            // Save Excel file to storage
+            var excelFileUrl = await _fileService.UploadFileAsync(
+                excelFile.OpenReadStream(), 
+                $"proposals/{quoteId}/{excelFile.FileName}", 
+                "proposals"
+            );
+
             // Create proposal with data from "Tổng hợp" tab
             var proposal = new Proposal
             {
@@ -119,6 +132,7 @@ namespace OCSP.Application.Services
                 TermsSummary = BuildProjectInfoSummary(parsedData),
                 IsFromExcel = true,
                 ExcelFileName = excelFile.FileName,
+                ExcelFileUrl = excelFileUrl,
                 
                 // Project Information from Excel
                 ProjectTitle = parsedData.ProjectTitle,
@@ -155,13 +169,25 @@ namespace OCSP.Application.Services
             using var stream = excelFile.OpenReadStream();
             var parsedData = await parser.ParseExcelAsync(stream);
 
+            // Save new Excel file to storage
+            var excelFileUrl = await _fileService.UploadFileAsync(
+                excelFile.OpenReadStream(), 
+                $"proposals/{proposal.QuoteRequestId}/{excelFile.FileName}", 
+                "proposals"
+            );
+
             // Update proposal basic info
             proposal.PriceTotal = parsedData.TotalCost;
             proposal.DurationDays = parsedData.TotalDurationDays;
             proposal.ExcelFileName = excelFile.FileName;
+            proposal.ExcelFileUrl = excelFileUrl;
+            proposal.UpdatedAt = DateTime.UtcNow;
 
-            // Update terms summary
-            proposal.TermsSummary = $"Dự án: {parsedData.ProjectTitle}";
+            // If proposal was RevisionRequested, change it back to Draft after update
+            if (proposal.Status == ProposalStatus.RevisionRequested)
+            {
+                proposal.Status = ProposalStatus.Draft;
+            }
 
             // Remove existing proposal items
             var existingItems = await _db.ProposalItems.Where(i => i.ProposalId == proposal.Id).ToListAsync(ct);
@@ -196,7 +222,12 @@ namespace OCSP.Application.Services
             if (p.Status != ProposalStatus.Draft)
                 throw new InvalidOperationException("Only Draft proposal can be submitted");
 
-            p.Status = ProposalStatus.Submitted;
+            // Check if this proposal was revised by homeowner request
+            var isResubmission = p.WasRevised;
+
+            // Set status based on whether this is resubmission after revision
+            p.Status = isResubmission ? ProposalStatus.Resubmitted : ProposalStatus.Submitted;
+            p.HasBeenSubmitted = true; // Mark as submitted
             p.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
         }
@@ -267,8 +298,14 @@ namespace OCSP.Application.Services
                 ?? throw new ArgumentException("Proposal not found");
             if (p.ContractorUserId != contractorUserId)
                 throw new UnauthorizedAccessException("Not your proposal");
-            if (p.Status != ProposalStatus.Draft)
-                throw new InvalidOperationException("Only Draft can be updated");
+            if (p.Status != ProposalStatus.Draft && p.Status != ProposalStatus.RevisionRequested)
+                throw new InvalidOperationException("Only Draft or RevisionRequested proposal can be updated");
+
+            // If proposal was RevisionRequested, change it back to Draft after update
+            if (p.Status == ProposalStatus.RevisionRequested)
+            {
+                p.Status = ProposalStatus.Draft;
+            }
 
             // Update scalar fields
             p.DurationDays = dto.DurationDays;
@@ -329,6 +366,32 @@ namespace OCSP.Application.Services
             await tx.CommitAsync(ct);
         }
 
+        public async Task RequestRevisionAsync(Guid proposalId, Guid homeownerId, CancellationToken ct = default)
+        {
+            var proposal = await _db.Proposals
+                .Include(p => p.QuoteRequest)
+                    .ThenInclude(q => q.Project)
+                .FirstOrDefaultAsync(p => p.Id == proposalId, ct)
+                ?? throw new ArgumentException("Proposal not found");
+
+            if (proposal.QuoteRequest.Project.HomeownerId != homeownerId)
+                throw new UnauthorizedAccessException("Not project owner");
+
+            if (proposal.Status != ProposalStatus.Submitted && proposal.Status != ProposalStatus.Resubmitted)
+                throw new InvalidOperationException("Only Submitted or Resubmitted proposal can be requested for revision");
+
+            // Set proposal status to RevisionRequested and mark as revised
+            proposal.Status = ProposalStatus.RevisionRequested;
+            proposal.WasRevised = true; // Mark that this proposal was revised
+            proposal.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+
+            // Log notification for contractor
+            Console.WriteLine($"NOTIFICATION: Contractor {proposal.ContractorUserId} received revision request for proposal {proposal.Id}");
+            Console.WriteLine($"Message: Yêu cầu chỉnh sửa đề xuất báo giá tới từ chủ nhà, vui lòng liên hệ với bên chủ nhà để thảo luận vấn đề cần chỉnh sửa");
+        }
+
         private static ProposalDto ToDto(Proposal p) => new ProposalDto
         {
             Id = p.Id,
@@ -346,13 +409,17 @@ namespace OCSP.Application.Services
             }).ToList(),
             IsFromExcel = p.IsFromExcel,
             ExcelFileName = p.ExcelFileName,
+            ExcelFileUrl = p.ExcelFileUrl,
             
             // Project Information from Excel
             ProjectTitle = p.ProjectTitle,
             ConstructionArea = p.ConstructionArea,
             ConstructionTime = p.ConstructionTime,
             NumberOfWorkers = p.NumberOfWorkers,
-            AverageSalary = p.AverageSalary
+            AverageSalary = p.AverageSalary,
+            
+            // Resubmission tracking
+            HasBeenSubmitted = p.HasBeenSubmitted
         };
 
         private static ProposalDto ToDtoWithContractor(Proposal p, dynamic? contractorInfo, dynamic? profileInfo) => new ProposalDto
@@ -372,6 +439,7 @@ namespace OCSP.Application.Services
             }).ToList(),
             IsFromExcel = p.IsFromExcel,
             ExcelFileName = p.ExcelFileName,
+            ExcelFileUrl = p.ExcelFileUrl,
             
             // Project Information from Excel
             ProjectTitle = p.ProjectTitle,
@@ -379,6 +447,10 @@ namespace OCSP.Application.Services
             ConstructionTime = p.ConstructionTime,
             NumberOfWorkers = p.NumberOfWorkers,
             AverageSalary = p.AverageSalary,
+            
+            // Resubmission tracking
+            HasBeenSubmitted = p.HasBeenSubmitted,
+            
             Contractor = contractorInfo != null ? new ProposalContractorSummaryDto 
             {
                 CompanyName = contractorInfo.CompanyName ?? "",
@@ -428,6 +500,29 @@ namespace OCSP.Application.Services
             }
             
             return string.Join("\n", info);
+        }
+
+        public async Task<(Stream fileStream, string fileName, string contentType)> DownloadExcelAsync(Guid proposalId, Guid homeownerId, CancellationToken ct = default)
+        {
+            var proposal = await _db.Proposals
+                .Include(p => p.QuoteRequest)
+                    .ThenInclude(q => q.Project)
+                .FirstOrDefaultAsync(p => p.Id == proposalId, ct)
+                ?? throw new ArgumentException("Proposal not found");
+
+            if (proposal.QuoteRequest.Project.HomeownerId != homeownerId)
+                throw new UnauthorizedAccessException("Not project owner");
+
+            if (string.IsNullOrEmpty(proposal.ExcelFileUrl))
+                throw new InvalidOperationException("No Excel file available for this proposal");
+
+            // Get file from storage
+            var fileBytes = await _fileService.GetFileAsync(proposal.ExcelFileUrl);
+            var fileStream = new MemoryStream(fileBytes);
+            var fileName = proposal.ExcelFileName ?? "proposal.xlsx";
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+            return (fileStream, fileName, contentType);
         }
     }
 }

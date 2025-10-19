@@ -17,6 +17,7 @@ namespace OCSP.Application.DTOs.Proposals
         // Excel-based proposal info
         public bool IsFromExcel { get; set; } = false;
         public string? ExcelFileName { get; set; }
+        public string? ExcelFileUrl { get; set; }
         
         // Project Information from Excel
         public string? ProjectTitle { get; set; }
@@ -24,5 +25,8 @@ namespace OCSP.Application.DTOs.Proposals
         public string? ConstructionTime { get; set; }
         public string? NumberOfWorkers { get; set; }
         public string? AverageSalary { get; set; }
+        
+        // Resubmission tracking
+        public bool HasBeenSubmitted { get; set; } = false;
     }
 }

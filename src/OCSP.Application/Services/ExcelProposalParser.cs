@@ -22,9 +22,6 @@ namespace OCSP.Application.Services
         {
             public string Category { get; set; } = string.Empty;
             public string Name { get; set; } = string.Empty;
-            public string Unit { get; set; } = string.Empty;
-            public decimal Quantity { get; set; } = 0;
-            public decimal UnitPrice { get; set; } = 0;
             public decimal TotalAmount { get; set; } = 0;
             public int Order { get; set; } = 0;
             public string? Notes { get; set; }
@@ -60,9 +57,13 @@ namespace OCSP.Application.Services
             var endCol = worksheet.Dimension?.End.Column ?? 10;
 
             var costItems = new List<ProposalCostItemData>();
+            var foundTotalRow = false; // Flag to stop parsing items after finding "TỔNG CỘNG"
 
             for (int row = startRow; row <= endRow; row++)
             {
+                // Stop parsing cost items if we found "TỔNG CỘNG"
+                if (foundTotalRow && row > startRow + 5) break;
+                
                 for (int col = 1; col <= endCol; col++)
                 {
                     var cellValue = worksheet.Cells[row, col].Value?.ToString()?.Trim();
@@ -124,8 +125,8 @@ namespace OCSP.Application.Services
                         }
                     }
 
-                    // Parse cost items (rows that look like cost data)
-                    if (row >= 9 && row <= 16 && col == 1 && IsCostItemRow(cellValue, worksheet, row, col))
+                    // Parse cost items (rows that look like cost data) - dynamically detect all items
+                    if (row >= 9 && col == 1 && !foundTotalRow && IsCostItemRow(cellValue, worksheet, row, col))
                     {
                         Console.WriteLine($"Found cost item at row {row}: '{cellValue}'");
                         var costItem = ParseCostItemRow(worksheet, row, endCol);
@@ -141,6 +142,8 @@ namespace OCSP.Application.Services
                     if (cellValue.Contains("TỔNG CỘNG", StringComparison.OrdinalIgnoreCase) ||
                         cellValue.Contains("TONG CONG", StringComparison.OrdinalIgnoreCase))
                     {
+                        foundTotalRow = true; // Set flag to stop parsing more cost items
+                        
                         // Look for total cost in adjacent cells
                         for (int i = col + 1; i <= Math.Min(col + 3, endCol); i++)
                         {
@@ -158,17 +161,17 @@ namespace OCSP.Application.Services
             result.CostItems = costItems.OrderBy(x => x.Order).ToList();
             
             // Debug logging
-            Console.WriteLine($"Parsed {costItems.Count} cost items from Excel");
-            Console.WriteLine("Before sorting:");
-            foreach (var item in costItems)
+            Console.WriteLine($"=== EXCEL PARSING SUMMARY ===");
+            Console.WriteLine($"Total cost items found: {costItems.Count}");
+            Console.WriteLine($"Project title: {result.ProjectTitle}");
+            Console.WriteLine($"Total cost: {result.TotalCost:N0} VNĐ");
+            Console.WriteLine($"Total duration: {result.TotalDurationDays} days");
+            Console.WriteLine("Cost items (sorted by order):");
+            foreach (var item in result.CostItems)
             {
-                Console.WriteLine($"Order {item.Order}: {item.Name} - {item.TotalAmount} VNĐ");
+                Console.WriteLine($"  {item.Order}. {item.Name} - {item.TotalAmount:N0} VNĐ ({item.Notes})");
             }
-            Console.WriteLine("After sorting:");
-            foreach (var item in costItems.OrderBy(x => x.Order))
-            {
-                Console.WriteLine($"Order {item.Order}: {item.Name} - {item.TotalAmount} VNĐ");
-            }
+            Console.WriteLine($"=== END PARSING SUMMARY ===");
         }
 
         private bool IsCostItemRow(string cellValue, ExcelWorksheet worksheet, int row, int col)
@@ -176,21 +179,31 @@ namespace OCSP.Application.Services
             // Skip if cell is empty
             if (string.IsNullOrEmpty(cellValue)) return false;
             
-            // Skip if contains summary keywords
-            var summaryKeywords = new[] { "TỔNG", "CỘNG", "Tổng", "Cộng", "TOTAL", "SUM", "Thời gian", "Thoi gian", "Dự án", "Project", "DỰ TOÁN", "CHI PHÍ" };
-            if (summaryKeywords.Any(keyword => cellValue.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+            // Skip if starts with summary keywords (only check exact matches at the beginning)
+            var summaryKeywords = new[] { 
+                "TỔNG CỘNG", "TONG CONG", "Tổng cộng", "Tong cong",
+                "TỔNG HỢP", "TONG HOP", "Tổng hợp", "Tong hop", 
+                "Hạng mục", "Chi phí", "Tỷ lệ",
+                "Thời gian", "Thoi gian", "Dự án", "Project"
+            };
+            
+            // Only check if the cell starts with these exact keywords
+            foreach (var keyword in summaryKeywords)
             {
-                return false;
+                if (cellValue.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
             }
 
             // Check if this looks like a cost item (starts with number like "1. Phần móng", "2. Phần thô", etc.)
-            if (cellValue.Length > 2 && (cellValue.StartsWith("1.") || cellValue.StartsWith("2.") || cellValue.StartsWith("3.") || 
-                cellValue.StartsWith("4.") || cellValue.StartsWith("5.") || cellValue.StartsWith("6.") || 
-                cellValue.StartsWith("7.") || cellValue.StartsWith("8.")))
+            // Use regex to match any number followed by a dot
+            var itemPattern = @"^\d+\.\s*.+";
+            if (Regex.IsMatch(cellValue, itemPattern))
             {
-                // Check if column B (index 2) has a numeric value (cost amount)
-                var costValue = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
-                return !string.IsNullOrEmpty(costValue) && IsNumericValue(costValue);
+                // Allow items even if cost amount is missing (will be handled in ParseCostItemRow)
+                // Just check if it looks like a valid item row
+                return true;
             }
 
             return false;
@@ -243,7 +256,9 @@ namespace OCSP.Application.Services
             }
             else
             {
-                return null; // Must have cost amount
+                // If cost amount is missing, set to 0 but still create the item
+                item.TotalAmount = 0;
+                Console.WriteLine($"Row {row}: Cost amount missing or invalid, setting to 0");
             }
 
             // Parse percentage (column C) - this is the percentage
@@ -251,13 +266,36 @@ namespace OCSP.Application.Services
             Console.WriteLine($"Row {row}: Percentage value from column C = '{percentageValue}'");
             if (!string.IsNullOrEmpty(percentageValue))
             {
-                // Store percentage in Notes field
-                item.Notes = percentageValue;
+                // Convert percentage to proper format
+                if (decimal.TryParse(percentageValue, out var percentageDecimal))
+                {
+                    // If it's a decimal like 0.09, convert to percentage like "9%"
+                    if (percentageDecimal < 1)
+                    {
+                        item.Notes = $"{percentageDecimal * 100:F1}%";
+                    }
+                    else
+                    {
+                        // If it's already a percentage like 9, add % symbol
+                        item.Notes = $"{percentageDecimal:F1}%";
+                    }
+                }
+                else
+                {
+                    // If it's already a string like "9%", keep as is
+                    item.Notes = percentageValue;
+                }
                 Console.WriteLine($"Stored percentage in Notes: {item.Notes}");
             }
+            else
+            {
+                // If percentage is missing, set empty string
+                item.Notes = "";
+                Console.WriteLine($"Row {row}: Percentage missing, setting empty string");
+            }
 
-            // Return item if we have name and total amount
-            return (!string.IsNullOrEmpty(item.Name) && item.TotalAmount > 0) ? item : null;
+            // Return item if we have name (cost amount can be 0)
+            return (!string.IsNullOrEmpty(item.Name)) ? item : null;
         }
 
         private bool IsNumericValue(string? value)

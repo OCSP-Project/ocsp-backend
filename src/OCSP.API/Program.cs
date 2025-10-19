@@ -138,6 +138,9 @@ builder.Services.AddScoped<IProjectDailyResourceRepository, ProjectDailyResource
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();
 
+// Template Service
+builder.Services.AddScoped<ITemplateService, TemplateService>();
+
 // SignalR (required for MapHub)
 builder.Services.AddSignalR();
 
@@ -179,6 +182,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.MapHub<ChatHub>("/chathub");
+app.MapHub<NotificationHub>("/notificationhub");
 //────────────────────────────────────────────────────────
 // 5) Auto Migration
 //────────────────────────────────────────────────────────

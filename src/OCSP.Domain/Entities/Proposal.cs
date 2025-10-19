@@ -28,6 +28,11 @@ namespace OCSP.Domain.Entities
         /// </summary>
         public string? ExcelFileName { get; set; }
         
+        /// <summary>
+        /// URL/path to the uploaded Excel file
+        /// </summary>
+        public string? ExcelFileUrl { get; set; }
+        
         // Project Information from Excel
         /// <summary>
         /// Project title from Excel
@@ -53,5 +58,15 @@ namespace OCSP.Domain.Entities
         /// Average salary (e.g., "12.000.000 đ/người/tháng")
         /// </summary>
         public string? AverageSalary { get; set; }
+        
+        /// <summary>
+        /// Indicates if this proposal has been submitted before (for resubmission tracking)
+        /// </summary>
+        public bool HasBeenSubmitted { get; set; } = false;
+        
+        /// <summary>
+        /// Indicates if this proposal was revised after homeowner request
+        /// </summary>
+        public bool WasRevised { get; set; } = false;
     }
 }

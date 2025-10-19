@@ -17,6 +17,9 @@ namespace OCSP.Application.Services.Interfaces
         // homeowner accept 1 proposal (reject các proposal còn lại, đóng quote)
         Task AcceptAsync(Guid proposalId, Guid homeownerId, CancellationToken ct = default);
 
+        // homeowner request revision for proposal
+        Task RequestRevisionAsync(Guid proposalId, Guid homeownerId, CancellationToken ct = default);
+
         // contractor: lấy/sửa draft của chính mình
         Task<ProposalDto> GetMyByIdAsync(Guid id, Guid contractorUserId, CancellationToken ct = default);
         Task<ProposalDto?> GetMyByQuoteAsync(Guid quoteId, Guid contractorUserId, CancellationToken ct = default);
@@ -24,5 +27,8 @@ namespace OCSP.Application.Services.Interfaces
 
         // Upload Excel for proposal (contractor)
         Task<string> UploadExcelAsync(Guid quoteId, Guid contractorUserId, IFormFile excelFile, CancellationToken ct = default);
+
+        // Download Excel file for proposal (homeowner)
+        Task<(Stream fileStream, string fileName, string contentType)> DownloadExcelAsync(Guid proposalId, Guid homeownerId, CancellationToken ct = default);
     }
 }

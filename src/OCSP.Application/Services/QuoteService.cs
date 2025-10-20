@@ -1,6 +1,7 @@
 // OCSP.Application/Services/QuoteService.cs
 using Microsoft.EntityFrameworkCore;
 using OCSP.Application.DTOs.Quotes;
+using OCSP.Application.DTOs.Project;
 using OCSP.Application.Services.Interfaces;
 using OCSP.Domain.Enums;
 using OCSP.Domain.Entities;
@@ -272,7 +273,30 @@ public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync
                 NumberOfFloors          = q.Project.NumberOfFloors,
                 FloorArea               = q.Project.FloorArea,
                 StartDate               = q.Project.StartDate,
-                EstimatedCompletionDate = q.Project.EstimatedCompletionDate
+                EstimatedCompletionDate = q.Project.EstimatedCompletionDate,
+                Documents               = _db.ProjectDocuments
+                    .AsNoTracking()
+                    .Where(d => d.ProjectId == q.Project.Id && d.IsLatest)
+                    .Select(d => new ProjectDocumentDto
+                    {
+                        Id = d.Id,
+                        ProjectId = d.ProjectId,
+                        DocumentType = (int)d.DocumentType,
+                        DocumentTypeName = d.DocumentType.ToString(),
+                        FileName = d.FileName,
+                        FileUrl = d.FileUrl,
+                        FileType = d.FileType,
+                        FileSize = d.FileSize,
+                        FileSizeFormatted = string.Empty,
+                        IsEncrypted = d.IsEncrypted,
+                        FileHash = d.FileHash,
+                        UploadedByUserId = d.UploadedByUserId,
+                        UploadedByUsername = string.Empty,
+                        UploadedAt = d.UploadedAt,
+                        Version = d.Version,
+                        IsLatest = d.IsLatest,
+                        PermitMetadata = null
+                    }).ToList()
             },
 
             Homeowner = new HomeownerSummaryDto
@@ -361,7 +385,30 @@ public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync
                 NumberOfFloors = q.Project.NumberOfFloors,
                 FloorArea = q.Project.FloorArea,
                 StartDate = q.Project.StartDate,
-                EstimatedCompletionDate = q.Project.EstimatedCompletionDate
+                EstimatedCompletionDate = q.Project.EstimatedCompletionDate,
+                Documents = _db.ProjectDocuments
+                    .AsNoTracking()
+                    .Where(d => d.ProjectId == q.ProjectId && d.IsLatest)
+                    .Select(d => new ProjectDocumentDto
+                    {
+                        Id = d.Id,
+                        ProjectId = d.ProjectId,
+                        DocumentType = (int)d.DocumentType,
+                        DocumentTypeName = d.DocumentType.ToString(),
+                        FileName = d.FileName,
+                        FileUrl = d.FileUrl,
+                        FileType = d.FileType,
+                        FileSize = d.FileSize,
+                        FileSizeFormatted = string.Empty,
+                        IsEncrypted = d.IsEncrypted,
+                        FileHash = d.FileHash,
+                        UploadedByUserId = d.UploadedByUserId,
+                        UploadedByUsername = string.Empty,
+                        UploadedAt = d.UploadedAt,
+                        Version = d.Version,
+                        IsLatest = d.IsLatest,
+                        PermitMetadata = null
+                    }).ToList()
             },
             Homeowner = new HomeownerSummaryDto
             {
@@ -391,111 +438,145 @@ public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync
     }
 
         public async Task SendToAllContractorsAsync(Guid quoteId, Guid homeownerId, CancellationToken ct = default)
+{
+    var qr = await _db.QuoteRequests
+        .Include(q => q.Project)
+        .Include(q => q.Invites)
+        .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
+        ?? throw new ArgumentException("Quote request not found");
+
+    if (qr.Project.HomeownerId != homeownerId)
+        throw new UnauthorizedAccessException("Not project owner");
+
+    // Không cho gửi nếu đã Cancelled
+    if (qr.Status == QuoteStatus.Cancelled)
+        throw new InvalidOperationException("Cannot send cancelled quote");
+
+    // Lấy tất cả contractors (UserId)
+    var allContractorUserIds = await _db.Contractors
+        .AsNoTracking()
+        .Select(c => c.UserId)
+        .Distinct()
+        .Where(uid => uid != Guid.Empty && uid != qr.Project.HomeownerId)
+        .ToListAsync(ct);
+
+    if (allContractorUserIds.Count == 0)
+        throw new InvalidOperationException("No contractors available");
+
+    // Dùng HashSet để tránh thêm trùng và tránh N+1 query
+    var existingInviteeIds = new HashSet<Guid>(qr.Invites.Select(i => i.ContractorUserId));
+
+    foreach (var contractorUserId in allContractorUserIds)
+    {
+        // 1️⃣ Thêm vào QuoteInvites nếu chưa có
+        if (!existingInviteeIds.Contains(contractorUserId))
         {
-            var qr = await _db.QuoteRequests
-                .Include(q => q.Project)
-                .Include(q => q.Invites)
-                .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
-                ?? throw new ArgumentException("Quote request not found");
-
-            if (qr.Project.HomeownerId != homeownerId)
-                throw new UnauthorizedAccessException("Not project owner");
-
-            // Không cho gửi nếu đã Cancelled
-            if (qr.Status == QuoteStatus.Cancelled)
-                throw new InvalidOperationException("Cannot send cancelled quote");
-
-            // Lấy tất cả contractors (UserId)
-            var allContractorUserIds = await _db.Contractors
-                .AsNoTracking()
-                .Select(c => c.UserId)
-                .Distinct()
-                .Where(uid => uid != Guid.Empty && uid != qr.Project.HomeownerId)
-                .ToListAsync(ct);
-
-            if (allContractorUserIds.Count == 0)
-                throw new InvalidOperationException("No contractors available");
-
-            // Dùng HashSet để tránh thêm trùng và tránh N+1 query
-            var existingInviteeIds = new HashSet<Guid>(qr.Invites.Select(i => i.ContractorUserId));
-            foreach (var contractorUserId in allContractorUserIds)
+            qr.Invites.Add(new QuoteInvite
             {
-                if (!existingInviteeIds.Contains(contractorUserId))
-                {
-                    qr.Invites.Add(new QuoteInvite
-                    {
-                        ContractorUserId = contractorUserId,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    });
-                    existingInviteeIds.Add(contractorUserId);
-                }
-            }
-
-            // Chỉ cập nhật status nếu đang là Draft
-            if (qr.Status == QuoteStatus.Draft)
-            {
-                qr.Status = QuoteStatus.Sent;
-            }
-
-            qr.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
-
-            // TODO: gửi notification/email cho tất cả contractors
+                ContractorUserId = contractorUserId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+            existingInviteeIds.Add(contractorUserId);
         }
 
-        public async Task SendToContractorAsync(Guid quoteId, Guid contractorUserId, Guid homeownerId, CancellationToken ct = default)
+        // 2️⃣ Thêm vào ProjectParticipants nếu chưa có
+        bool alreadyParticipant = await _db.ProjectParticipants
+            .AnyAsync(p => p.ProjectId == qr.Project.Id && p.UserId == contractorUserId, ct);
+
+        if (!alreadyParticipant)
         {
-            var qr = await _db.QuoteRequests
-                .Include(q => q.Project)
-                .Include(q => q.Invites)
-                .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
-                ?? throw new ArgumentException("Quote request not found");
-
-            if (qr.Project.HomeownerId != homeownerId)
-                throw new UnauthorizedAccessException("Not project owner");
-
-            // Cho phép gửi quote với bất kỳ status nào (Draft, Sent, Closed, Cancelled)
-            // Chỉ cần kiểm tra không phải Cancelled
-            if (qr.Status == QuoteStatus.Cancelled)
-                throw new InvalidOperationException("Cannot send cancelled quote");
-
-            // Xác định contractor theo UserId; nếu không khớp, thử coi tham số là Contractor.Id
-            Guid resolvedContractorUserId = contractorUserId;
-            var contractorByUser = await _db.Contractors
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.UserId == contractorUserId, ct);
-            if (contractorByUser == null)
+            _db.ProjectParticipants.Add(new ProjectParticipant
             {
-                var contractorById = await _db.Contractors
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Id == contractorUserId, ct);
-                if (contractorById == null)
-                    throw new ArgumentException("Contractor not found");
-                resolvedContractorUserId = contractorById.UserId;
-            }
-
-            // Kiểm tra xem contractor đã được mời chưa
-            if (!qr.Invites.Any(i => i.ContractorUserId == resolvedContractorUserId))
-            {
-                qr.Invites.Add(new QuoteInvite
-                {
-                    ContractorUserId = resolvedContractorUserId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                });
-            }
-
-            // Chỉ cập nhật status nếu đang là Draft
-            if (qr.Status == QuoteStatus.Draft)
-            {
-                qr.Status = QuoteStatus.Sent;
-            }
-            qr.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
-
-            // TODO: gửi notification/email cho contractor
+                ProjectId = qr.Project.Id,
+                UserId = contractorUserId,
+                Role = ProjectRole.Contractor,
+                Status = ParticipantStatus.Invited,
+                JoinedAt = DateTime.UtcNow
+            });
         }
+    }
+
+    // Cập nhật status nếu đang là Draft
+    if (qr.Status == QuoteStatus.Draft)
+    {
+        qr.Status = QuoteStatus.Sent;
+    }
+
+    qr.UpdatedAt = DateTime.UtcNow;
+    await _db.SaveChangesAsync(ct);
+
+    // TODO: gửi notification/email cho tất cả contractors
+}
+
+public async Task SendToContractorAsync(Guid quoteId, Guid contractorUserId, Guid homeownerId, CancellationToken ct = default)
+{
+    var qr = await _db.QuoteRequests
+        .Include(q => q.Project)
+        .Include(q => q.Invites)
+        .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
+        ?? throw new ArgumentException("Quote request not found");
+
+    if (qr.Project.HomeownerId != homeownerId)
+        throw new UnauthorizedAccessException("Not project owner");
+
+    if (qr.Status == QuoteStatus.Cancelled)
+        throw new InvalidOperationException("Cannot send cancelled quote");
+
+    // Xác định contractor theo UserId hoặc Contractor.Id
+    Guid resolvedContractorUserId = contractorUserId;
+    var contractorByUser = await _db.Contractors
+        .AsNoTracking()
+        .FirstOrDefaultAsync(c => c.UserId == contractorUserId, ct);
+    if (contractorByUser == null)
+    {
+        var contractorById = await _db.Contractors
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == contractorUserId, ct);
+        if (contractorById == null)
+            throw new ArgumentException("Contractor not found");
+        resolvedContractorUserId = contractorById.UserId;
+    }
+
+    // 1️⃣ Thêm vào QuoteInvites nếu chưa có
+    if (!qr.Invites.Any(i => i.ContractorUserId == resolvedContractorUserId))
+    {
+        qr.Invites.Add(new QuoteInvite
+        {
+            ContractorUserId = resolvedContractorUserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+    }
+
+    // 2️⃣ Thêm vào ProjectParticipants nếu chưa có
+    bool alreadyParticipant = await _db.ProjectParticipants
+        .AnyAsync(p => p.ProjectId == qr.Project.Id && p.UserId == resolvedContractorUserId, ct);
+
+    if (!alreadyParticipant)
+    {
+        _db.ProjectParticipants.Add(new ProjectParticipant
+        {
+            ProjectId = qr.Project.Id,
+            UserId = resolvedContractorUserId,
+            Role = ProjectRole.Contractor,
+            Status = ParticipantStatus.Invited,
+            JoinedAt = DateTime.UtcNow
+        });
+    }
+
+    // 3️⃣ Cập nhật status nếu đang là Draft
+    if (qr.Status == QuoteStatus.Draft)
+    {
+        qr.Status = QuoteStatus.Sent;
+    }
+
+    qr.UpdatedAt = DateTime.UtcNow;
+    await _db.SaveChangesAsync(ct);
+
+    // TODO: gửi notification/email cho contractor
+}
+
 
     }
 }

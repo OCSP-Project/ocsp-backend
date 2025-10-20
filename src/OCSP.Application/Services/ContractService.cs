@@ -43,9 +43,9 @@ namespace OCSP.Application.Services
                 : proposal.Items.Select(i => new ContractItem
                 {
                     Name = i.Name,
-                    Qty = i.Qty,
-                    Unit = i.Unit,
-                    UnitPrice = i.UnitPrice
+                    Qty = 1, // Default quantity since Excel doesn't have this
+                    Unit = "lần", // Default unit
+                    UnitPrice = i.Price
                 }).ToList();
 
             var total = items.Sum(x => x.Qty * x.UnitPrice);

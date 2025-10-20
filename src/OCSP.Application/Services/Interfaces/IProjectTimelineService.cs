@@ -12,5 +12,7 @@ namespace OCSP.Application.Services.Interfaces
         Task<ProjectTimelineGanttDto?> GetProjectTimelineForGanttAsync(Guid projectId, CancellationToken ct = default);
         Task<bool> UpdateDeliverableProgressAsync(UpdateDeliverableProgressDto dto, CancellationToken ct = default);
         Task<bool> UpdateMilestoneProgressAsync(UpdateMilestoneProgressDto dto, CancellationToken ct = default);
+        Task<ProjectTimelineGanttDto> AutoCreateTimelineFromMilestonesAsync(AutoCreateTimelineDto dto, CancellationToken ct = default);
+        Task<List<MilestoneOverdueDto>> CheckOverdueMilestonesAsync(Guid projectId, CancellationToken ct = default);
     }
 }

@@ -129,6 +129,106 @@ namespace OCSP.Application.Services
             return MapToGanttDto(timeline);
         }
 
+        public async Task<ProjectTimelineGanttDto> AutoCreateTimelineFromMilestonesAsync(AutoCreateTimelineDto dto, CancellationToken ct = default)
+        {
+            // Validate project and contractor exist
+            var project = await _projectRepo.GetByIdAsync(dto.ProjectId, ct) ?? throw new ArgumentException("Project not found");
+            var contractor = await _contractorRepo.GetByIdAsync(dto.ContractorId) ?? throw new ArgumentException("Contractor not found");
+
+            // Calculate milestone dates based on duration
+            var milestones = new List<Milestone>();
+            var currentDate = dto.ProjectStartDate;
+
+            foreach (var milestoneData in dto.Milestones)
+            {
+                var plannedStartDate = currentDate;
+                var plannedEndDate = currentDate.AddDays(milestoneData.DurationInDays);
+
+                var milestone = new Milestone
+                {
+                    Name = milestoneData.Name,
+                    Description = milestoneData.Description,
+                    PlannedStartDate = plannedStartDate,
+                    PlannedEndDate = plannedEndDate,
+                    Status = MilestoneStatusEnum.Planned,
+                    Deliverables = milestoneData.Deliverables.Select(deliverableName => new Deliverable
+                    {
+                        Name = deliverableName,
+                        Description = $"Deliverable for {milestoneData.Name}",
+                        PlannedDueDate = plannedEndDate, // Same as milestone end date
+                        Status = DeliverableStatus.NotStarted
+                    }).ToList()
+                };
+
+                milestones.Add(milestone);
+                currentDate = plannedEndDate.AddDays(1); // Next milestone starts day after previous ends
+            }
+
+            // Create ProjectTimeline
+            var timeline = new ProjectTimeline
+            {
+                ProjectId = dto.ProjectId,
+                ContractorId = dto.ContractorId,
+                Name = dto.TimelineName,
+                Description = dto.Description,
+                Status = TimelineStatus.Planning,
+                Milestones = milestones
+            };
+
+            await _timelineRepo.AddAsync(timeline);
+            await _timelineRepo.SaveChangesAsync();
+
+            return MapToGanttDto(timeline);
+        }
+
+        public async Task<List<MilestoneOverdueDto>> CheckOverdueMilestonesAsync(Guid projectId, CancellationToken ct = default)
+        {
+            var timeline = await _timelineRepo.GetByProjectIdWithDetailsAsync(projectId, ct);
+            if (timeline == null) return new List<MilestoneOverdueDto>();
+
+            var overdueMilestones = new List<MilestoneOverdueDto>();
+            var now = DateTime.UtcNow;
+
+            foreach (var milestone in timeline.Milestones)
+            {
+                // Check if milestone is overdue (planned end date passed but not completed)
+                if (milestone.PlannedEndDate < now && milestone.Status != MilestoneStatusEnum.Released)
+                {
+                    var daysOverdue = (now - milestone.PlannedEndDate).Days;
+                    
+                    overdueMilestones.Add(new MilestoneOverdueDto
+                    {
+                        MilestoneId = milestone.Id,
+                        MilestoneName = milestone.Name,
+                        PlannedEndDate = milestone.PlannedEndDate,
+                        DaysOverdue = daysOverdue,
+                        Status = milestone.Status.ToString(),
+                        ProgressPercentage = milestone.ProgressPercentage,
+                        IsOverdue = true
+                    });
+                }
+                // Check if milestone is approaching deadline (within 3 days)
+                else if (milestone.PlannedEndDate.AddDays(-3) <= now && milestone.Status != MilestoneStatusEnum.Released)
+                {
+                    var daysUntilDeadline = (milestone.PlannedEndDate - now).Days;
+                    
+                    overdueMilestones.Add(new MilestoneOverdueDto
+                    {
+                        MilestoneId = milestone.Id,
+                        MilestoneName = milestone.Name,
+                        PlannedEndDate = milestone.PlannedEndDate,
+                        DaysOverdue = -daysUntilDeadline, // Negative for approaching deadline
+                        Status = milestone.Status.ToString(),
+                        ProgressPercentage = milestone.ProgressPercentage,
+                        IsOverdue = false,
+                        IsApproachingDeadline = true
+                    });
+                }
+            }
+
+            return overdueMilestones;
+        }
+
         private static ProjectTimelineGanttDto MapToGanttDto(ProjectTimeline timeline)
         {
             return new ProjectTimelineGanttDto

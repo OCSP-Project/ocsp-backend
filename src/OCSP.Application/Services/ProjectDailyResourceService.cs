@@ -213,8 +213,8 @@ namespace OCSP.Application.Services
             // Homeowner không được sửa (chỉ xem)
             if (user.Role == UserRole.Homeowner) return false;
 
-            // Supervisor và Contractor có thể sửa
-            if (user.Role == UserRole.Supervisor || user.Role == UserRole.Contractor)
+            // Chỉ Supervisor được phép sửa; Contractor/Homeowner chỉ xem
+            if (user.Role == UserRole.Supervisor)
             {
                 var dailyResource = await _repository.GetByIdAsync(dailyResourceId, cancellationToken);
                 if (dailyResource == null) return false;

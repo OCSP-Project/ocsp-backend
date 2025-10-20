@@ -62,5 +62,29 @@ namespace OCSP.API.Controllers
             if (!result) return NotFound();
             return Ok(new { success = true });
         }
+
+        /// <summary>
+        /// Tự động tạo timeline từ milestone data với thời gian đã định sẵn
+        /// </summary>
+        [HttpPost]
+        [Route("auto-create")]
+        //[Authorize(Roles = "Contractor")]
+        public async Task<IActionResult> AutoCreateTimeline([FromBody] AutoCreateTimelineDto dto, CancellationToken ct)
+        {
+            var result = await _timelineService.AutoCreateTimelineFromMilestonesAsync(dto, ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Kiểm tra milestone trễ tiến độ
+        /// </summary>
+        [HttpGet]
+        [Route("overdue/{projectId}")]
+        //[Authorize]
+        public async Task<IActionResult> CheckOverdueMilestones(Guid projectId, CancellationToken ct)
+        {
+            var result = await _timelineService.CheckOverdueMilestonesAsync(projectId, ct);
+            return Ok(result);
+        }
     }
 }

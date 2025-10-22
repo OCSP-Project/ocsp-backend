@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OCSP.Application.DTOs.Proposals;
 using OCSP.Application.Services.Interfaces;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace OCSP.API.Controllers
 {
@@ -71,11 +72,52 @@ namespace OCSP.API.Controllers
             catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
         }
 
+        // Upload proposal Excel (.xlsx) for a quote (Contractor)
+        [HttpPost("by-quote/{quoteId:guid}/upload-excel")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<object>> UploadExcel(Guid quoteId, [FromForm] IFormFile file, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            if (file == null || file.Length == 0) return BadRequest("File is required");
+            try
+            {
+                var result = await _svc.UploadExcelAsync(quoteId, uid, file, ct);
+                return Ok(new { message = "Uploaded", result });
+            }
+            catch (ArgumentException ex)           { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
+        }
+
         [HttpPost("{id:guid}/accept")] // homeowner accept 1 proposal
         public async Task<IActionResult> Accept(Guid id, CancellationToken ct)
         {
             var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
             try { await _svc.AcceptAsync(id, uid, ct); return NoContent(); }
+            catch (ArgumentException ex)           { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
+        }
+
+        [HttpPost("{id:guid}/request-revision")] // homeowner request revision
+        public async Task<IActionResult> RequestRevision(Guid id, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            try { await _svc.RequestRevisionAsync(id, uid, ct); return NoContent(); }
+            catch (ArgumentException ex)           { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
+        }
+
+        [HttpGet("{id:guid}/download-excel")] // homeowner download Excel file
+        public async Task<IActionResult> DownloadExcel(Guid id, CancellationToken ct)
+        {
+            var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
+            try 
+            { 
+                var (fileStream, fileName, contentType) = await _svc.DownloadExcelAsync(id, uid, ct);
+                return File(fileStream, contentType, fileName);
+            }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
             catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
             catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }

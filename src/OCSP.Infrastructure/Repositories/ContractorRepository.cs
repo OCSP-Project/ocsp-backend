@@ -185,6 +185,13 @@ namespace OCSP.Infrastructure.Repositories
                 .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
         }
 
+        public async Task<Contractor?> GetByUserIdAsync(Guid userId)
+        {
+            return await _context.Contractors
+                .Include(c => c.Specialties)
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+        }
+
         public async Task<List<Review>> GetRecentReviewsAsync(Guid contractorId, int count = 5)
         {
             return await _context.Reviews
@@ -255,6 +262,26 @@ namespace OCSP.Infrastructure.Repositories
 
         public async Task AddPostImagesAsync(IEnumerable<ContractorPostImage> images)
         {
+            var now = DateTime.UtcNow;
+
+            foreach (var img in images)
+            {
+                // ✅ Double check: Nếu chưa có timestamp thì set
+                if (img.CreatedAt == default(DateTime))
+                {
+                    img.CreatedAt = now;
+                    Console.WriteLine($"[Repository] Setting CreatedAt for image {img.Id}");
+                }
+
+                if (img.UpdatedAt == default(DateTime))
+                {
+                    img.UpdatedAt = now;
+                    Console.WriteLine($"[Repository] Setting UpdatedAt for image {img.Id}");
+                }
+
+                Console.WriteLine($"[Repository] Image {img.Id}: CreatedAt={img.CreatedAt}, UpdatedAt={img.UpdatedAt}");
+            }
+
             await _context.ContractorPostImages.AddRangeAsync(images);
             await _context.SaveChangesAsync();
         }

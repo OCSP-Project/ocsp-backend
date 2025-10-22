@@ -173,7 +173,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy => policy
         .AllowAnyOrigin()
         .AllowAnyMethod()
-        .AllowAnyHeader());
+        .AllowAnyHeader()
+        .SetIsOriginAllowed(origin => true)); // ✅ Allow all origins for static files
 });
 
 var app = builder.Build();
@@ -204,11 +205,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors("AllowAll");
-app.UseAuthentication();
-app.UseAuthorization();
+// ✅ THÊM: Configure static files
+app.UseStaticFiles(); // Serve files từ wwwroot
 
-// Serve static files from the local 'uploads' folder (for profile documents, images, ...)
+// ✅ THÊM: Serve files từ uploads folder ngoài wwwroot
 var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
 if (!Directory.Exists(uploadsPath))
 {
@@ -219,6 +219,11 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(uploadsPath),
     RequestPath = "/uploads"
 });
+
+app.UseCors("AllowAll");
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

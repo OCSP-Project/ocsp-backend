@@ -363,32 +363,54 @@ namespace OCSP.Application.Services
             }
         }
 
-        public async Task<ContractorPostDto> CreatePostAsync(Guid contractorId, ContractorPostCreateDto dto)
+        public async Task<ContractorPostDto> CreatePostAsync(Guid userId, ContractorPostCreateDto dto)
         {
-            var contractor = await _contractorRepository.GetByIdAsync(contractorId);
-            if (contractor == null) throw new Exception("Contractor not found");
+            // Tìm contractor bằng UserId thay vì ContractorId
+            var contractor = await _context.Contractors
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+
+            if (contractor == null)
+                throw new Exception("Contractor profile not found for this user");
+
+            var now = DateTime.UtcNow;
 
             var post = new ContractorPost
             {
                 Id = Guid.NewGuid(),
-                ContractorId = contractorId,
+                ContractorId = contractor.Id, // Dùng contractor.Id tìm được
                 Title = dto.Title,
-                Description = dto.Description
+                Description = dto.Description,
+                CreatedAt = now,
+                UpdatedAt = now
             };
 
             await _contractorRepository.AddPostAsync(post);
 
+            var images = new List<ContractorPostImage>();
+
             if (dto.ImageUrls?.Any() == true)
             {
-                var images = dto.ImageUrls.Select(url => new ContractorPostImage
+                images = dto.ImageUrls.Select(url =>
                 {
-                    Id = Guid.NewGuid(),
-                    ContractorPostId = post.Id,
-                    Url = url
+                    var image = new ContractorPostImage
+                    {
+                        Id = Guid.NewGuid(),
+                        ContractorPostId = post.Id,
+                        Url = url,
+                        Caption = null,
+                        // ✅ QUAN TRỌNG: Set tất cả timestamp fields
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                        CreatedBy = null,
+                        UpdatedBy = null
+                    };
+
+                    Console.WriteLine($"Creating image: Id={image.Id}, UpdatedAt={image.UpdatedAt}");
+                    return image;
                 }).ToList();
 
+                Console.WriteLine($"Total images to add: {images.Count}");
                 await _contractorRepository.AddPostImagesAsync(images);
-                post.Images = images;
             }
 
             return new ContractorPostDto
@@ -399,7 +421,7 @@ namespace OCSP.Application.Services
                 Description = post.Description,
                 CreatedAt = post.CreatedAt,
                 UpdatedAt = post.UpdatedAt,
-                Images = post.Images.Select(i => new ContractorPostImageDto
+                Images = images.Select(i => new ContractorPostImageDto
                 {
                     Id = i.Id,
                     Url = i.Url,

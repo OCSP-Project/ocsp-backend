@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OCSP.Infrastructure.Data;
@@ -11,9 +12,11 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251021173919_FixContractorPostAuditableFields")]
+    partial class FixContractorPostAuditableFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -580,15 +583,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<Guid>("ContractorPostId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -1497,15 +1491,6 @@ namespace OCSP.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("AverageSalary")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ConstructionArea")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ConstructionTime")
-                        .HasColumnType("text");
-
                     b.Property<Guid>("ContractorUserId")
                         .HasColumnType("uuid");
 
@@ -1518,26 +1503,8 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<int>("DurationDays")
                         .HasColumnType("integer");
 
-                    b.Property<string>("ExcelFileName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ExcelFileUrl")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("HasBeenSubmitted")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsFromExcel")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("NumberOfWorkers")
-                        .HasColumnType("text");
-
                     b.Property<decimal>("PriceTotal")
                         .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("ProjectTitle")
-                        .HasColumnType("text");
 
                     b.Property<Guid>("QuoteRequestId")
                         .HasColumnType("uuid");
@@ -1554,9 +1521,6 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
-
-                    b.Property<bool>("WasRevised")
-                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -1583,14 +1547,19 @@ namespace OCSP.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("numeric(18,2)");
-
                     b.Property<Guid>("ProposalId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("Qty")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

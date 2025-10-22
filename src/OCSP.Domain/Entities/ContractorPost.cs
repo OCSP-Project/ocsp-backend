@@ -12,7 +12,7 @@ namespace OCSP.Domain.Entities
         public ICollection<ContractorPostImage> Images { get; set; } = new List<ContractorPostImage>();
     }
 
-    public class ContractorPostImage : BaseEntity
+    public class ContractorPostImage : AuditableEntity
     {
         public Guid ContractorPostId { get; set; }
         public string Url { get; set; } = string.Empty;

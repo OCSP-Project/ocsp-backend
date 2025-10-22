@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using OCSP.Domain.Entities;
+using OCSP.Domain.Common;
 using OCSP.Infrastructure.Data.Configurations;
 
 namespace OCSP.Infrastructure.Data
@@ -429,6 +430,16 @@ namespace OCSP.Infrastructure.Data
                         entity.HasKey(e => e.Id);
                         entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
                         entity.Property(e => e.Description).HasMaxLength(4000);
+
+                        // Configure AuditableEntity properties
+                        entity.Property(e => e.CreatedAt)
+                              .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                              .ValueGeneratedOnAdd();
+
+                        entity.Property(e => e.UpdatedAt)
+                              .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                              .ValueGeneratedOnAddOrUpdate();
+
                         entity.HasOne(e => e.Contractor)
                         .WithMany()
                         .HasForeignKey(e => e.ContractorId)
@@ -437,15 +448,31 @@ namespace OCSP.Infrastructure.Data
                   });
 
                   // ContractorPostImage configuration
+
                   modelBuilder.Entity<ContractorPostImage>(entity =>
                   {
                         entity.HasKey(e => e.Id);
                         entity.Property(e => e.Url).IsRequired().HasMaxLength(1000);
                         entity.Property(e => e.Caption).HasMaxLength(500);
+
+                        // ✅ Ignore CreatedBy/UpdatedBy
+                        entity.Ignore(e => e.CreatedBy);
+                        entity.Ignore(e => e.UpdatedBy);
+
+                        // Configure timestamps
+                        entity.Property(e => e.CreatedAt)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP")
+            .ValueGeneratedOnAdd();
+
+                        entity.Property(e => e.UpdatedAt)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP")
+            .ValueGeneratedOnAddOrUpdate();
+
                         entity.HasOne(e => e.ContractorPost)
-                        .WithMany(p => p.Images)
-                        .HasForeignKey(e => e.ContractorPostId)
-                        .OnDelete(DeleteBehavior.Cascade);
+            .WithMany(p => p.Images)
+            .HasForeignKey(e => e.ContractorPostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
                         entity.HasIndex(e => e.ContractorPostId);
                   });
 
@@ -580,7 +607,7 @@ namespace OCSP.Infrastructure.Data
 
             }
 
-            public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+            public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             {
                   // Handle User entities
                   var userEntries = ChangeTracker.Entries<User>()
@@ -595,29 +622,67 @@ namespace OCSP.Infrastructure.Data
                         entry.Entity.UpdatedAt = DateTime.UtcNow;
                   }
 
-                  // Handle AuditableEntity-like (CreatedAt/UpdatedAt) — reflection cách nhanh gọn
+                  // ✅ Handle ALL AuditableEntity (bao gồm ContractorPostImage)
                   var auditableEntries = ChangeTracker.Entries()
-                      .Where(e => e.Entity.GetType().GetProperty("CreatedAt") != null &&
-                                 (e.State == EntityState.Added || e.State == EntityState.Modified));
+                      .Where(e => e.Entity is AuditableEntity &&
+                                 (e.State == EntityState.Added || e.State == EntityState.Modified))
+                      .ToList();
+
+                  Console.WriteLine($"[SaveChangesAsync] Found {auditableEntries.Count} AuditableEntity entries");
 
                   foreach (var entry in auditableEntries)
                   {
-                        var entity = entry.Entity;
-                        var createdAtProperty = entity.GetType().GetProperty("CreatedAt");
-                        var updatedAtProperty = entity.GetType().GetProperty("UpdatedAt");
+                        var entity = (AuditableEntity)entry.Entity;
 
-                        if (entry.State == EntityState.Added && createdAtProperty != null)
+                        Console.WriteLine($"[SaveChangesAsync] Processing {entry.Entity.GetType().Name}, State: {entry.State}");
+
+                        if (entry.State == EntityState.Added)
                         {
-                              createdAtProperty.SetValue(entity, DateTime.UtcNow);
+                              if (entity.CreatedAt == default(DateTime))
+                              {
+                                    entity.CreatedAt = DateTime.UtcNow;
+                                    Console.WriteLine($"[SaveChangesAsync] Set CreatedAt for {entry.Entity.GetType().Name}");
+                              }
+
+                              if (entity.UpdatedAt == default(DateTime))
+                              {
+                                    entity.UpdatedAt = DateTime.UtcNow;
+                                    Console.WriteLine($"[SaveChangesAsync] Set UpdatedAt for {entry.Entity.GetType().Name}");
+                              }
+                        }
+                        else if (entry.State == EntityState.Modified)
+                        {
+                              entity.UpdatedAt = DateTime.UtcNow;
                         }
 
-                        if (updatedAtProperty != null)
+                        Console.WriteLine($"[SaveChangesAsync] Final values - CreatedAt: {entity.CreatedAt}, UpdatedAt: {entity.UpdatedAt}");
+                  }
+
+                  // Handle BaseEntity entities (only Id, no CreatedAt/UpdatedAt)
+                  var baseEntityEntries = ChangeTracker.Entries()
+                      .Where(e => e.Entity is BaseEntity && !(e.Entity is AuditableEntity) &&
+                                 (e.State == EntityState.Added || e.State == EntityState.Modified));
+
+                  // BaseEntity doesn't need special handling for CreatedAt/UpdatedAt
+                  // Just ensure they are tracked properly
+
+                  foreach (var entry in baseEntityEntries)
+                  {
+                        var createdAtProp = entry.Entity.GetType().GetProperty("CreatedAt");
+                        var updatedAtProp = entry.Entity.GetType().GetProperty("UpdatedAt");
+
+                        if (entry.State == EntityState.Added)
                         {
-                              updatedAtProperty.SetValue(entity, DateTime.UtcNow);
+                              createdAtProp?.SetValue(entry.Entity, DateTime.UtcNow);
+                              updatedAtProp?.SetValue(entry.Entity, DateTime.UtcNow);
+                        }
+                        else if (entry.State == EntityState.Modified)
+                        {
+                              updatedAtProp?.SetValue(entry.Entity, DateTime.UtcNow);
                         }
                   }
 
-                  return base.SaveChangesAsync(cancellationToken);
+                  return await base.SaveChangesAsync(cancellationToken);
             }
       }
 }

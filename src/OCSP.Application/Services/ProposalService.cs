@@ -109,6 +109,12 @@ namespace OCSP.Application.Services
 
         private async Task<Proposal> CreateProposalFromExcelAsync(Guid quoteId, Guid contractorUserId, IFormFile excelFile, CancellationToken ct)
         {
+            // 🔹 Lấy thông tin QuoteRequest để có ProjectId
+var qr = await _db.QuoteRequests
+    .AsNoTracking()
+    .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
+    ?? throw new ArgumentException("Quote request not found");
+
             // Parse Excel file
             var parser = new ExcelProposalParser();
             using var stream = excelFile.OpenReadStream();
@@ -125,6 +131,7 @@ namespace OCSP.Application.Services
             var proposal = new Proposal
             {
                 QuoteRequestId = quoteId,
+ProjectId = qr.ProjectId,
                 ContractorUserId = contractorUserId,
                 Status = ProposalStatus.Draft,
                 PriceTotal = parsedData.TotalCost,
@@ -133,7 +140,7 @@ namespace OCSP.Application.Services
                 IsFromExcel = true,
                 ExcelFileName = excelFile.FileName,
                 ExcelFileUrl = excelFileUrl,
-                
+
                 // Project Information from Excel
                 ProjectTitle = parsedData.ProjectTitle,
                 ConstructionArea = parsedData.GeneralInfo.TryGetValue("ConstructionArea", out var area) ? area?.ToString() : null,

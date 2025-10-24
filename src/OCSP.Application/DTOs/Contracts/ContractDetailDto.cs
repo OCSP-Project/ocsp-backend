@@ -15,10 +15,21 @@ namespace OCSP.Application.DTOs.Contracts
 
         public string Terms { get; set; } = string.Empty;
         public decimal TotalPrice { get; set; }
+        public int DurationDays { get; set; }
         public string Status { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        
+        // Digital Signatures
+        public string? HomeownerSignatureBase64 { get; set; }
+        public string? ContractorSignatureBase64 { get; set; }
+        public DateTime? SignedByHomeownerAt { get; set; }
+        public DateTime? SignedByContractorAt { get; set; }
+        
+        // PDF URLs
+        public string? TemplatePdfUrl { get; set; }
+        public string? SignedPdfUrl { get; set; }
 
         // List chi tiết item
         public List<ContractItemDto> Items { get; set; } = new();
@@ -36,6 +47,9 @@ namespace OCSP.Application.DTOs.Contracts
         public string Email { get; set; } = string.Empty;
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
     }
 
     public class ContractorInfoDto

@@ -25,13 +25,13 @@ namespace OCSP.API.Controllers
             catch (InvalidOperationException ex)   { return BadRequest(ex.Message); }
         }
 
-        [HttpGet("{id:guid}")] // contractor xem bản nháp của mình
+        [HttpGet("{id:guid}")] // contractor or homeowner can view proposal
         public async Task<ActionResult<ProposalDto>> GetMy(Guid id, CancellationToken ct)
         {
             var uid = GetUserId(); if (uid == Guid.Empty) return Unauthorized();
             try { var res = await _svc.GetMyByIdAsync(id, uid, ct); return Ok(res); }
             catch (ArgumentException ex)           { return NotFound(ex.Message); }
-            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return StatusCode(403, ex.Message); }
         }
 
         [HttpGet("by-quote/{quoteId:guid}/mine")] // contractor lấy bản nháp của mình theo quote

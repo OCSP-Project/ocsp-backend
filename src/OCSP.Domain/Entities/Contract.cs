@@ -28,10 +28,18 @@ namespace OCSP.Domain.Entities
 
         public DateTime? SignedByHomeownerAt { get; set; }
         public DateTime? SignedByContractorAt { get; set; }
+        
+        // Digital Signatures (Base64)
+        public string? HomeownerSignatureBase64 { get; set; }
+        public string? ContractorSignatureBase64 { get; set; }
+        
+        // PDF Files
+        public string? TemplatePdfUrl { get; set; }
+        public string? SignedPdfUrl { get; set; }
 
         public ICollection<ContractItem> Items { get; set; } = new List<ContractItem>();
         public ICollection<ContractMilestone> Milestones { get; set; } = new List<ContractMilestone>();
-public EscrowAccount? Escrow { get; set; }
+        public EscrowAccount? Escrow { get; set; }
 
     }
 

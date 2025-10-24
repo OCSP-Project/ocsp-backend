@@ -277,14 +277,22 @@ ProjectId = qr.ProjectId,
             return list.Select(p => ToDtoWithContractor(p, contractorByUserId.GetValueOrDefault(p.ContractorUserId), profileByUserId.GetValueOrDefault(p.ContractorUserId)));
         }
 
-        public async Task<ProposalDto> GetMyByIdAsync(Guid id, Guid contractorUserId, CancellationToken ct = default)
+        public async Task<ProposalDto> GetMyByIdAsync(Guid id, Guid currentUserId, CancellationToken ct = default)
         {
             var p = await _db.Proposals
                 .Include(x => x.Items)
+                .Include(x => x.QuoteRequest)
+                    .ThenInclude(q => q.Project)
                 .FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw new ArgumentException("Proposal not found");
-            if (p.ContractorUserId != contractorUserId)
-                throw new UnauthorizedAccessException("Not your proposal");
+            
+            // Allow both contractor (owner of proposal) and homeowner (owner of project) to view
+            var isContractor = p.ContractorUserId == currentUserId;
+            var isHomeowner = p.QuoteRequest?.Project?.HomeownerId == currentUserId;
+            
+            if (!isContractor && !isHomeowner)
+                throw new UnauthorizedAccessException("No access to this proposal");
+            
             return ToDto(p);
         }
 
@@ -350,8 +358,8 @@ ProjectId = qr.ProjectId,
             if (selected.QuoteRequest.Project.HomeownerId != homeownerId)
                 throw new UnauthorizedAccessException("Not project owner");
 
-            if (selected.Status != ProposalStatus.Submitted)
-                throw new InvalidOperationException("Only Submitted proposal can be accepted");
+            if (selected.Status != ProposalStatus.Submitted && selected.Status != ProposalStatus.Resubmitted)
+                throw new InvalidOperationException("Only Submitted or Resubmitted proposal can be accepted");
 
             using var tx = await _db.Database.BeginTransactionAsync(ct);
 

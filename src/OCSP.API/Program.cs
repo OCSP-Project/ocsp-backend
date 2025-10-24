@@ -103,6 +103,7 @@ builder.Services.AddScoped<IContractorService, ContractorService>();
 builder.Services.AddScoped<ISupervisorService, SupervisorService>();
 builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>();
 builder.Services.AddScoped<IEscrowService, EscrowService>();
+builder.Services.AddScoped<OCSP.Infrastructure.ExternalServices.Interfaces.IPdfService, OCSP.Infrastructure.ExternalServices.PdfService>();
 builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VnPay"));
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Payments"));
 builder.Services.AddScoped<IProgressMediaService, ProgressMediaService>();

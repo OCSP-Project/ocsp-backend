@@ -10,13 +10,25 @@ using OCSP.Application.Services.Interfaces;
 using OCSP.Domain.Entities;
 using OCSP.Domain.Enums;
 using OCSP.Infrastructure.Data;
+using OCSP.Infrastructure.ExternalServices.Interfaces;
 
 namespace OCSP.Application.Services
 {
     public class ContractService : IContractService
     {
         private readonly ApplicationDbContext _db;
-        public ContractService(ApplicationDbContext db) => _db = db;
+        private readonly IPdfService _pdfService;
+        private readonly IFileService _fileService;
+        
+        public ContractService(
+            ApplicationDbContext db, 
+            IPdfService pdfService,
+            IFileService fileService)
+        {
+            _db = db;
+            _pdfService = pdfService;
+            _fileService = fileService;
+        }
 
         public async Task<ContractDetailDto> CreateFromProposalAsync(
             CreateContractDto dto, Guid homeownerId, CancellationToken ct = default)
@@ -53,18 +65,50 @@ namespace OCSP.Application.Services
             var contract = new Contract
             {
                 ProjectId        = project.Id,
+                QuoteRequestId   = proposal.QuoteRequestId,
                 ProposalId       = proposal.Id,
                 HomeownerUserId  = project.HomeownerId,
                 ContractorUserId = proposal.ContractorUserId,
                 Terms            = (dto.Terms ?? string.Empty).Trim(),
                 Status           = ContractStatus.Draft,  // Bắt đầu ở bản nháp
-                TotalPrice       = total
+                TotalPrice       = total,
+                DurationDays     = proposal.DurationDays
             };
             foreach (var it in items)
                 contract.Items.Add(it);
 
             _db.Contracts.Add(contract);
             await _db.SaveChangesAsync(ct);
+
+            // Generate PDF template immediately after creating contract
+            try
+            {
+                var homeownerProfile = await _db.Profiles
+                    .FirstOrDefaultAsync(p => p.UserId == homeownerId, ct);
+                var contractorProfile = await _db.Profiles
+                    .FirstOrDefaultAsync(p => p.UserId == contract.ContractorUserId, ct);
+                var contractorCompany = await _db.Contractors
+                    .FirstOrDefaultAsync(c => c.UserId == contract.ContractorUserId, ct);
+
+                if (homeownerProfile != null && contractorProfile != null)
+                {
+                    var pdfBytes = await _pdfService.GenerateContractPdfAsync(
+                        contract, homeownerProfile, contractorProfile, contractorCompany, proposal);
+
+                    var pdfUrl = await _fileService.UploadFileAsync(
+                        new System.IO.MemoryStream(pdfBytes),
+                        $"contracts/{contract.Id}/template.pdf",
+                        "contracts");
+
+                    contract.TemplatePdfUrl = pdfUrl;
+                    await _db.SaveChangesAsync(ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail contract creation
+                Console.WriteLine($"Error generating PDF template: {ex.Message}");
+            }
 
             return await BuildDetailDtoAsync(contract.Id, homeownerId, ct);
         }
@@ -133,6 +177,54 @@ namespace OCSP.Application.Services
                 Status         = c.Status.ToString(),
                 CreatedAt      = c.CreatedAt
             }).ToList();
+        }
+
+        public async Task<ContractDetailDto> GeneratePdfForContractAsync(
+            Guid contractId, Guid currentUserId, CancellationToken ct = default)
+        {
+            var contract = await _db.Contracts
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.Id == contractId, ct)
+                ?? throw new ArgumentException("Contract not found");
+
+            // Check access
+            var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == contract.ProjectId, ct);
+            if (project == null) throw new ArgumentException("Project not found");
+            
+            var canAccess = project.HomeownerId == currentUserId || contract.ContractorUserId == currentUserId;
+            if (!canAccess) throw new UnauthorizedAccessException("No access to this contract");
+
+            // Generate PDF if not exists
+            if (string.IsNullOrEmpty(contract.TemplatePdfUrl))
+            {
+                var homeownerProfile = await _db.Profiles
+                    .FirstOrDefaultAsync(p => p.UserId == contract.HomeownerUserId, ct);
+                var contractorProfile = await _db.Profiles
+                    .FirstOrDefaultAsync(p => p.UserId == contract.ContractorUserId, ct);
+                var contractorCompany = await _db.Contractors
+                    .FirstOrDefaultAsync(c => c.UserId == contract.ContractorUserId, ct);
+                
+                // Get proposal with items
+                var proposal = await _db.Proposals
+                    .Include(p => p.Items)
+                    .FirstOrDefaultAsync(p => p.Id == contract.ProposalId, ct);
+
+                if (homeownerProfile != null && contractorProfile != null && proposal != null)
+                {
+                    var pdfBytes = await _pdfService.GenerateContractPdfAsync(
+                        contract, homeownerProfile, contractorProfile, contractorCompany, proposal);
+
+                    var pdfUrl = await _fileService.UploadFileAsync(
+                        new System.IO.MemoryStream(pdfBytes),
+                        $"contracts/{contract.Id}/template.pdf",
+                        "contracts");
+
+                    contract.TemplatePdfUrl = pdfUrl;
+                    await _db.SaveChangesAsync(ct);
+                }
+            }
+
+            return await BuildDetailDtoAsync(contract.Id, currentUserId, ct);
         }
 
         public async Task<ContractDto> UpdateStatusAsync(
@@ -277,9 +369,16 @@ namespace OCSP.Application.Services
                 ContractorUserId = c.ContractorUserId,
                 Terms            = c.Terms,
                 TotalPrice       = c.TotalPrice,
+                DurationDays     = c.DurationDays,
                 Status           = c.Status.ToString(),
                 CreatedAt        = c.CreatedAt,
                 UpdatedAt        = c.UpdatedAt,
+                HomeownerSignatureBase64 = c.HomeownerSignatureBase64,
+                ContractorSignatureBase64 = c.ContractorSignatureBase64,
+                SignedByHomeownerAt = c.SignedByHomeownerAt,
+                SignedByContractorAt = c.SignedByContractorAt,
+                TemplatePdfUrl = c.TemplatePdfUrl,
+                SignedPdfUrl = c.SignedPdfUrl,
                 Items = c.Items.Select(i => new ContractItemDto
                 {
                     Id        = i.Id,
@@ -316,6 +415,226 @@ namespace OCSP.Application.Services
                     IsPremium         = contractorBusiness.IsPremium
                 } : null
             };
+        }
+
+        public async Task<ContractDetailDto> SignByHomeownerAsync(
+            Guid contractId, SignContractDto dto, Guid homeownerId, CancellationToken ct = default)
+        {
+            var contract = await _db.Contracts
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.Id == contractId, ct)
+                ?? throw new ArgumentException("Contract not found");
+
+            if (contract.HomeownerUserId != homeownerId)
+                throw new UnauthorizedAccessException("You are not the homeowner of this contract");
+
+            if (contract.Status != ContractStatus.Draft && contract.Status != ContractStatus.PendingSignatures)
+                throw new InvalidOperationException("Contract cannot be signed at this status");
+
+            // Check if homeowner profile is complete
+            var homeownerProfile = await _db.Profiles
+                .FirstOrDefaultAsync(p => p.UserId == homeownerId, ct);
+            
+            if (homeownerProfile == null || 
+                string.IsNullOrEmpty(homeownerProfile.FirstName) || 
+                string.IsNullOrEmpty(homeownerProfile.LastName) ||
+                string.IsNullOrEmpty(homeownerProfile.PhoneNumber) ||
+                string.IsNullOrEmpty(homeownerProfile.Address))
+            {
+                throw new InvalidOperationException("Vui lòng cập nhật đầy đủ thông tin cá nhân (Họ tên, SĐT, Địa chỉ) trước khi ký hợp đồng");
+            }
+
+            // Save signature
+            contract.HomeownerSignatureBase64 = dto.SignatureBase64;
+            contract.SignedByHomeownerAt = DateTime.UtcNow;
+
+            // PDF should already exist from contract creation
+            if (string.IsNullOrEmpty(contract.TemplatePdfUrl))
+            {
+                throw new InvalidOperationException("Contract PDF template not found. Please contact support.");
+            }
+
+            // Change status to PendingSignatures if both haven't signed yet
+            if (contract.Status == ContractStatus.Draft)
+            {
+                contract.Status = ContractStatus.PendingSignatures;
+            }
+
+            // If contractor already signed, generate final PDF and mark as completed
+            if (!string.IsNullOrEmpty(contract.ContractorSignatureBase64))
+            {
+                await GenerateFinalSignedPdfAsync(contract, ct);
+                contract.Status = ContractStatus.Completed; // Changed from Active to Completed
+            }
+
+            await _db.SaveChangesAsync(ct);
+            return await BuildDetailDtoAsync(contract.Id, homeownerId, ct);
+        }
+
+        public async Task<ContractDetailDto> SignByContractorAsync(
+            Guid contractId, SignContractDto dto, Guid contractorId, CancellationToken ct = default)
+        {
+            var contract = await _db.Contracts
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.Id == contractId, ct)
+                ?? throw new ArgumentException("Contract not found");
+
+            if (contract.ContractorUserId != contractorId)
+                throw new UnauthorizedAccessException("You are not the contractor of this contract");
+
+            if (contract.Status != ContractStatus.PendingSignatures)
+                throw new InvalidOperationException("Contract must be signed by homeowner first");
+
+            // Check if contractor profile is complete
+            var contractorProfile = await _db.Profiles
+                .FirstOrDefaultAsync(p => p.UserId == contractorId, ct);
+            
+            if (contractorProfile == null || 
+                string.IsNullOrEmpty(contractorProfile.FirstName) || 
+                string.IsNullOrEmpty(contractorProfile.LastName) ||
+                string.IsNullOrEmpty(contractorProfile.PhoneNumber))
+            {
+                throw new InvalidOperationException("Vui lòng cập nhật đầy đủ thông tin cá nhân (Họ tên, SĐT, Địa chỉ) tại mục hồ sơ trước khi ký hợp đồng");
+            }
+
+            // Save signature
+            contract.ContractorSignatureBase64 = dto.SignatureBase64;
+            contract.SignedByContractorAt = DateTime.UtcNow;
+
+            // Generate final signed PDF
+            await GenerateFinalSignedPdfAsync(contract, ct);
+
+            // Mark contract as completed (both parties have signed)
+            contract.Status = ContractStatus.Completed;
+
+            await _db.SaveChangesAsync(ct);
+            return await BuildDetailDtoAsync(contract.Id, contractorId, ct);
+        }
+
+        public async Task<byte[]> GetContractPdfAsync(Guid contractId, Guid currentUserId, CancellationToken ct = default)
+        {
+            var contract = await _db.Contracts
+                .FirstOrDefaultAsync(c => c.Id == contractId, ct)
+                ?? throw new ArgumentException("Contract not found");
+
+            if (contract.HomeownerUserId != currentUserId && contract.ContractorUserId != currentUserId)
+                throw new UnauthorizedAccessException("No access to this contract");
+
+            // Check if both parties have signed
+            bool bothSigned = !string.IsNullOrEmpty(contract.HomeownerSignatureBase64) 
+                           && !string.IsNullOrEmpty(contract.ContractorSignatureBase64);
+
+            // Return signed PDF if available and both have signed
+            if (bothSigned && !string.IsNullOrEmpty(contract.SignedPdfUrl))
+            {
+                try
+                {
+                    return await _fileService.GetFileAsync(contract.SignedPdfUrl);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading signed PDF: {ex.Message}. Will regenerate with signatures.");
+                    // File doesn't exist, regenerate signed PDF below
+                }
+            }
+
+            // If both have signed but no signed PDF file, regenerate it with signatures embedded
+            if (bothSigned)
+            {
+                Console.WriteLine("Both parties signed but PDF missing. Regenerating signed PDF with embedded signatures...");
+                
+                // Get profiles and proposal
+                var homeownerProfile = await _db.Profiles
+                    .FirstOrDefaultAsync(p => p.UserId == contract.HomeownerUserId, ct);
+                var contractorProfile = await _db.Profiles
+                    .FirstOrDefaultAsync(p => p.UserId == contract.ContractorUserId, ct);
+                var contractorCompany = await _db.Contractors
+                    .FirstOrDefaultAsync(c => c.UserId == contract.ContractorUserId, ct);
+                var proposal = await _db.Proposals
+                    .Include(p => p.Items)
+                    .FirstOrDefaultAsync(p => p.Id == contract.ProposalId, ct);
+
+                // Generate PDF with signatures embedded directly in the table
+                var signedPdfBytes = await _pdfService.GenerateContractPdfAsync(
+                    contract, 
+                    homeownerProfile!, 
+                    contractorProfile!, 
+                    contractorCompany, 
+                    proposal!,
+                    contract.HomeownerSignatureBase64,   // Include signatures
+                    contract.ContractorSignatureBase64);
+
+                return signedPdfBytes;
+            }
+
+            // If not both signed yet, return template PDF
+            if (!string.IsNullOrEmpty(contract.TemplatePdfUrl))
+            {
+                try
+                {
+                    return await _fileService.GetFileAsync(contract.TemplatePdfUrl);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading template PDF: {ex.Message}. Will generate new PDF.");
+                    // Continue to generate new PDF below
+                }
+            }
+
+            // Generate new template PDF if none exists
+            return await GenerateTemplatePdfBytesAsync(contract, ct);
+        }
+
+        private async Task<byte[]> GenerateTemplatePdfBytesAsync(Contract contract, CancellationToken ct)
+        {
+            var homeownerProfile = await _db.Profiles
+                .FirstOrDefaultAsync(p => p.UserId == contract.HomeownerUserId, ct);
+            var contractorProfile = await _db.Profiles
+                .FirstOrDefaultAsync(p => p.UserId == contract.ContractorUserId, ct);
+            var contractorCompany = await _db.Contractors
+                .FirstOrDefaultAsync(c => c.UserId == contract.ContractorUserId, ct);
+            
+            // Get proposal with items
+            var proposal = await _db.Proposals
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == contract.ProposalId, ct);
+
+            return await _pdfService.GenerateContractPdfAsync(
+                contract, homeownerProfile!, contractorProfile!, contractorCompany, proposal!);
+        }
+
+        private async Task GenerateFinalSignedPdfAsync(Contract contract, CancellationToken ct)
+        {
+            // Generate new PDF with signatures embedded directly in the table
+            var homeownerProfile = await _db.Profiles
+                .FirstOrDefaultAsync(p => p.UserId == contract.HomeownerUserId, ct);
+            var contractorProfile = await _db.Profiles
+                .FirstOrDefaultAsync(p => p.UserId == contract.ContractorUserId, ct);
+            var contractorCompany = await _db.Contractors
+                .FirstOrDefaultAsync(c => c.UserId == contract.ContractorUserId, ct);
+            
+            // Get proposal with items
+            var proposal = await _db.Proposals
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == contract.ProposalId, ct);
+
+            // Generate PDF with signatures embedded in the signature table
+            var signedPdfBytes = await _pdfService.GenerateContractPdfAsync(
+                contract, 
+                homeownerProfile!, 
+                contractorProfile!, 
+                contractorCompany, 
+                proposal!,
+                contract.HomeownerSignatureBase64,   // Pass signatures
+                contract.ContractorSignatureBase64);
+
+            // Upload signed PDF
+            var signedPdfUrl = await _fileService.UploadFileAsync(
+                new System.IO.MemoryStream(signedPdfBytes),
+                $"contracts/{contract.Id}/signed_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf",
+                "contracts");
+
+            contract.SignedPdfUrl = signedPdfUrl;
         }
     }
 }

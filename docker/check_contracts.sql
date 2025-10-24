@@ -1,1 +1,0 @@
-UPDATE "Contracts" SET templatepdfurl = NULL WHERE "Id" = 'dc5981a2-32ef-4059-b8df-1c8122620f4d';

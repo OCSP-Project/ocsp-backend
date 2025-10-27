@@ -140,6 +140,11 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<Guid?>("ContractorId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ContractorSignatureBase64")
+                        .HasMaxLength(1000000)
+                        .HasColumnType("character varying(1000000)")
+                        .HasColumnName("contractorsignaturebase64");
+
                     b.Property<Guid>("ContractorUserId")
                         .HasColumnType("uuid");
 
@@ -154,6 +159,11 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HomeownerSignatureBase64")
+                        .HasMaxLength(1000000)
+                        .HasColumnType("character varying(1000000)")
+                        .HasColumnName("homeownersignaturebase64");
 
                     b.Property<Guid>("HomeownerUserId")
                         .HasColumnType("uuid");
@@ -173,11 +183,21 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<DateTime?>("SignedByHomeownerAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("SignedPdfUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("signedpdfurl");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TemplatePdfUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("templatepdfurl");
 
                     b.Property<string>("Terms")
                         .IsRequired()
@@ -1536,6 +1556,9 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<decimal>("PriceTotal")
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ProjectTitle")
                         .HasColumnType("text");
 
@@ -1559,6 +1582,8 @@ namespace OCSP.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
 
                     b.HasIndex("QuoteRequestId", "ContractorUserId")
                         .IsUnique();
@@ -2301,11 +2326,19 @@ namespace OCSP.Infrastructure.Migrations
 
             modelBuilder.Entity("OCSP.Domain.Entities.Proposal", b =>
                 {
+                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("OCSP.Domain.Entities.QuoteRequest", "QuoteRequest")
                         .WithMany()
                         .HasForeignKey("QuoteRequestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Project");
 
                     b.Navigation("QuoteRequest");
                 });

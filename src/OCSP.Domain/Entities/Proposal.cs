@@ -15,6 +15,8 @@ namespace OCSP.Domain.Entities
         public decimal PriceTotal { get; set; }      // tổng giá
         public int DurationDays { get; set; }        // thời gian thi công (ngày)
         public string? TermsSummary { get; set; }    // điều khoản tóm tắt
+public Guid ProjectId { get; set; }           // ✅ thêm
+public Project Project { get; set; } = null!; // ✅ thêm (navigation property)
 
         public ICollection<ProposalItem> Items { get; set; } = new List<ProposalItem>();
         

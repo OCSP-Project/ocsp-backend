@@ -21,5 +21,16 @@ namespace OCSP.Application.Services.Interfaces
 
         Task<ContractDto> UpdateStatusAsync(
             UpdateContractStatusDto dto, Guid currentUserId, CancellationToken ct = default);
+
+        Task<ContractDetailDto> GeneratePdfForContractAsync(
+            Guid contractId, Guid currentUserId, CancellationToken ct = default);
+
+        Task<ContractDetailDto> SignByHomeownerAsync(
+            Guid contractId, SignContractDto dto, Guid homeownerId, CancellationToken ct = default);
+
+        Task<ContractDetailDto> SignByContractorAsync(
+            Guid contractId, SignContractDto dto, Guid contractorId, CancellationToken ct = default);
+
+        Task<byte[]> GetContractPdfAsync(Guid contractId, Guid currentUserId, CancellationToken ct = default);
     }
 }

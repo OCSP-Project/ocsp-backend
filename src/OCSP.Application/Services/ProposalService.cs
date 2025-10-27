@@ -21,39 +21,40 @@ namespace OCSP.Application.Services
         }
 
         public async Task<ProposalDto> CreateAsync(CreateProposalDto dto, Guid contractorUserId, CancellationToken ct = default)
-        {
-            // Quote phải tồn tại, đã Sent và contractor được mời
-            var qr = await _db.QuoteRequests
-                .Include(q => q.Invites)
-                .Include(q => q.Project)
-                .FirstOrDefaultAsync(q => q.Id == dto.QuoteRequestId, ct)
-                ?? throw new ArgumentException("Quote request not found");
+{
+    var qr = await _db.QuoteRequests
+        .Include(q => q.Invites)
+        .Include(q => q.Project)
+        .FirstOrDefaultAsync(q => q.Id == dto.QuoteRequestId, ct)
+        ?? throw new ArgumentException("Quote request not found");
 
-            if (qr.Status != Domain.Enums.QuoteStatus.Sent)
-                throw new InvalidOperationException("QuoteRequest must be Sent");
+    if (qr.Status != QuoteStatus.Sent)
+        throw new InvalidOperationException("QuoteRequest must be Sent");
 
-            var invited = qr.Invites.Any(i => i.ContractorUserId == contractorUserId);
-            if (!invited) throw new UnauthorizedAccessException("You are not invited to this quote");
+    if (!qr.Invites.Any(i => i.ContractorUserId == contractorUserId))
+        throw new UnauthorizedAccessException("You are not invited to this quote");
 
-            var exists = await _db.Proposals.AnyAsync(p =>
-                p.QuoteRequestId == dto.QuoteRequestId &&
-                p.ContractorUserId == contractorUserId, ct);
-            if (exists) throw new InvalidOperationException("You already submitted a proposal for this quote");
+    var exists = await _db.Proposals.AnyAsync(p =>
+        p.QuoteRequestId == dto.QuoteRequestId &&
+        p.ContractorUserId == contractorUserId, ct);
+    if (exists)
+        throw new InvalidOperationException("You already submitted a proposal for this quote");
 
-            // Tính tổng từ items
-            var total = dto.Items.Sum(i => i.Price);
+    var total = dto.Items.Sum(i => i.Price);
 
-            var p = new Proposal
-            {
-                QuoteRequestId = dto.QuoteRequestId,
-                ContractorUserId = contractorUserId,
-                Status = ProposalStatus.Draft,
-                DurationDays = dto.DurationDays,
-                TermsSummary = dto.TermsSummary,
-                PriceTotal = total,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+    var p = new Proposal
+    {
+        QuoteRequestId = dto.QuoteRequestId,
+        ProjectId = qr.ProjectId,            // ✅ thêm dòng này
+        ContractorUserId = contractorUserId,
+        Status = ProposalStatus.Draft,
+        DurationDays = dto.DurationDays,
+        TermsSummary = dto.TermsSummary,
+        PriceTotal = total,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
             foreach (var it in dto.Items)
             {
                 p.Items.Add(new ProposalItem
@@ -114,6 +115,11 @@ namespace OCSP.Application.Services
             using var stream = excelFile.OpenReadStream();
             var parsedData = await parser.ParseExcelAsync(stream);
 
+            var quote = await _db.QuoteRequests
+        .Include(q => q.Project)
+        .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
+        ?? throw new ArgumentException("Quote request not found");
+
             // Save Excel file to storage
             var excelFileUrl = await _fileService.UploadFileAsync(
                 excelFile.OpenReadStream(), 
@@ -125,6 +131,7 @@ namespace OCSP.Application.Services
             var proposal = new Proposal
             {
                 QuoteRequestId = quoteId,
+ProjectId = quote.ProjectId, 
                 ContractorUserId = contractorUserId,
                 Status = ProposalStatus.Draft,
                 PriceTotal = parsedData.TotalCost,
@@ -133,7 +140,7 @@ namespace OCSP.Application.Services
                 IsFromExcel = true,
                 ExcelFileName = excelFile.FileName,
                 ExcelFileUrl = excelFileUrl,
-                
+
                 // Project Information from Excel
                 ProjectTitle = parsedData.ProjectTitle,
                 ConstructionArea = parsedData.GeneralInfo.TryGetValue("ConstructionArea", out var area) ? area?.ToString() : null,
@@ -270,14 +277,22 @@ namespace OCSP.Application.Services
             return list.Select(p => ToDtoWithContractor(p, contractorByUserId.GetValueOrDefault(p.ContractorUserId), profileByUserId.GetValueOrDefault(p.ContractorUserId)));
         }
 
-        public async Task<ProposalDto> GetMyByIdAsync(Guid id, Guid contractorUserId, CancellationToken ct = default)
+        public async Task<ProposalDto> GetMyByIdAsync(Guid id, Guid currentUserId, CancellationToken ct = default)
         {
             var p = await _db.Proposals
                 .Include(x => x.Items)
+                .Include(x => x.QuoteRequest)
+                    .ThenInclude(q => q.Project)
                 .FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw new ArgumentException("Proposal not found");
-            if (p.ContractorUserId != contractorUserId)
-                throw new UnauthorizedAccessException("Not your proposal");
+            
+            // Allow both contractor (owner of proposal) and homeowner (owner of project) to view
+            var isContractor = p.ContractorUserId == currentUserId;
+            var isHomeowner = p.QuoteRequest?.Project?.HomeownerId == currentUserId;
+            
+            if (!isContractor && !isHomeowner)
+                throw new UnauthorizedAccessException("No access to this proposal");
+            
             return ToDto(p);
         }
 
@@ -343,8 +358,8 @@ namespace OCSP.Application.Services
             if (selected.QuoteRequest.Project.HomeownerId != homeownerId)
                 throw new UnauthorizedAccessException("Not project owner");
 
-            if (selected.Status != ProposalStatus.Submitted)
-                throw new InvalidOperationException("Only Submitted proposal can be accepted");
+            if (selected.Status != ProposalStatus.Submitted && selected.Status != ProposalStatus.Resubmitted)
+                throw new InvalidOperationException("Only Submitted or Resubmitted proposal can be accepted");
 
             using var tx = await _db.Database.BeginTransactionAsync(ct);
 

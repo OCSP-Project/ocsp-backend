@@ -26,6 +26,15 @@ namespace OCSP.Infrastructure.ExternalServices
             string? homeownerSignatureBase64 = null,
             string? contractorSignatureBase64 = null)
         {
+            if (homeownerProfile == null)
+    throw new InvalidOperationException("Homeowner profile not found for contract PDF.");
+
+if (contractorProfile == null)
+    throw new InvalidOperationException("Contractor profile not found for contract PDF.");
+
+if (proposal == null)
+    throw new InvalidOperationException("Proposal not found for contract PDF.");
+
             using var ms = new MemoryStream();
             using var writer = new PdfWriter(ms);
             using var pdf = new PdfDocument(writer);

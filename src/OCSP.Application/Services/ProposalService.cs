@@ -21,39 +21,40 @@ namespace OCSP.Application.Services
         }
 
         public async Task<ProposalDto> CreateAsync(CreateProposalDto dto, Guid contractorUserId, CancellationToken ct = default)
-        {
-            // Quote phải tồn tại, đã Sent và contractor được mời
-            var qr = await _db.QuoteRequests
-                .Include(q => q.Invites)
-                .Include(q => q.Project)
-                .FirstOrDefaultAsync(q => q.Id == dto.QuoteRequestId, ct)
-                ?? throw new ArgumentException("Quote request not found");
+{
+    var qr = await _db.QuoteRequests
+        .Include(q => q.Invites)
+        .Include(q => q.Project)
+        .FirstOrDefaultAsync(q => q.Id == dto.QuoteRequestId, ct)
+        ?? throw new ArgumentException("Quote request not found");
 
-            if (qr.Status != Domain.Enums.QuoteStatus.Sent)
-                throw new InvalidOperationException("QuoteRequest must be Sent");
+    if (qr.Status != QuoteStatus.Sent)
+        throw new InvalidOperationException("QuoteRequest must be Sent");
 
-            var invited = qr.Invites.Any(i => i.ContractorUserId == contractorUserId);
-            if (!invited) throw new UnauthorizedAccessException("You are not invited to this quote");
+    if (!qr.Invites.Any(i => i.ContractorUserId == contractorUserId))
+        throw new UnauthorizedAccessException("You are not invited to this quote");
 
-            var exists = await _db.Proposals.AnyAsync(p =>
-                p.QuoteRequestId == dto.QuoteRequestId &&
-                p.ContractorUserId == contractorUserId, ct);
-            if (exists) throw new InvalidOperationException("You already submitted a proposal for this quote");
+    var exists = await _db.Proposals.AnyAsync(p =>
+        p.QuoteRequestId == dto.QuoteRequestId &&
+        p.ContractorUserId == contractorUserId, ct);
+    if (exists)
+        throw new InvalidOperationException("You already submitted a proposal for this quote");
 
-            // Tính tổng từ items
-            var total = dto.Items.Sum(i => i.Price);
+    var total = dto.Items.Sum(i => i.Price);
 
-            var p = new Proposal
-            {
-                QuoteRequestId = dto.QuoteRequestId,
-                ContractorUserId = contractorUserId,
-                Status = ProposalStatus.Draft,
-                DurationDays = dto.DurationDays,
-                TermsSummary = dto.TermsSummary,
-                PriceTotal = total,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+    var p = new Proposal
+    {
+        QuoteRequestId = dto.QuoteRequestId,
+        ProjectId = qr.ProjectId,            // ✅ thêm dòng này
+        ContractorUserId = contractorUserId,
+        Status = ProposalStatus.Draft,
+        DurationDays = dto.DurationDays,
+        TermsSummary = dto.TermsSummary,
+        PriceTotal = total,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
             foreach (var it in dto.Items)
             {
                 p.Items.Add(new ProposalItem
@@ -109,16 +110,15 @@ namespace OCSP.Application.Services
 
         private async Task<Proposal> CreateProposalFromExcelAsync(Guid quoteId, Guid contractorUserId, IFormFile excelFile, CancellationToken ct)
         {
-            // 🔹 Lấy thông tin QuoteRequest để có ProjectId
-var qr = await _db.QuoteRequests
-    .AsNoTracking()
-    .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
-    ?? throw new ArgumentException("Quote request not found");
-
             // Parse Excel file
             var parser = new ExcelProposalParser();
             using var stream = excelFile.OpenReadStream();
             var parsedData = await parser.ParseExcelAsync(stream);
+
+            var quote = await _db.QuoteRequests
+        .Include(q => q.Project)
+        .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
+        ?? throw new ArgumentException("Quote request not found");
 
             // Save Excel file to storage
             var excelFileUrl = await _fileService.UploadFileAsync(
@@ -131,7 +131,7 @@ var qr = await _db.QuoteRequests
             var proposal = new Proposal
             {
                 QuoteRequestId = quoteId,
-ProjectId = qr.ProjectId,
+ProjectId = quote.ProjectId, 
                 ContractorUserId = contractorUserId,
                 Status = ProposalStatus.Draft,
                 PriceTotal = parsedData.TotalCost,

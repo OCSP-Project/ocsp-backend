@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OCSP.Infrastructure.Data;
@@ -11,9 +12,11 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251024084158_AddContractSignatureFields")]
+    partial class AddContractSignatureFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1543,9 +1546,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<decimal>("PriceTotal")
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ProjectTitle")
                         .HasColumnType("text");
 
@@ -1569,8 +1569,6 @@ namespace OCSP.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
 
                     b.HasIndex("QuoteRequestId", "ContractorUserId")
                         .IsUnique();
@@ -2313,19 +2311,11 @@ namespace OCSP.Infrastructure.Migrations
 
             modelBuilder.Entity("OCSP.Domain.Entities.Proposal", b =>
                 {
-                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("OCSP.Domain.Entities.QuoteRequest", "QuoteRequest")
                         .WithMany()
                         .HasForeignKey("QuoteRequestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Project");
 
                     b.Navigation("QuoteRequest");
                 });

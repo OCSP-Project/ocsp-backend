@@ -93,6 +93,19 @@ namespace OCSP.API.Controllers
         }
 
         /// <summary>
+        /// Liệt kê tất cả hợp đồng của tôi (alias cho /my).
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ContractListItemDto>>> GetAll(CancellationToken ct)
+        {
+            var uid = Me();
+            if (uid == Guid.Empty) return Unauthorized();
+
+            var list = await _svc.ListMyContractsAsync(uid, ct);
+            return Ok(list);
+        }
+
+        /// <summary>
         /// (UC27) Cập nhật trạng thái hợp đồng: 
         /// Draft→PendingSignatures→Active→(Completed|Cancelled).
         /// </summary>
@@ -112,5 +125,97 @@ public async Task<ActionResult<ContractDto>> UpdateStatus(Guid id, [FromBody] Up
     catch (UnauthorizedAccessException ex)    { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); } // <—
     catch (InvalidOperationException ex)      { return BadRequest(ex.Message); }
 }
+
+        /// <summary>
+        /// Homeowner ký hợp đồng điện tử.
+        /// </summary>
+        [HttpPost("{id:guid}/sign-homeowner")]
+        public async Task<ActionResult<ContractDetailDto>> SignByHomeowner(
+            Guid id, 
+            [FromBody] SignContractDto dto, 
+            CancellationToken ct)
+        {
+            var uid = Me();
+            if (uid == Guid.Empty) return Unauthorized();
+
+            try
+            {
+                var result = await _svc.SignByHomeownerAsync(id, dto, uid, ct);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)          { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)  { return BadRequest(ex.Message); }
+        }
+
+        /// <summary>
+        /// Contractor ký hợp đồng điện tử.
+        /// </summary>
+        [HttpPost("{id:guid}/sign-contractor")]
+        public async Task<ActionResult<ContractDetailDto>> SignByContractor(
+            Guid id, 
+            [FromBody] SignContractDto dto, 
+            CancellationToken ct)
+        {
+            var uid = Me();
+            if (uid == Guid.Empty) return Unauthorized();
+
+            try
+            {
+                var result = await _svc.SignByContractorAsync(id, dto, uid, ct);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)          { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)  { return BadRequest(ex.Message); }
+        }
+
+        /// <summary>
+        /// Tạo PDF template cho hợp đồng (nếu chưa có).
+        /// </summary>
+        [HttpPost("{id:guid}/generate-pdf")]
+        public async Task<ActionResult<ContractDetailDto>> GeneratePdf(Guid id, CancellationToken ct)
+        {
+            var uid = Me();
+            if (uid == Guid.Empty) return Unauthorized();
+
+            try
+            {
+                var result = await _svc.GeneratePdfForContractAsync(id, uid, ct);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)          { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)  { return BadRequest(ex.Message); }
+        }
+
+        /// <summary>
+        /// Tải PDF hợp đồng (có hoặc chưa có chữ ký).
+        /// </summary>
+        [HttpGet("{id:guid}/pdf")]
+        public async Task<IActionResult> GetContractPdf(Guid id, CancellationToken ct)
+        {
+            var uid = Me();
+            if (uid == Guid.Empty) return Unauthorized();
+
+            Console.WriteLine($"GetContractPdf called - ContractId: {id}, UserId: {uid}");
+
+            try
+            {
+                var pdfBytes = await _svc.GetContractPdfAsync(id, uid, ct);
+                Console.WriteLine($"PDF generated successfully - Size: {pdfBytes.Length} bytes");
+                return File(pdfBytes, "application/pdf", $"contract_{id}.pdf");
+            }
+            catch (ArgumentException ex)          
+            { 
+                Console.WriteLine($"ArgumentException in GetContractPdf: {ex.Message}");
+                return NotFound(ex.Message); 
+            }
+            catch (UnauthorizedAccessException ex) 
+            { 
+                Console.WriteLine($"UnauthorizedAccessException in GetContractPdf: {ex.Message}");
+                return Forbid(ex.Message); 
+            }
+        }
     }
 }

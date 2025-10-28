@@ -103,6 +103,7 @@ builder.Services.AddScoped<IContractorService, ContractorService>();
 builder.Services.AddScoped<ISupervisorService, SupervisorService>();
 builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>();
 builder.Services.AddScoped<IEscrowService, EscrowService>();
+builder.Services.AddScoped<OCSP.Infrastructure.ExternalServices.Interfaces.IPdfService, OCSP.Infrastructure.ExternalServices.PdfService>();
 builder.Services.Configure<VnPayOptions>(builder.Configuration.GetSection("VnPay"));
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection("Payments"));
 builder.Services.AddScoped<IProgressMediaService, ProgressMediaService>();
@@ -137,6 +138,9 @@ builder.Services.AddScoped<IProjectDailyResourceRepository, ProjectDailyResource
 
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();
+
+// Template Service
+builder.Services.AddScoped<ITemplateService, TemplateService>();
 
 // SignalR (required for MapHub)
 builder.Services.AddSignalR();
@@ -173,12 +177,14 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy => policy
         .AllowAnyOrigin()
         .AllowAnyMethod()
-        .AllowAnyHeader());
+        .AllowAnyHeader()
+        .SetIsOriginAllowed(origin => true)); // ✅ Allow all origins for static files
 });
 
 var app = builder.Build();
 
 app.MapHub<ChatHub>("/chathub");
+app.MapHub<NotificationHub>("/notificationhub");
 //────────────────────────────────────────────────────────
 // 5) Auto Migration
 //────────────────────────────────────────────────────────
@@ -204,11 +210,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors("AllowAll");
-app.UseAuthentication();
-app.UseAuthorization();
+// ✅ THÊM: Configure static files
+app.UseStaticFiles(); // Serve files từ wwwroot
 
-// Serve static files from the local 'uploads' folder (for profile documents, images, ...)
+// ✅ THÊM: Serve files từ uploads folder ngoài wwwroot
 var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
 if (!Directory.Exists(uploadsPath))
 {
@@ -219,6 +224,11 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(uploadsPath),
     RequestPath = "/uploads"
 });
+
+app.UseCors("AllowAll");
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

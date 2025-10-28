@@ -50,6 +50,23 @@ namespace OCSP.Infrastructure.Data.Configurations
              .HasConversion<int>()      // enum -> int
              .IsRequired();
 
+            // ---------------- Signature & PDF Fields ----------------
+            b.Property(x => x.HomeownerSignatureBase64)
+             .HasColumnName("homeownersignaturebase64")
+             .HasMaxLength(1000000); // Base64 can be large
+
+            b.Property(x => x.ContractorSignatureBase64)
+             .HasColumnName("contractorsignaturebase64")
+             .HasMaxLength(1000000);
+
+            b.Property(x => x.TemplatePdfUrl)
+             .HasColumnName("templatepdfurl")
+             .HasMaxLength(1000);
+
+            b.Property(x => x.SignedPdfUrl)
+             .HasColumnName("signedpdfurl")
+             .HasMaxLength(1000);
+
             // ---------------- Indexes ----------------
             b.HasIndex(x => x.ProjectId);
             b.HasIndex(x => x.Status);

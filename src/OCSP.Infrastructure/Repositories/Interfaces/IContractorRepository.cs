@@ -34,6 +34,7 @@ namespace OCSP.Infrastructure.Repositories.Interfaces
             bool? isPremium = null);
 
         Task<Contractor?> GetByIdWithDetailsAsync(Guid id);
+        Task<Contractor?> GetByUserIdAsync(Guid userId);
         Task<List<Review>> GetRecentReviewsAsync(Guid contractorId, int count = 5);
         Task<List<Contractor>> GetFeaturedContractorsAsync(int count = 10);
         Task<List<Contractor>> GetBySpecialtyAsync(string specialty);

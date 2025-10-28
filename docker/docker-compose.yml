@@ -71,6 +71,9 @@ services:
       Email__EnableSsl: ${EMAIL__ENABLESSL}
     ports:
       - "8080:8080"
+    volumes:
+      - /d/OCSP_Project/ocsp-backend/docker/uploads:/app/uploads
+
     networks:
       - ocsp-network
 

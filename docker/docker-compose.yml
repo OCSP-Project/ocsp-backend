@@ -72,7 +72,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /d/OCSP_Project/ocsp-backend/docker/uploads:/app/uploads
+      # - /d/OCSP_Project/ocsp-backend/docker/uploads:/app/uploads
+      - ./uploads:/app/uploads
 
     networks:
       - ocsp-network

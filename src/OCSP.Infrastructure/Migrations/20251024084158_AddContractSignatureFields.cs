@@ -10,33 +10,10 @@ namespace OCSP.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "contractorsignaturebase64",
-                table: "Contracts",
-                type: "character varying(1000000)",
-                maxLength: 1000000,
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "homeownersignaturebase64",
-                table: "Contracts",
-                type: "character varying(1000000)",
-                maxLength: 1000000,
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "signedpdfurl",
-                table: "Contracts",
-                type: "character varying(1000)",
-                maxLength: 1000,
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "templatepdfurl",
-                table: "Contracts",
-                type: "character varying(1000)",
-                maxLength: 1000,
-                nullable: true);
+            migrationBuilder.Sql("ALTER TABLE \"Contracts\" ADD COLUMN IF NOT EXISTS \"contractorsignaturebase64\" character varying(1000000);");
+            migrationBuilder.Sql("ALTER TABLE \"Contracts\" ADD COLUMN IF NOT EXISTS \"homeownersignaturebase64\" character varying(1000000);");
+            migrationBuilder.Sql("ALTER TABLE \"Contracts\" ADD COLUMN IF NOT EXISTS \"signedpdfurl\" character varying(1000);");
+            migrationBuilder.Sql("ALTER TABLE \"Contracts\" ADD COLUMN IF NOT EXISTS \"templatepdfurl\" character varying(1000);");
         }
 
         /// <inheritdoc />

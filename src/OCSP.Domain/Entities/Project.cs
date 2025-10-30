@@ -1,4 +1,5 @@
 using OCSP.Domain.Common;
+using OCSP.Domain.Enums;
 namespace OCSP.Domain.Entities
 {
     public enum ProjectStatus { Draft = 0, Active = 1, Completed = 2, OnHold = 3 }
@@ -20,6 +21,8 @@ namespace OCSP.Domain.Entities
         public DateTime? EstimatedCompletionDate { get; set; }
 
         public ProjectStatus Status { get; set; } = ProjectStatus.Draft;
+
+        public PaymentStatus SupervisorPackagePaymentStatus { get; set; } = PaymentStatus.Pending;
 
         // Chủ nhà (bắt buộc)
         public Guid HomeownerId { get; set; }

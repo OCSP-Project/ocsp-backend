@@ -8,32 +8,42 @@ namespace OCSP.Infrastructure.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Nếu cũ còn các cột Unit, Qty, UnitPrice -> xoá đi
-            migrationBuilder.DropColumn(
-                name: "Unit",
-                table: "ProposalItems");
+            // Drop legacy columns only if they still exist
+            migrationBuilder.Sql(@"DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'ProposalItems' AND column_name = 'Unit'
+    ) THEN
+        ALTER TABLE ""ProposalItems"" DROP COLUMN ""Unit"";
+    END IF;
+END $$;");
 
-            migrationBuilder.DropColumn(
-                name: "Qty",
-                table: "ProposalItems");
+            migrationBuilder.Sql(@"DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'ProposalItems' AND column_name = 'Qty'
+    ) THEN
+        ALTER TABLE ""ProposalItems"" DROP COLUMN ""Qty"";
+    END IF;
+END $$;");
 
-            migrationBuilder.DropColumn(
-                name: "UnitPrice",
-                table: "ProposalItems");
+            migrationBuilder.Sql(@"DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'ProposalItems' AND column_name = 'UnitPrice'
+    ) THEN
+        ALTER TABLE ""ProposalItems"" DROP COLUMN ""UnitPrice"";
+    END IF;
+END $$;");
 
-            // Thêm cột mới theo entity hiện tại
-            migrationBuilder.AddColumn<decimal>(
-                name: "Price",
-                table: "ProposalItems",
-                type: "numeric",
-                nullable: false,
-                defaultValue: 0m);
+            // Ensure Price column exists
+            migrationBuilder.Sql("ALTER TABLE \"ProposalItems\" ADD COLUMN IF NOT EXISTS \"Price\" numeric NOT NULL DEFAULT 0;");
 
-            // migrationBuilder.AddColumn<string>(
-            //     name: "Notes",
-            //     table: "ProposalItems",
-            //     type: "text",
-            //     nullable: true);
+            // Notes column (optional) — keep commented unless needed
+            // migrationBuilder.Sql("ALTER TABLE \"ProposalItems\" ADD COLUMN IF NOT EXISTS \"Notes\" text;");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

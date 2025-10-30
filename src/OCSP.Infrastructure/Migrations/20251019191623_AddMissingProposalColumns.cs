@@ -10,13 +10,7 @@ namespace OCSP.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "ProjectTitle",
-                table: "Proposals",
-                type: "text",
-                nullable: true);
-
-            
+            migrationBuilder.Sql("ALTER TABLE \"Proposals\" ADD COLUMN IF NOT EXISTS \"ProjectTitle\" text;");
         }
 
         /// <inheritdoc />

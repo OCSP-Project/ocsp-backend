@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using OCSP.Application.DTOs.Payments;
 using OCSP.Application.Services.Interfaces;
 using System;
+using System.Text.Json;
 
 namespace OCSP.API.Controllers
 {
@@ -23,42 +24,43 @@ namespace OCSP.API.Controllers
             return Ok(res);
         }
 
-        // Fallback return handler: process MoMo return when IPN is unreachable
+        [HttpPost("manual-webhook")]
         [AllowAnonymous]
-        [HttpGet("momo/return")]
-        public async Task<IActionResult> MomoReturn([FromQuery] string partnerCode, [FromQuery] string orderId, [FromQuery] string requestId,
-            [FromQuery] long amount, [FromQuery] string orderInfo, [FromQuery] string orderType, [FromQuery] string transId,
-            [FromQuery] int resultCode, [FromQuery] string message, [FromQuery] string payType, [FromQuery] string responseTime,
-            [FromQuery] string extraData, [FromQuery] string signature, CancellationToken ct)
+        public async Task<IActionResult> ManualWebhook([FromBody] MomoWebhookDto payload, CancellationToken ct)
         {
-            var decodedExtra = Uri.UnescapeDataString(extraData ?? string.Empty);
-            var payload = new MomoWebhookDto
-            {
-                OrderId = orderId,
-                RequestId = requestId,
-                Amount = amount,
-                OrderInfo = orderInfo,
-                ResultCode = resultCode,
-                Message = message,
-                PayType = payType,
-                ResponseTime = responseTime,
-                ExtraData = decodedExtra,
-                TransId = transId,
-                Signature = signature
-            };
-
-            try
-            {
-                var raw = Request.QueryString.Value ?? string.Empty;
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(payload.OrderId))
+                return BadRequest(new { error = "OrderId is required" });
+            
+            if (string.IsNullOrWhiteSpace(payload.RequestId))
+                return BadRequest(new { error = "RequestId is required" });
+            
+            if (string.IsNullOrWhiteSpace(payload.ExtraData))
+                return BadRequest(new { error = "ExtraData is required" });
+            
+            var raw = JsonSerializer.Serialize(payload);
+            try {
                 await _payments.HandleMomoWebhookAsync(payload, raw, ct);
+                return Ok(new { result = "ok" });
             }
-            catch
-            {
-                // ignore; we still redirect to FE so user flow is not blocked
-            }
+            catch (Exception ex) { return BadRequest(new { error = ex.Message }); }
+        }
 
-            // Redirect to FE milestones tab
-            return Redirect("http://localhost:3000/projects?tab=milestones");
+        [HttpGet("wallet/balance")]
+        public async Task<ActionResult<object>> GetWalletBalance(CancellationToken ct)
+        {
+            var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+            var balance = await _payments.GetWalletBalanceAsync(uid, ct);
+            return Ok(new { balance });
+        }
+
+        [HttpGet("commission/status")]
+        public async Task<ActionResult<object>> GetCommissionStatus([FromQuery] Guid contractId, CancellationToken ct)
+        {
+            var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+            if (contractId == Guid.Empty) return BadRequest("contractId is required");
+            var paid = await _payments.IsCommissionPaidAsync(uid, contractId, ct);
+            return Ok(new { paid });
         }
 
         private Guid Me()

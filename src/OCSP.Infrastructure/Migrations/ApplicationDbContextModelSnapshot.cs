@@ -1249,6 +1249,9 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<int>("SupervisorPackagePaymentStatus")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("SupervisorId")
                         .HasColumnType("uuid");
 

@@ -73,7 +73,9 @@ services:
     ports:
       - "8080:8080"
     volumes:
+
       # Persist uploaded/static files saved under /app/uploads (served by Program.cs)
+
       - ./uploads:/app/uploads
 
     networks:

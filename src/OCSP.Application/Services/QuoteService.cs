@@ -180,37 +180,39 @@ namespace OCSP.Application.Services
             });
         }
         public async Task<IEnumerable<QuoteRequestDto>> ListMyInvitesAsync(Guid contractorUserId, CancellationToken ct = default)
-{
-    var invites = await _db.QuoteInvites
-        .Include(i => i.QuoteRequest)
-        .Where(i => i.ContractorUserId == contractorUserId)
-        .ToListAsync(ct);
-
-    return invites
-        .Select(i => i.QuoteRequest)
-        .Distinct()
-        .Select(q => new QuoteRequestDto
         {
-            Id = q.Id,
-            ProjectId = q.ProjectId,
-            Scope = q.Scope,
-            DueDate = q.DueDate,
-            Status = q.Status.ToString(),
-            InviteeUserIds = q.Invites.Select(iv => iv.ContractorUserId).ToList()
-        })
-        .ToList();
-}
+            var invites = await _db.QuoteInvites
+                .Include(i => i.QuoteRequest)
+                .Where(i => i.ContractorUserId == contractorUserId)
+                .ToListAsync(ct);
+
+            return invites
+                .Select(i => i.QuoteRequest)
+                .Where(q => q != null)
+                .Distinct()
+                .Where(q => q.Status == QuoteStatus.Sent || q.Status == QuoteStatus.Closed) // giữ lại sau khi accept
+                .Select(q => new QuoteRequestDto
+                {
+                    Id = q.Id,
+                    ProjectId = q.ProjectId,
+                    Scope = q.Scope,
+                    DueDate = q.DueDate,
+                    Status = q.Status.ToString(),
+                    InviteeUserIds = q.Invites.Select(iv => iv.ContractorUserId).ToList()
+                })
+                .ToList();
+        }
 
 public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync(
     Guid contractorUserId, CancellationToken ct = default)
 {
-    // 1) Lấy toàn bộ quote đã SENT có mời mình
+    // 1) Lấy toàn bộ quote đã mời mình (bao gồm Sent và Closed để không biến mất sau khi homeowner accept)
     var quotes = await _db.QuoteRequests
         .AsNoTracking()
         .Include(q => q.Invites)
         .Include(q => q.Project)
             .ThenInclude(p => p.Homeowner) // navigation User
-        .Where(q => q.Status == QuoteStatus.Sent &&
+        .Where(q => (q.Status == QuoteStatus.Sent || q.Status == QuoteStatus.Closed) &&
                     q.Invites.Any(i => i.ContractorUserId == contractorUserId))
         .OrderByDescending(q => q.CreatedAt)
         .ToListAsync(ct);

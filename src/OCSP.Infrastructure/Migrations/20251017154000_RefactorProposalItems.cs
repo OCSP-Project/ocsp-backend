@@ -10,27 +10,43 @@ namespace OCSP.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Drop existing columns
-            migrationBuilder.DropColumn(
-                name: "Qty",
-                table: "ProposalItems");
+            // Drop existing columns if they exist
+            migrationBuilder.Sql(@"DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'ProposalItems' AND column_name = 'Qty'
+    ) THEN
+        ALTER TABLE ""ProposalItems"" DROP COLUMN ""Qty"";
+    END IF;
+END $$;");
 
-            migrationBuilder.DropColumn(
-                name: "Unit",
-                table: "ProposalItems");
+            migrationBuilder.Sql(@"DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'ProposalItems' AND column_name = 'Unit'
+    ) THEN
+        ALTER TABLE ""ProposalItems"" DROP COLUMN ""Unit"";
+    END IF;
+END $$;");
 
-            // Rename UnitPrice to Price
-            migrationBuilder.RenameColumn(
-                name: "UnitPrice",
-                table: "ProposalItems",
-                newName: "Price");
+            // Rename UnitPrice to Price if UnitPrice exists and Price doesn't
+            migrationBuilder.Sql(@"DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'ProposalItems' AND column_name = 'UnitPrice'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'ProposalItems' AND column_name = 'Price'
+    ) THEN
+        ALTER TABLE ""ProposalItems"" RENAME COLUMN ""UnitPrice"" TO ""Price"";
+    END IF;
+END $$;");
 
-            // Add Notes column
-            migrationBuilder.AddColumn<string>(
-                name: "Notes",
-                table: "ProposalItems",
-                type: "text",
-                nullable: true);
+            // Ensure Notes column exists
+            migrationBuilder.Sql("ALTER TABLE \"ProposalItems\" ADD COLUMN IF NOT EXISTS \"Notes\" text;");
         }
 
         /// <inheritdoc />

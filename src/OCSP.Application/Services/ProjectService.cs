@@ -3,6 +3,8 @@ using OCSP.Application.Services.Interfaces;
 using OCSP.Infrastructure.Repositories.Interfaces;
 using OCSP.Domain.Entities;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using OCSP.Infrastructure.Data;
 
 public class ProjectService : IProjectService
 {
@@ -10,17 +12,20 @@ public class ProjectService : IProjectService
     private readonly IUserRepository _userRepository;
     private readonly IProjectDocumentService _documentService;
     private readonly IContractorRepository _contractorRepository;
+    private readonly ApplicationDbContext _db;
 
     public ProjectService(
         IProjectRepository projectRepository,
         IUserRepository userRepository,
         IProjectDocumentService documentService,
-        IContractorRepository contractorRepository)
+        IContractorRepository contractorRepository,
+        ApplicationDbContext db)
     {
         _projectRepository = projectRepository;
         _userRepository = userRepository;
         _documentService = documentService;
         _contractorRepository = contractorRepository;
+        _db = db;
     }
 
     public async Task<List<ProjectResponseDto>> GetProjectsByHomeownerAsync(Guid homeownerId, CancellationToken ct = default)
@@ -60,6 +65,9 @@ public class ProjectService : IProjectService
         var p = await _projectRepository.GetByIdAsync(id, ct);
         if (p == null) return null;
 
+        // Check if there are any supervisors available
+        var hasSupervisorsAvailable = await _db.Supervisors.AnyAsync(s => s.AvailableNow, ct);
+
         return new ProjectDetailDto
         {
             Id = p.Id,
@@ -73,7 +81,8 @@ public class ProjectService : IProjectService
             EstimatedCompletionDate = p.EstimatedCompletionDate,
             Status = p.Status.ToString(),
             HomeownerId = p.HomeownerId,
-            SupervisorId = p.SupervisorId, // sẽ là null cho tới khi bạn gán sau này
+            SupervisorId = p.SupervisorId,
+            HasSupervisorsAvailable = hasSupervisorsAvailable,
             Participants = (p.Participants ?? new List<ProjectParticipant>())
                 .Select(pp => new ProjectParticipantDto
                 {
@@ -290,4 +299,72 @@ public class ProjectService : IProjectService
         return await _documentService.GetDocumentFileAsync(documentId, userId);
     }
 
+    public async Task<ProjectDetailDto> AssignRandomAvailableSupervisorAsync(Guid projectId, Guid homeownerId, CancellationToken ct = default)
+    {
+        var project = await _projectRepository.GetByIdAsync(projectId, ct)
+            ?? throw new ArgumentException("Project not found");
+
+        if (project.HomeownerId != homeownerId)
+            throw new UnauthorizedAccessException("You are not allowed to assign a supervisor for this project");
+
+        // Validate floor area eligibility
+        var area = project.FloorArea;
+        if (area > 400)
+            throw new ArgumentException("Diện tích > 400m² không hỗ trợ đăng ký giám sát viên");
+
+        // Pick random available supervisor
+        var supervisor = await _db.Supervisors
+            .Include(s => s.User)
+            .Where(s => s.AvailableNow)
+            .OrderBy(_ => Guid.NewGuid())
+            .FirstOrDefaultAsync(ct);
+
+        if (supervisor == null)
+            throw new InvalidOperationException("Không có giám sát viên sẵn sàng");
+
+        // Assign to project
+        project.SupervisorId = supervisor.Id;
+        supervisor.AvailableNow = false;
+
+        // Add participant if not exists
+        var hasSupervisorParticipant = project.Participants.Any(pp => pp.Role == ProjectRole.Supervisor);
+        if (!hasSupervisorParticipant)
+        {
+            project.Participants.Add(new ProjectParticipant
+            {
+                ProjectId = project.Id,
+                UserId = supervisor.UserId,
+                Role = ProjectRole.Supervisor,
+                Status = ParticipantStatus.Active,
+                JoinedAt = DateTime.UtcNow
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        // Return updated details
+        return new ProjectDetailDto
+        {
+            Id = project.Id,
+            Name = project.Name,
+            Address = project.Address,
+            Description = project.Description,
+            FloorArea = project.FloorArea,
+            NumberOfFloors = project.NumberOfFloors,
+            Budget = project.Budget,
+            StartDate = project.StartDate,
+            EstimatedCompletionDate = project.EstimatedCompletionDate,
+            Status = project.Status.ToString(),
+            HomeownerId = project.HomeownerId,
+            SupervisorId = project.SupervisorId,
+            Participants = (project.Participants ?? new List<ProjectParticipant>())
+                .Select(pp => new ProjectParticipantDto
+                {
+                    UserId = pp.UserId,
+                    UserName = pp.User?.Username ?? "Unknown User",
+                    Role = pp.Role.ToString(),
+                    Status = pp.Status.ToString()
+                }).ToList()
+        };
+    }
 }

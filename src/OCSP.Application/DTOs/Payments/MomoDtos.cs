@@ -5,6 +5,9 @@ namespace OCSP.Application.DTOs.Payments
         public decimal Amount { get; set; }
         public string? Description { get; set; }
         public Guid? ContractId { get; set; }
+        public string? RedirectUrl { get; set; } // optional, override default redirect
+        public Guid? ProjectId { get; set; } // optional, for supervisor flow
+        public string? Purpose { get; set; } // e.g., "commission" | "supervisor"
     }
 
     public class MomoCreatePaymentResultDto

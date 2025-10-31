@@ -205,6 +205,39 @@ namespace OCSP.API.Controllers
             }
         }
 
+        // POST api/projects/{id}/register-supervisor
+        [HttpPost("{id:guid}/register-supervisor")]
+        [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> RegisterSupervisor([FromRoute] Guid id, CancellationToken ct)
+        {
+            try
+            {
+                var homeownerId = GetCurrentUserId();
+                if (homeownerId == Guid.Empty)
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                var updated = await _projectService.AssignRandomAvailableSupervisorAsync(id, homeownerId, ct);
+                return Ok(updated);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Bad request assigning supervisor");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error assigning supervisor");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
         private Guid GetCurrentUserId()
         {
             // Ưu tiên NameIdentifier, fallback sang "sub" (OIDC/JWT phổ biến)

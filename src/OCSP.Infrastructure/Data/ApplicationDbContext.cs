@@ -34,7 +34,7 @@ namespace OCSP.Infrastructure.Data
             public DbSet<QuoteInvite> QuoteInvites { get; set; }
             public DbSet<Proposal> Proposals { get; set; }
             public DbSet<ProposalItem> ProposalItems { get; set; }
-            
+
 
 
             // NEW: Project Documents
@@ -70,6 +70,13 @@ namespace OCSP.Infrastructure.Data
             public DbSet<ContractorPost> ContractorPosts { get; set; }
             public DbSet<ContractorPostImage> ContractorPostImages { get; set; }
 
+            // NEW: 3D Model Tracking
+            public DbSet<Project3DModel> Project3DModels { get; set; }
+            public DbSet<BuildingElement> BuildingElements { get; set; }
+            public DbSet<MeshGroup> MeshGroups { get; set; }
+            public DbSet<ElementTrackingHistory> ElementTrackingHistory { get; set; }
+            public DbSet<TrackingPhoto> TrackingPhotos { get; set; }
+
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
                   base.OnModelCreating(modelBuilder);
@@ -85,6 +92,13 @@ namespace OCSP.Infrastructure.Data
                   modelBuilder.ApplyConfiguration(new ProjectTimelineConfiguration());
                   modelBuilder.ApplyConfiguration(new MilestoneConfiguration());
                   modelBuilder.ApplyConfiguration(new DeliverableConfiguration());
+
+                  // NEW: Apply 3D Model Tracking configurations
+                  modelBuilder.ApplyConfiguration(new Project3DModelConfiguration());
+                  modelBuilder.ApplyConfiguration(new BuildingElementConfiguration());
+
+                  // NEW: Tracking configurations
+                  ConfigureTrackingEntities(modelBuilder);
 
                   // ✅ Apply contract configuration (quan trọng để dẹp lỗi mơ hồ FK)
                   modelBuilder.ApplyConfiguration(new ContractConfiguration());
@@ -220,6 +234,12 @@ namespace OCSP.Infrastructure.Data
       .WithMany()
       .HasForeignKey(e => e.HomeownerId)
       .OnDelete(DeleteBehavior.Restrict);
+
+                        // NEW: 3D Models relationship
+                        entity.HasMany(p => p.Models3D)
+                              .WithOne(m => m.Project)
+                              .HasForeignKey(m => m.ProjectId)
+                              .OnDelete(DeleteBehavior.Cascade);
 
                         // (Optional) nếu bạn muốn cấu hình Contracts rõ ràng:
                         // entity.HasMany(p => p.Contracts)
@@ -603,8 +623,52 @@ namespace OCSP.Infrastructure.Data
                    .OnDelete(DeleteBehavior.Cascade);
                         e.HasIndex(x => new { x.WalletId, x.CreatedAt });
                   });
+            }
 
+            private void ConfigureTrackingEntities(ModelBuilder modelBuilder)
+            {
+                  // ElementTrackingHistory configuration
+                  modelBuilder.Entity<ElementTrackingHistory>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
 
+                        entity.Property(e => e.PreviousPercentage).HasDefaultValue(0);
+                        entity.Property(e => e.NewPercentage).HasDefaultValue(0);
+                        entity.Property(e => e.TrackingDate).HasDefaultValueSql("GETUTCDATE()");
+                        entity.Property(e => e.Notes).HasColumnType("text");
+
+                        entity.HasOne(e => e.BuildingElement)
+                              .WithMany(b => b.TrackingHistory)
+                              .HasForeignKey(e => e.BuildingElementId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.RecordedBy)
+                              .WithMany()
+                              .HasForeignKey(e => e.RecordedById)
+                              .OnDelete(DeleteBehavior.Restrict);
+
+                        entity.HasIndex(e => e.BuildingElementId);
+                        entity.HasIndex(e => e.TrackingDate);
+                  });
+
+                  // TrackingPhoto configuration
+                  modelBuilder.Entity<TrackingPhoto>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+
+                        entity.Property(e => e.PhotoUrl).IsRequired().HasMaxLength(2000);
+                        entity.Property(e => e.Caption).HasMaxLength(500);
+                        entity.Property(e => e.FileType).HasMaxLength(50);
+                        entity.Property(e => e.UploadedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                        entity.HasOne(e => e.TrackingHistory)
+                              .WithMany(t => t.Photos)
+                              .HasForeignKey(e => e.TrackingHistoryId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasIndex(e => e.TrackingHistoryId);
+                        entity.HasIndex(e => e.UploadedAt);
+                  });
             }
 
             public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -24,4 +24,8 @@
     <PackageReference Include="itext7.bouncy-castle-adapter" Version="8.0.2" />
     
   </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 </Project>

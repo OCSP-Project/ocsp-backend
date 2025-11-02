@@ -7,6 +7,8 @@ using OCSP.Application.DTOs.BuildingElements;
 using OCSP.Domain.Entities;
 using OCSP.Domain.Enums;
 using OCSP.Infrastructure.Repositories.Interfaces;
+using Microsoft.AspNetCore.Http;
+using OCSP.Infrastructure.Services;
 
 namespace OCSP.Application.Services
 {
@@ -20,6 +22,7 @@ namespace OCSP.Application.Services
         Task<List<TrackingHistoryDto>> GetHistoryAsync(Guid elementId);
         Task<List<TrackingPhotoDto>> GetPhotosAsync(Guid historyId);
         Task<TrackingPhotoDto> AddPhotoAsync(Guid historyId, AddTrackingPhotoRequest req, Guid userId);
+        Task<TrackingPhotoDto> AddPhotoAsync(Guid historyId, IFormFile file, string? caption, Guid userId);
         Task DeletePhotoAsync(Guid photoId);
         Task<ModelSummaryDto> GetModelSummaryAsync(Guid modelId);
     }
@@ -29,12 +32,14 @@ namespace OCSP.Application.Services
         private readonly IBuildingElementRepository _elements;
         private readonly IElementTrackingHistoryRepository _histories;
         private readonly ITrackingPhotoRepository _photos;
+        private readonly IFileStorageService _fileStorage;
 
         public BuildingElementService(IBuildingElementRepository elements,
                                       IElementTrackingHistoryRepository histories,
-                                      ITrackingPhotoRepository photos)
+                                      ITrackingPhotoRepository photos,
+                                      IFileStorageService fileStorage)
         {
-            _elements = elements; _histories = histories; _photos = photos;
+            _elements = elements; _histories = histories; _photos = photos; _fileStorage = fileStorage;
         }
 
         public async Task<List<BuildingElementDto>> GetByModelAsync(Guid modelId)
@@ -63,8 +68,8 @@ namespace OCSP.Application.Services
                 CompletionPercentage = 0,
                 CanTrack = true,
                 CreatedBy = userId.ToString(),
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
+                UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
             };
             await _elements.AddAsync(entity);
             await _elements.SaveChangesAsync();
@@ -78,8 +83,9 @@ namespace OCSP.Application.Services
             if (req.ElementType.HasValue) e.ElementType = (ComponentType)req.ElementType.Value;
             if (req.FloorLevel.HasValue) e.FloorLevel = req.FloorLevel.Value;
             if (req.MeshIndices != null) e.MeshIndices = JsonSerializer.Serialize(req.MeshIndices);
+            if (!string.IsNullOrWhiteSpace(req.Color)) e.Color = req.Color;
             e.UpdatedBy = userId.ToString();
-            e.UpdatedAt = DateTime.UtcNow;
+            e.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
             await _elements.UpdateAsync(e);
             await _elements.SaveChangesAsync();
             return MapElement(e);
@@ -92,7 +98,7 @@ namespace OCSP.Application.Services
             {
                 Id = Guid.NewGuid(),
                 BuildingElementId = elementId,
-                TrackingDate = DateTime.UtcNow,
+                TrackingDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
                 PreviousPercentage = e.CompletionPercentage,
                 NewPercentage = req.NewPercentage,
                 PreviousStatus = e.TrackingStatus,
@@ -108,7 +114,7 @@ namespace OCSP.Application.Services
             e.CompletionPercentage = req.NewPercentage;
             e.TrackingStatus = (TrackingStatus)req.NewStatus;
             e.UpdatedBy = userId.ToString();
-            e.UpdatedAt = DateTime.UtcNow;
+            e.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
             await _histories.AddAsync(history);
             await _elements.UpdateAsync(e);
             await _elements.SaveChangesAsync();
@@ -151,7 +157,7 @@ namespace OCSP.Application.Services
                 FileType = req.FileType,
                 Width = req.Width,
                 Height = req.Height,
-                UploadedAt = DateTime.UtcNow
+                UploadedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
             };
             await _photos.AddAsync(photo);
             await _photos.SaveChangesAsync();
@@ -165,6 +171,35 @@ namespace OCSP.Application.Services
                 FileType = photo.FileType,
                 Width = photo.Width,
                 Height = photo.Height,
+                UploadedAt = photo.UploadedAt
+            };
+        }
+
+        public async Task<TrackingPhotoDto> AddPhotoAsync(Guid historyId, IFormFile file, string? caption, Guid userId)
+        {
+            // Upload actual file and create photo record
+            var url = await _fileStorage.UploadFileAsync(file, "tracking-photos");
+
+            var photo = new TrackingPhoto
+            {
+                Id = Guid.NewGuid(),
+                TrackingHistoryId = historyId,
+                PhotoUrl = url,
+                Caption = caption,
+                FileSizeMB = Math.Round((decimal)file.Length / (1024 * 1024), 2),
+                FileType = file.ContentType,
+                UploadedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
+            };
+            await _photos.AddAsync(photo);
+            await _photos.SaveChangesAsync();
+            return new TrackingPhotoDto
+            {
+                Id = photo.Id,
+                TrackingHistoryId = photo.TrackingHistoryId,
+                PhotoUrl = photo.PhotoUrl,
+                Caption = photo.Caption,
+                FileSizeMB = photo.FileSizeMB,
+                FileType = photo.FileType,
                 UploadedAt = photo.UploadedAt
             };
         }
@@ -200,6 +235,7 @@ namespace OCSP.Application.Services
             MeshIndicesJson = e.MeshIndices ?? "[]",
             TrackingStatus = (int)e.TrackingStatus,
             CompletionPercentage = e.CompletionPercentage,
+            Color = e.Color ?? "#CCCCCC",
             CreatedAt = e.CreatedAt
         };
 

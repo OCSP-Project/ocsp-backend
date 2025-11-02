@@ -31,6 +31,9 @@ namespace OCSP.Domain.Entities
         public int CompletionPercentage { get; set; } = 0;  // 0-100%
         public bool CanTrack { get; set; }
 
+        // Visual customization
+        public string Color { get; set; } = "#CCCCCC"; // Hex color for 3D visualization (default: gray)
+
         // Mesh data (JSONB in DB) - User selected mesh indices
         public string MeshIndices { get; set; } = "[]";  // JSON array: [0,1,2,3,...]
 

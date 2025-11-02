@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OCSP.Application.DTOs.BuildingElements;
 using OCSP.Application.Services;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace OCSP.API.Controllers
 {
@@ -74,6 +75,18 @@ namespace OCSP.API.Controllers
             var userId = GetUserId(); if (userId == Guid.Empty) return Unauthorized();
             var photo = await _service.AddPhotoAsync(historyId, req, userId);
             return Ok(photo);
+        }
+
+        // Multipart upload for actual photo file
+        [HttpPost("tracking/{historyId:guid}/photos/upload")]
+        [Authorize(Roles = "Supervisor,Admin")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadPhoto(Guid historyId, [FromForm] IFormFile photo, [FromForm] string? caption)
+        {
+            var userId = GetUserId(); if (userId == Guid.Empty) return Unauthorized();
+            if (photo == null || photo.Length == 0) return BadRequest(new { message = "No photo provided" });
+            var dto = await _service.AddPhotoAsync(historyId, photo, caption, userId);
+            return Ok(dto);
         }
 
         [HttpGet("tracking/{historyId:guid}/photos")]

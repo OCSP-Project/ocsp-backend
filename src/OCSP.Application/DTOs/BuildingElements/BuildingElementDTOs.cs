@@ -25,6 +25,8 @@ namespace OCSP.Application.DTOs.BuildingElements
         public int? ElementType { get; set; }
         public int? FloorLevel { get; set; }
         public List<int>? MeshIndices { get; set; }
+        [MaxLength(7)]
+        public string? Color { get; set; } // Hex color (e.g., "#FF0000")
     }
 
     public class BuildingElementDto
@@ -37,6 +39,7 @@ namespace OCSP.Application.DTOs.BuildingElements
         public string MeshIndicesJson { get; set; } = "[]";
         public int TrackingStatus { get; set; }
         public int CompletionPercentage { get; set; }
+        public string Color { get; set; } = "#CCCCCC"; // Hex color for 3D visualization
         public DateTime CreatedAt { get; set; }
     }
 

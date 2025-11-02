@@ -671,6 +671,36 @@ namespace OCSP.Infrastructure.Data
                   });
             }
 
+            private static void NormalizeDateTimePropertiesToUtc(object entity)
+            {
+                  var properties = entity.GetType().GetProperties()
+                      .Where(p => p.PropertyType == typeof(DateTime) || p.PropertyType == typeof(DateTime?));
+
+                  foreach (var prop in properties)
+                  {
+                        var value = prop.GetValue(entity);
+                        if (value == null) continue;
+
+                        DateTime dt;
+                        if (value is DateTime direct)
+                        {
+                              dt = direct;
+                        }
+                        else
+                        {
+                              var nullable = value as DateTime?;
+                              if (!nullable.HasValue) continue;
+                              dt = nullable.Value;
+                        }
+
+                        if (dt.Kind != DateTimeKind.Utc)
+                        {
+                              var normalized = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                              prop.SetValue(entity, normalized);
+                        }
+                  }
+            }
+
             public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             {
                   // Handle User entities
@@ -694,29 +724,34 @@ namespace OCSP.Infrastructure.Data
 
                   Console.WriteLine($"[SaveChangesAsync] Found {auditableEntries.Count} AuditableEntity entries");
 
+                  var utcNow = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+
                   foreach (var entry in auditableEntries)
                   {
                         var entity = (AuditableEntity)entry.Entity;
 
                         Console.WriteLine($"[SaveChangesAsync] Processing {entry.Entity.GetType().Name}, State: {entry.State}");
 
+                        // Normalize ALL DateTime properties to UTC first (including TrackingDate, UploadedAt, etc.)
+                        NormalizeDateTimePropertiesToUtc(entity);
+
                         if (entry.State == EntityState.Added)
                         {
                               if (entity.CreatedAt == default(DateTime))
                               {
-                                    entity.CreatedAt = DateTime.UtcNow;
+                                    entity.CreatedAt = utcNow;
                                     Console.WriteLine($"[SaveChangesAsync] Set CreatedAt for {entry.Entity.GetType().Name}");
                               }
 
                               if (entity.UpdatedAt == default(DateTime))
                               {
-                                    entity.UpdatedAt = DateTime.UtcNow;
+                                    entity.UpdatedAt = utcNow;
                                     Console.WriteLine($"[SaveChangesAsync] Set UpdatedAt for {entry.Entity.GetType().Name}");
                               }
                         }
                         else if (entry.State == EntityState.Modified)
                         {
-                              entity.UpdatedAt = DateTime.UtcNow;
+                              entity.UpdatedAt = utcNow;
                         }
 
                         Console.WriteLine($"[SaveChangesAsync] Final values - CreatedAt: {entity.CreatedAt}, UpdatedAt: {entity.UpdatedAt}");
@@ -734,16 +769,25 @@ namespace OCSP.Infrastructure.Data
                   {
                         var createdAtProp = entry.Entity.GetType().GetProperty("CreatedAt");
                         var updatedAtProp = entry.Entity.GetType().GetProperty("UpdatedAt");
-
                         if (entry.State == EntityState.Added)
                         {
-                              createdAtProp?.SetValue(entry.Entity, DateTime.UtcNow);
-                              updatedAtProp?.SetValue(entry.Entity, DateTime.UtcNow);
+                              createdAtProp?.SetValue(entry.Entity, utcNow);
+                              updatedAtProp?.SetValue(entry.Entity, utcNow);
                         }
                         else if (entry.State == EntityState.Modified)
                         {
-                              updatedAtProp?.SetValue(entry.Entity, DateTime.UtcNow);
+                              updatedAtProp?.SetValue(entry.Entity, utcNow);
                         }
+                  }
+
+                  // Normalize ALL DateTime properties for ALL tracked entities before saving
+                  var allEntries = ChangeTracker.Entries()
+                      .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                      .ToList();
+
+                  foreach (var entry in allEntries)
+                  {
+                        NormalizeDateTimePropertiesToUtc(entry.Entity);
                   }
 
                   return await base.SaveChangesAsync(cancellationToken);

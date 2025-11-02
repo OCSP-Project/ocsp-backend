@@ -38,6 +38,10 @@ namespace OCSP.Infrastructure.Data.Configurations
             builder.Property(e => e.MeshIndices)
                 .HasColumnType("jsonb"); // PostgreSQL
 
+            builder.Property(e => e.Color)
+                .HasMaxLength(7)
+                .HasDefaultValue("#CCCCCC");
+
             builder.Property(e => e.TrackingStatus).HasDefaultValue(TrackingStatus.NotStarted);
             builder.Property(e => e.CompletionPercentage).HasDefaultValue(0);
             builder.Property(e => e.CanTrack).HasDefaultValue(true);

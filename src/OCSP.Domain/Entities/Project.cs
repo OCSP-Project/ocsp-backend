@@ -1,4 +1,5 @@
 using OCSP.Domain.Common;
+using OCSP.Domain.Enums;
 namespace OCSP.Domain.Entities
 {
     public enum ProjectStatus { Draft = 0, Active = 1, Completed = 2, OnHold = 3 }
@@ -21,6 +22,8 @@ namespace OCSP.Domain.Entities
 
         public ProjectStatus Status { get; set; } = ProjectStatus.Draft;
 
+        public PaymentStatus SupervisorPackagePaymentStatus { get; set; } = PaymentStatus.Pending;
+
         // Chủ nhà (bắt buộc)
         public Guid HomeownerId { get; set; }
         public User? Homeowner { get; set; }
@@ -39,8 +42,11 @@ namespace OCSP.Domain.Entities
         public ICollection<ProjectParticipant> Participants { get; set; } = new List<ProjectParticipant>();
         public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
         public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
-        
+
         // NEW: Daily Resources
         public ICollection<ProjectDailyResource> DailyResources { get; set; } = new List<ProjectDailyResource>();
+
+        // NEW: 3D Models
+        public ICollection<Project3DModel> Models3D { get; set; } = new List<Project3DModel>();
     }
 }

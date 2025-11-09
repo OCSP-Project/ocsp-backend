@@ -362,5 +362,97 @@ namespace OCSP.Application.Services
                 await _communicationRepository.IncrementWarningCountAsync(fromUserId);
             }
         }
+
+        public async Task<ContractorPostDto> CreatePostAsync(Guid userId, ContractorPostCreateDto dto)
+        {
+            // Tìm contractor bằng UserId thay vì ContractorId
+            var contractor = await _context.Contractors
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+
+            if (contractor == null)
+                throw new Exception("Contractor profile not found for this user");
+
+            var now = DateTime.UtcNow;
+
+            var post = new ContractorPost
+            {
+                Id = Guid.NewGuid(),
+                ContractorId = contractor.Id, // Dùng contractor.Id tìm được
+                Title = dto.Title,
+                Description = dto.Description,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            await _contractorRepository.AddPostAsync(post);
+
+            var images = new List<ContractorPostImage>();
+
+            if (dto.ImageUrls?.Any() == true)
+            {
+                images = dto.ImageUrls.Select(url =>
+                {
+                    var image = new ContractorPostImage
+                    {
+                        Id = Guid.NewGuid(),
+                        ContractorPostId = post.Id,
+                        Url = url,
+                        Caption = null,
+                        // ✅ QUAN TRỌNG: Set tất cả timestamp fields
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                        CreatedBy = null,
+                        UpdatedBy = null
+                    };
+
+                    Console.WriteLine($"Creating image: Id={image.Id}, UpdatedAt={image.UpdatedAt}");
+                    return image;
+                }).ToList();
+
+                Console.WriteLine($"Total images to add: {images.Count}");
+                await _contractorRepository.AddPostImagesAsync(images);
+            }
+
+            return new ContractorPostDto
+            {
+                Id = post.Id,
+                ContractorId = post.ContractorId,
+                Title = post.Title,
+                Description = post.Description,
+                CreatedAt = post.CreatedAt,
+                UpdatedAt = post.UpdatedAt,
+                Images = images.Select(i => new ContractorPostImageDto
+                {
+                    Id = i.Id,
+                    Url = i.Url,
+                    Caption = i.Caption
+                }).ToList()
+            };
+        }
+
+        public async Task<List<ContractorPostDto>> GetContractorPostsAsync(Guid contractorId, int page = 1, int pageSize = 10)
+        {
+            var posts = await _contractorRepository.GetPostsByContractorAsync(contractorId, page, pageSize);
+            return posts.Select(p => new ContractorPostDto
+            {
+                Id = p.Id,
+                ContractorId = p.ContractorId,
+                Title = p.Title,
+                Description = p.Description,
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt,
+                Images = p.Images.Select(i => new ContractorPostImageDto
+                {
+                    Id = i.Id,
+                    Url = i.Url,
+                    Caption = i.Caption
+                }).ToList()
+            }).ToList();
+        }
+
+        public async Task DeletePostAsync(Guid contractorId, Guid postId)
+        {
+            await _contractorRepository.DeletePostAsync(postId, contractorId);
+        }
     }
 }

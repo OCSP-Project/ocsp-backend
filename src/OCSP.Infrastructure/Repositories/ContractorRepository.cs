@@ -185,6 +185,13 @@ namespace OCSP.Infrastructure.Repositories
                 .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
         }
 
+        public async Task<Contractor?> GetByUserIdAsync(Guid userId)
+        {
+            return await _context.Contractors
+                .Include(c => c.Specialties)
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+        }
+
         public async Task<List<Review>> GetRecentReviewsAsync(Guid contractorId, int count = 5)
         {
             return await _context.Reviews
@@ -227,6 +234,64 @@ namespace OCSP.Infrastructure.Repositories
             contractor.TotalReviews = newReviewCount;
 
             await UpdateAsync(contractor);
+        }
+
+        public async Task<ContractorPost?> GetPostByIdAsync(Guid postId)
+        {
+            return await _context.ContractorPosts
+                .Include(p => p.Images)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+        }
+
+        public async Task<List<ContractorPost>> GetPostsByContractorAsync(Guid contractorId, int page, int pageSize)
+        {
+            return await _context.ContractorPosts
+                .Include(p => p.Images)
+                .Where(p => p.ContractorId == contractorId)
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task AddPostAsync(ContractorPost post)
+        {
+            await _context.ContractorPosts.AddAsync(post);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddPostImagesAsync(IEnumerable<ContractorPostImage> images)
+        {
+            var now = DateTime.UtcNow;
+
+            foreach (var img in images)
+            {
+                // ✅ Double check: Nếu chưa có timestamp thì set
+                if (img.CreatedAt == default(DateTime))
+                {
+                    img.CreatedAt = now;
+                    Console.WriteLine($"[Repository] Setting CreatedAt for image {img.Id}");
+                }
+
+                if (img.UpdatedAt == default(DateTime))
+                {
+                    img.UpdatedAt = now;
+                    Console.WriteLine($"[Repository] Setting UpdatedAt for image {img.Id}");
+                }
+
+                Console.WriteLine($"[Repository] Image {img.Id}: CreatedAt={img.CreatedAt}, UpdatedAt={img.UpdatedAt}");
+            }
+
+            await _context.ContractorPostImages.AddRangeAsync(images);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeletePostAsync(Guid postId, Guid contractorId)
+        {
+            var post = await _context.ContractorPosts.FirstOrDefaultAsync(p => p.Id == postId && p.ContractorId == contractorId);
+            if (post == null) return;
+            _context.ContractorPosts.Remove(post);
+            await _context.SaveChangesAsync();
         }
     }
 

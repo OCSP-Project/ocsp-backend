@@ -14,9 +14,8 @@ namespace OCSP.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] MomoWebhookDto payload, CancellationToken ct)
         {
-            using var reader = new StreamReader(Request.Body);
-            Request.Body.Position = 0;
-            var raw = await reader.ReadToEndAsync();
+            // Truyền lại object serialize làm rawBody, tránh lỗi NotSupportedException
+            var raw = System.Text.Json.JsonSerializer.Serialize(payload);
             await _payments.HandleMomoWebhookAsync(payload, raw, ct);
             return Ok(new { resultCode = 0, message = "OK" });
         }

@@ -17,5 +17,11 @@ namespace OCSP.Application.Services.Interfaces
 
         // Update Project
         Task<ProjectDetailDto> UpdateProjectAsync(Guid projectId, UpdateProjectDto dto, Guid homeownerId);
+
+        // Download any project document by its id (auto-decrypt if needed)
+        Task<(Stream FileStream, string FileName, string ContentType)> DownloadDocumentByIdAsync(Guid documentId, Guid userId);
+
+        // Assign random available supervisor to a project (homeowner only)
+        Task<ProjectDetailDto> AssignRandomAvailableSupervisorAsync(Guid projectId, Guid homeownerId, CancellationToken ct = default);
     }
 }

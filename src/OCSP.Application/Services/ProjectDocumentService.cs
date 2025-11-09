@@ -34,6 +34,7 @@ namespace OCSP.Application.Services
             IFormFile file,
             UploadProjectDocumentDto dto)
         {
+            await using var tx = await _context.Database.BeginTransactionAsync();
             // 1. Validate project exists and user has permission
             var project = await _context.Projects
                 .Include(p => p.Homeowner)
@@ -101,7 +102,20 @@ namespace OCSP.Application.Services
                 );
             }
 
-            // 7. Save to database
+            // 7. Versioning and demote previous latest for same type
+            var prevLatest = await _context.ProjectDocuments
+                .Where(d => d.ProjectId == projectId && d.DocumentType == docType && d.IsLatest)
+                .OrderByDescending(d => d.Version)
+                .FirstOrDefaultAsync();
+
+            int nextVersion = (prevLatest?.Version ?? 0) + 1;
+            if (prevLatest != null)
+            {
+                prevLatest.IsLatest = false;
+                _context.ProjectDocuments.Update(prevLatest);
+            }
+
+            // 8. Save to database
             var document = new ProjectDocument
             {
                 Id = Guid.NewGuid(),
@@ -117,7 +131,7 @@ namespace OCSP.Application.Services
                 ExtractedDataJson = null, // No OCR data - comes from frontend
                 UploadedByUserId = userId,
                 UploadedAt = DateTime.UtcNow,
-                Version = 1,
+                Version = nextVersion,
                 IsLatest = true
             };
 
@@ -127,6 +141,7 @@ namespace OCSP.Application.Services
             // For now, we just store the encrypted permit file
 
             await _context.SaveChangesAsync();
+            await tx.CommitAsync();
 
             // 9. Return DTO
             var result = await GetDocumentDtoAsync(document.Id);

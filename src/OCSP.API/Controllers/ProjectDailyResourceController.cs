@@ -30,7 +30,7 @@ namespace OCSP.API.Controllers
         /// Tạo báo cáo tài nguyên hàng ngày (Supervisor, Contractor)
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Supervisor,Contractor")]
+        [Authorize(Roles = "Supervisor")]
         [ProducesResponseType(typeof(ProjectDailyResourceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -69,7 +69,7 @@ namespace OCSP.API.Controllers
         /// Cập nhật báo cáo tài nguyên hàng ngày (Supervisor, Contractor)
         /// </summary>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Supervisor,Contractor")]
+        [Authorize(Roles = "Supervisor")]
         [ProducesResponseType(typeof(ProjectDailyResourceDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

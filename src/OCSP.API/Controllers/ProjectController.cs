@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using OCSP.Application.DTOs.Project;
 using OCSP.Application.Services.Interfaces;
 using System.Security.Claims;
+using OCSP.API.Models;
 
 namespace OCSP.API.Controllers
 {
@@ -45,12 +46,10 @@ namespace OCSP.API.Controllers
 
         // POST api/projects/create-with-files
         [HttpPost("create-with-files")]
+        [Consumes("multipart/form-data")]
         [RequestSizeLimit(100_000_000)] // 100MB limit
         [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status201Created)]
-        public async Task<ActionResult<ProjectDetailDto>> CreateProjectWithFiles(
-            [FromForm] CreateProjectDto dto,
-            [FromForm] IFormFile drawingFile,
-            [FromForm] IFormFile permitFile)
+        public async Task<ActionResult<ProjectDetailDto>> CreateProjectWithFiles([FromForm] CreateProjectWithFilesForm form)
         {
             try
             {
@@ -58,8 +57,20 @@ namespace OCSP.API.Controllers
                 if (homeownerId == Guid.Empty)
                     return Unauthorized(new { message = "User not authenticated" });
 
+                var dto = new CreateProjectDto
+                {
+                    Name = form.Name,
+                    Address = form.Address,
+                    Budget = form.Budget,
+                    Description = form.Description,
+                    FloorArea = form.FloorArea ?? 0,
+                    NumberOfFloors = form.NumberOfFloors ?? 0,
+                    PermitNumber = form.PermitNumber,
+                    ContractorId = form.ContractorId
+                };
+
                 var project = await _projectService.CreateProjectWithFilesAsync(
-                    dto, drawingFile, permitFile, homeownerId);
+                    dto, form.DrawingFile, form.PermitFile, homeownerId);
 
                 return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
             }
@@ -77,12 +88,10 @@ namespace OCSP.API.Controllers
 
         // POST api/projects (legacy endpoint - kept for backward compatibility)
         [HttpPost]
+        [Consumes("multipart/form-data")]
         [RequestSizeLimit(100_000_000)] // 100MB limit
         [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status201Created)]
-        public async Task<ActionResult<ProjectDetailDto>> CreateProject(
-            [FromForm] CreateProjectDto dto,
-            [FromForm] IFormFile drawingFile,
-            [FromForm] IFormFile permitFile)
+        public async Task<ActionResult<ProjectDetailDto>> CreateProject([FromForm] CreateProjectWithFilesForm form)
         {
             try
             {
@@ -90,8 +99,20 @@ namespace OCSP.API.Controllers
                 if (homeownerId == Guid.Empty)
                     return Unauthorized(new { message = "User not authenticated" });
 
+                var dto = new CreateProjectDto
+                {
+                    Name = form.Name,
+                    Address = form.Address,
+                    Budget = form.Budget,
+                    Description = form.Description,
+                    FloorArea = form.FloorArea ?? 0,
+                    NumberOfFloors = form.NumberOfFloors ?? 0,
+                    PermitNumber = form.PermitNumber,
+                    ContractorId = form.ContractorId
+                };
+
                 var project = await _projectService.CreateProjectWithFilesAsync(
-                    dto, drawingFile, permitFile, homeownerId);
+                    dto, form.DrawingFile, form.PermitFile, homeownerId);
 
                 return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
             }
@@ -141,6 +162,78 @@ namespace OCSP.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unhandled error updating project");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        
+
+        // GET api/projects/documents/{documentId}/download - Download any project document by its id
+        [HttpGet("documents/{documentId:guid}/download")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadDocument([FromRoute] Guid documentId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                if (userId == Guid.Empty)
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                // Use ProjectDocumentService via ProjectService if exposed; otherwise inject service directly.
+                // Here we rely on ProjectService exposing a passthrough (already available in ProjectDocumentService).
+                // For simplicity, resolve via ProjectService when available.
+                var (fileStream, fileName, contentType) = await _projectService.DownloadDocumentByIdAsync(documentId, userId);
+                return File(fileStream, contentType, fileName);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Bad request downloading document");
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Forbidden downloading document");
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error downloading document");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // POST api/projects/{id}/register-supervisor
+        [HttpPost("{id:guid}/register-supervisor")]
+        [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> RegisterSupervisor([FromRoute] Guid id, CancellationToken ct)
+        {
+            try
+            {
+                var homeownerId = GetCurrentUserId();
+                if (homeownerId == Guid.Empty)
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                var updated = await _projectService.AssignRandomAvailableSupervisorAsync(id, homeownerId, ct);
+                return Ok(updated);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Bad request assigning supervisor");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error assigning supervisor");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

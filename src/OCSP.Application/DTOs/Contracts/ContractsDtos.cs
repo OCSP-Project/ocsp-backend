@@ -56,8 +56,24 @@ namespace OCSP.Application.DTOs.Contracts
         public Guid HomeownerUserId { get; set; }
         public string Terms { get; set; } = string.Empty;
         public decimal TotalPrice { get; set; }
+        public int DurationDays { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        
+        // Digital Signatures
+        public string? HomeownerSignatureBase64 { get; set; }
+        public string? ContractorSignatureBase64 { get; set; }
+        public DateTime? SignedByHomeownerAt { get; set; }
+        public DateTime? SignedByContractorAt { get; set; }
+        
+        // PDF URLs
+        public string? TemplatePdfUrl { get; set; }
+        public string? SignedPdfUrl { get; set; }
+    }
+    
+    public class SignContractDto
+    {
+        public string SignatureBase64 { get; set; } = string.Empty;
     }
 }

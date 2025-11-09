@@ -25,6 +25,14 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Copy published app
 COPY --from=build /app/publish .
 
+# Copy Templates directory
+COPY --from=build /src/src/OCSP.Infrastructure/Templates ./Templates
+
+# Create Fonts directory and copy Vietnamese fonts
+RUN mkdir -p /app/Fonts
+COPY docker/fonts/calibri.ttf /app/Fonts/calibri.ttf
+COPY docker/fonts/arial.ttf /app/Fonts/arial.ttf
+
 # Expose port
 EXPOSE 8080
 

@@ -31,7 +31,11 @@
     <!-- ASP.NET Core -->
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
 
+    <!-- Excel Processing -->
+    <PackageReference Include="EPPlus" Version="7.0.0" />
+
      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

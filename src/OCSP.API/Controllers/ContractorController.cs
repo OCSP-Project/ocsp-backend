@@ -2,7 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OCSP.Application.DTOs.Contractor;
 using OCSP.Application.Services.Interfaces;
+using OCSP.Infrastructure.Repositories.Interfaces;
+using AutoMapper;
 using System.Security.Claims;
+using System.IO;
 
 namespace OCSP.API.Controllers
 {
@@ -13,11 +16,15 @@ namespace OCSP.API.Controllers
     {
         private readonly IContractorService _contractorService;
         private readonly ILogger<ContractorController> _logger;
+        private readonly IContractorRepository _contractorRepository;
+        private readonly IMapper _mapper;
 
-        public ContractorController(IContractorService contractorService, ILogger<ContractorController> logger)
+        public ContractorController(IContractorService contractorService, ILogger<ContractorController> logger, IContractorRepository contractorRepository, IMapper mapper)
         {
             _contractorService = contractorService;
             _logger = logger;
+            _contractorRepository = contractorRepository;
+            _mapper = mapper;
         }
 
         /// <summary>
@@ -116,6 +123,38 @@ namespace OCSP.API.Controllers
         }
 
         /// <summary>
+        /// Get contractor profile by current authenticated user
+        /// </summary>
+        [HttpGet("me")]
+        [Authorize(Roles = "Contractor")]
+        public async Task<ActionResult<ContractorProfileDto>> GetMyContractorProfile()
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? throw new UnauthorizedAccessException("User ID not found in token"));
+
+                _logger.LogInformation("Getting contractor profile for user ID: {UserId}", userId);
+
+                var contractor = await _contractorRepository.GetByUserIdAsync(userId);
+
+                if (contractor == null)
+                {
+                    _logger.LogWarning("Contractor not found for user ID: {UserId}", userId);
+                    return NotFound(new { Message = "Contractor profile not found for this user." });
+                }
+
+                var contractorDto = _mapper.Map<ContractorProfileDto>(contractor);
+                return Ok(contractorDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting contractor profile");
+                return StatusCode(500, new { Message = "An error occurred while retrieving contractor profile." });
+            }
+        }
+
+        /// <summary>
         /// UC-22: Get AI-powered contractor recommendations based on project requirements
         /// </summary>
         [HttpPost("recommendations")]
@@ -142,7 +181,7 @@ namespace OCSP.API.Controllers
         /// Get featured/premium contractors for homepage
         /// </summary>
         [HttpGet("featured")]
-        public async Task<ActionResult<List<ContractorProfileSummaryDto >>> GetFeaturedContractors([FromQuery] int count = 6)
+        public async Task<ActionResult<List<ContractorProfileSummaryDto>>> GetFeaturedContractors([FromQuery] int count = 6)
         {
             try
             {
@@ -268,6 +307,130 @@ namespace OCSP.API.Controllers
             {
                 _logger.LogError(ex, "Error getting contractor statistics");
                 return StatusCode(500, new { Message = "An error occurred while retrieving statistics." });
+            }
+        }
+
+        // ===== Contractor Posts =====
+        [HttpPost("posts")]
+        [Authorize(Roles = "Contractor")]
+        [Consumes("application/json")]
+        public async Task<ActionResult<ContractorPostDto>> CreatePost([FromBody] ContractorPostCreateDto dto)
+        {
+            try
+            {
+                // Lấy UserId từ JWT token
+                var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? throw new UnauthorizedAccessException("User ID not found in token"));
+
+                var result = await _contractorService.CreatePostAsync(userId, dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating contractor post: {Message}. StackTrace: {StackTrace}",
+                    ex.Message, ex.StackTrace);
+                return StatusCode(500, new { Message = ex.Message, Detail = ex.InnerException?.Message });
+            }
+        }
+
+        [HttpPost("posts/multipart")]
+        [Authorize(Roles = "Contractor")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ContractorPostDto>> CreatePostWithFiles([FromForm] string title, [FromForm] string? description, [FromForm] IFormFileCollection? images)
+        {
+            try
+            {
+                // Lấy UserId từ JWT token
+                var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? throw new UnauthorizedAccessException("User ID not found in token"));
+
+                var imageUrls = new List<string>();
+
+                // ✅ Process uploaded files
+                if (images != null && images.Count > 0)
+                {
+                    // Ensure upload directory exists
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "contractor-posts");
+                    Directory.CreateDirectory(uploadPath);
+
+                    foreach (var image in images)
+                    {
+                        if (image.Length > 0)
+                        {
+                            try
+                            {
+                                // Generate unique filename
+                                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(image.FileName)}";
+                                var filePath = Path.Combine(uploadPath, fileName);
+
+                                // Save file
+                                using (var stream = new FileStream(filePath, FileMode.Create))
+                                {
+                                    await image.CopyToAsync(stream);
+                                }
+
+                                // Add URL (accessible via /uploads/...)
+                                var fileUrl = $"/uploads/contractor-posts/{fileName}";
+                                imageUrls.Add(fileUrl);
+
+                                _logger.LogInformation("File uploaded successfully: {FileName} -> {FilePath}", image.FileName, fileUrl);
+                            }
+                            catch (Exception fileEx)
+                            {
+                                _logger.LogError(fileEx, "Error uploading file: {FileName}", image.FileName);
+                                // Continue with other files instead of failing completely
+                            }
+                        }
+                    }
+                }
+
+                var dto = new ContractorPostCreateDto
+                {
+                    Title = title,
+                    Description = description,
+                    ImageUrls = imageUrls
+                };
+
+                var result = await _contractorService.CreatePostAsync(userId, dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating contractor post with files: {Message}. StackTrace: {StackTrace}",
+                    ex.Message, ex.StackTrace);
+                return StatusCode(500, new { Message = ex.Message, Detail = ex.InnerException?.Message });
+            }
+        }
+
+        [HttpGet("{contractorId}/posts")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<ContractorPostDto>>> GetPosts(Guid contractorId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var posts = await _contractorService.GetContractorPostsAsync(contractorId, page, pageSize);
+                return Ok(posts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching contractor posts");
+                return StatusCode(500, new { Message = "An error occurred while fetching posts." });
+            }
+        }
+
+        [HttpDelete("{contractorId}/posts/{postId}")]
+        [Authorize(Roles = "Contractor")]
+        public async Task<IActionResult> DeletePost(Guid contractorId, Guid postId)
+        {
+            try
+            {
+                await _contractorService.DeletePostAsync(contractorId, postId);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting contractor post");
+                return StatusCode(500, new { Message = "An error occurred while deleting post." });
             }
         }
     }

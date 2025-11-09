@@ -43,6 +43,7 @@ namespace OCSP.Infrastructure.Data
             // NEW: Contract
             public DbSet<Contract> Contracts { get; set; }
             public DbSet<ContractItem> ContractItems { get; set; }
+            public DbSet<SupervisorContract> SupervisorContracts { get; set; }
             // NEW: Milestone & Escrow
             public DbSet<ContractMilestone> ContractMilestones { get; set; }
             public DbSet<EscrowAccount> EscrowAccounts { get; set; }
@@ -89,6 +90,7 @@ namespace OCSP.Infrastructure.Data
                   // ✅ Apply contract configuration (quan trọng để dẹp lỗi mơ hồ FK)
                   modelBuilder.ApplyConfiguration(new ContractConfiguration());
                   modelBuilder.ApplyConfiguration(new ContractItemConfiguration());
+                  modelBuilder.ApplyConfiguration(new SupervisorContractConfiguration());
                   // Existing User configuration
                   modelBuilder.Entity<User>(entity =>
                   {

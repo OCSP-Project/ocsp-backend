@@ -18,6 +18,9 @@ using OCSP.Application.Services;
 using OCSP.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Http.Features;
+using OCSP.API.Extensions;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -137,6 +140,15 @@ builder.Services.AddScoped<IProgressMediaRepository, ProgressMediaRepository>();
 builder.Services.AddScoped<IProjectTimelineRepository, ProjectTimelineRepository>();
 builder.Services.AddScoped<IProjectDailyResourceRepository, ProjectDailyResourceRepository>();
 
+// Model Analysis services (3D Model Upload/Query + Building Elements + Tracking)
+builder.Services.AddModelAnalysisServices();
+
+// Configure upload size for GLB files (50MB)
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 52_428_800; // ~50MB
+});
+
 // File Service
 builder.Services.AddScoped<IFileService, FileService>();
 
@@ -179,7 +191,17 @@ builder.Services.AddCors(options =>
         .AllowAnyOrigin()
         .AllowAnyMethod()
         .AllowAnyHeader()
-        .SetIsOriginAllowed(origin => true)); // ✅ Allow all origins for static files
+        .SetIsOriginAllowed(origin => true));
+
+    options.AddPolicy("AllowFrontend", policy => policy
+        .WithOrigins(
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "https://your-frontend-domain.com")
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials()
+        .SetIsOriginAllowed(_ => true)); // Dev only
 });
 
 var app = builder.Build();
@@ -212,7 +234,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 // ✅ THÊM: Configure static files
-app.UseStaticFiles(); // Serve files từ wwwroot
+// Configure content type provider for 3D assets
+var contentTypeProvider = new FileExtensionContentTypeProvider();
+contentTypeProvider.Mappings[".glb"] = "model/gltf-binary";
+contentTypeProvider.Mappings[".gltf"] = "model/gltf+json";
+
+// Serve files từ wwwroot (with proper MIME types)
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = contentTypeProvider
+});
 
 // ✅ THÊM: Serve files từ uploads folder ngoài wwwroot
 var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
@@ -223,9 +254,23 @@ if (!Directory.Exists(uploadsPath))
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadsPath),
-    RequestPath = "/uploads"
+    RequestPath = "/uploads",
+    ContentTypeProvider = contentTypeProvider,
+    OnPrepareResponse = ctx =>
+    {
+        // CORS headers for static assets (so <model-viewer> / three.js can fetch across origins)
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+        // Cache control
+        const int durationInSeconds = 60 * 60 * 24 * 7; // 7 days
+        ctx.Context.Response.Headers[Microsoft.Net.Http.Headers.HeaderNames.CacheControl] =
+            "public,max-age=" + durationInSeconds;
+    }
 });
 
+// Enable CORS (you can switch to "AllowFrontend" if you prefer explicit origins)
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();

@@ -18,6 +18,14 @@ namespace OCSP.Infrastructure.ExternalServices.Interfaces
             byte[] pdfBytes, 
             string? homeownerSignatureBase64, 
             string? contractorSignatureBase64);
+            
+        Task<byte[]> GenerateSupervisorContractPdfAsync(
+            SupervisorContract contract,
+            Profile homeownerProfile,
+            Profile supervisorProfile,
+            Project project,
+            string? homeownerSignatureBase64 = null,
+            string? supervisorSignatureBase64 = null);
     }
 }
 

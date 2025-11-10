@@ -1,4 +1,4 @@
-// OCSP.Domain/Entities/Supervisor.cs
+    // OCSP.Domain/Entities/Supervisor.cs
 using OCSP.Domain.Common;
 
 namespace OCSP.Domain.Entities

@@ -93,6 +93,7 @@ builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.ContractorMappin
 
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();

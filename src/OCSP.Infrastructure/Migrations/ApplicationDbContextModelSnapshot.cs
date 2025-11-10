@@ -609,6 +609,7 @@ namespace OCSP.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -1249,11 +1250,11 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<int>("SupervisorPackagePaymentStatus")
-                        .HasColumnType("integer");
-
                     b.Property<Guid?>("SupervisorId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("SupervisorPackagePaymentStatus")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

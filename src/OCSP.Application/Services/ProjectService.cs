@@ -34,7 +34,26 @@ public class ProjectService : IProjectService
         if (homeowner == null)
             throw new ArgumentException("Homeowner not found");
 
-        var projects = await _projectRepository.GetByHomeownerIdAsync(homeownerId, ct);
+        // Get projects where user is homeowner
+        var ownedProjects = await _projectRepository.GetByHomeownerIdAsync(homeownerId, ct);
+
+        // Get projects where user is a participant
+        var participantProjects = await _db.ProjectParticipants
+            .Where(pp => pp.UserId == homeownerId && pp.Status == ParticipantStatus.Active)
+            .Include(pp => pp.Project)
+            .ThenInclude(p => p.Supervisor)
+            .ThenInclude(s => s.User)
+            .Include(pp => pp.Project)
+            .ThenInclude(p => p.Homeowner)
+            .Select(pp => pp.Project)
+            .ToListAsync(ct);
+
+        // Combine and deduplicate by project ID
+        var projects = ownedProjects
+            .Concat(participantProjects)
+            .GroupBy(p => p.Id)
+            .Select(g => g.First())
+            .ToList();
 
         var result = projects.Select(p => new ProjectResponseDto
         {

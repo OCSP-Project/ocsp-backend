@@ -40,6 +40,7 @@ namespace OCSP.Domain.Entities
         public virtual ICollection<ProjectDocument> Documents { get; set; } = new List<ProjectDocument>();
         // Nav
         public ICollection<ProjectParticipant> Participants { get; set; } = new List<ProjectParticipant>();
+        public ICollection<ProjectInvitation> Invitations { get; set; } = new List<ProjectInvitation>();
         public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
         public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
 
@@ -48,5 +49,11 @@ namespace OCSP.Domain.Entities
 
         // NEW: 3D Models
         public ICollection<Project3DModel> Models3D { get; set; } = new List<Project3DModel>();
+
+        // NEW: Budget & Work Items
+        public ICollection<WorkItem> WorkItems { get; set; } = new List<WorkItem>();
+        public ICollection<BudgetDetail> BudgetDetails { get; set; } = new List<BudgetDetail>();
+        public ICollection<PaymentRequest> PaymentRequests { get; set; } = new List<PaymentRequest>();
+        public ICollection<ConstructionLog> ConstructionLogs { get; set; } = new List<ConstructionLog>();
     }
 }

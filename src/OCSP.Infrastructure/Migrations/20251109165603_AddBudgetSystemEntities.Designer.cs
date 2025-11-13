@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OCSP.Infrastructure.Data;
@@ -11,9 +12,11 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251109165603_AddBudgetSystemEntities")]
+    partial class AddBudgetSystemEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1914,73 +1917,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.ToTable("ProjectDocuments");
                 });
 
-            modelBuilder.Entity("OCSP.Domain.Entities.ProjectInvitation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("InvitationToken")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("InvitedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("InviteeEmail")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<Guid?>("InviteeUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpiresAt");
-
-                    b.HasIndex("InvitationToken")
-                        .IsUnique();
-
-                    b.HasIndex("InvitedBy");
-
-                    b.HasIndex("InviteeUserId");
-
-                    b.HasIndex("ProjectId", "InviteeEmail");
-
-                    b.HasIndex("ProjectId", "Status");
-
-                    b.ToTable("ProjectInvitations");
-                });
-
             modelBuilder.Entity("OCSP.Domain.Entities.ProjectParticipant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1992,9 +1928,6 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
-
-                    b.Property<int>("DetailedRole")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
@@ -3419,32 +3352,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("UploadedBy");
                 });
 
-            modelBuilder.Entity("OCSP.Domain.Entities.ProjectInvitation", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.User", "InvitedByUser")
-                        .WithMany()
-                        .HasForeignKey("InvitedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("OCSP.Domain.Entities.User", "InviteeUser")
-                        .WithMany()
-                        .HasForeignKey("InviteeUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
-                        .WithMany("Invitations")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("InvitedByUser");
-
-                    b.Navigation("InviteeUser");
-
-                    b.Navigation("Project");
-                });
-
             modelBuilder.Entity("OCSP.Domain.Entities.ProjectParticipant", b =>
                 {
                     b.HasOne("OCSP.Domain.Entities.Project", "Project")
@@ -3765,8 +3672,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("DailyResources");
 
                     b.Navigation("Documents");
-
-                    b.Navigation("Invitations");
 
                     b.Navigation("Models3D");
 

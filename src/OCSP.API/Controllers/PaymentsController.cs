@@ -63,6 +63,15 @@ namespace OCSP.API.Controllers
             return Ok(new { paid });
         }
 
+        [HttpGet("supervisor/status")]
+        public async Task<ActionResult<object>> GetSupervisorPaymentStatus([FromQuery] Guid projectId, CancellationToken ct)
+        {
+            var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+            if (projectId == Guid.Empty) return BadRequest("projectId is required");
+            var paid = await _payments.IsSupervisorPaymentPaidAsync(uid, projectId, ct);
+            return Ok(new { paid });
+        }
+
         private Guid Me()
         {
             var v = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

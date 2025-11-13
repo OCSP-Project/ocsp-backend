@@ -20,14 +20,22 @@ namespace OCSP.Application.Services
         private readonly ILogger<PaymentService> _logger;
 
         private readonly IProjectService _projects;
+        private readonly ISupervisorContractService _supervisorContracts;
 
-        public PaymentService(ApplicationDbContext db, MomoOptions momo, HttpClient http, ILogger<PaymentService> logger, IProjectService projects)
+        public PaymentService(
+            ApplicationDbContext db, 
+            MomoOptions momo, 
+            HttpClient http, 
+            ILogger<PaymentService> logger, 
+            IProjectService projects,
+            ISupervisorContractService supervisorContracts)
         {
             _db = db;
             _momo = momo;
             _http = http;
             _logger = logger;
             _projects = projects;
+            _supervisorContracts = supervisorContracts;
         }
 
         public async Task<MomoCreatePaymentResultDto> CreateMomoPaymentAsync(MomoCreatePaymentDto dto, Guid userId, CancellationToken ct = default)
@@ -268,27 +276,18 @@ namespace OCSP.Application.Services
                 return;
             }
 
-            var userId = ExtractUserId(payload.ExtraData);
-
-            // Assign supervisor
+            // Update project payment status only (don't assign supervisor yet - that happens when contract is completed)
             try
             {
-                await _projects.AssignRandomAvailableSupervisorAsync(projectId, userId, ct);
-                _logger.LogInformation("[MoMo] Assigned supervisor for project={ProjectId}", projectId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[MoMo] Failed to assign supervisor for project={ProjectId}", projectId);
-            }
-
-            // Update project payment status
-            try
-            {
-                var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+                var project = await _db.Projects
+                    .FirstOrDefaultAsync(p => p.Id == projectId, ct);
+                    
                 if (project != null)
                 {
                     project.SupervisorPackagePaymentStatus = PaymentStatus.Succeeded;
+                    await _db.SaveChangesAsync(ct);
                     _logger.LogInformation("[MoMo] Updated project {ProjectId} payment status to Succeeded", projectId);
+                    // Supervisor will be assigned when contract is completed (signed by both parties)
                 }
             }
             catch (Exception ex)
@@ -350,6 +349,20 @@ namespace OCSP.Application.Services
         {
             var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
             return wallet?.Available ?? 0m;
+        }
+
+        public async Task<bool> IsSupervisorPaymentPaidAsync(Guid userId, Guid projectId, CancellationToken ct = default)
+        {
+            if (projectId == Guid.Empty) return false;
+
+            var project = await _db.Projects
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
+            if (project == null || project.HomeownerId != userId)
+                return false;
+
+            return project.SupervisorPackagePaymentStatus == Domain.Enums.PaymentStatus.Succeeded;
         }
 
         public async Task<bool> IsCommissionPaidAsync(Guid userId, Guid contractId, CancellationToken ct = default)

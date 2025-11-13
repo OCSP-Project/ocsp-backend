@@ -96,12 +96,14 @@ builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.ContractorMappin
 
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IProposalService, ProposalService>();
 builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<ISupervisorContractService, SupervisorContractService>();
 builder.Services.AddScoped<IContractorService, ContractorService>();
 builder.Services.AddScoped<ISupervisorService, SupervisorService>();
 builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>();

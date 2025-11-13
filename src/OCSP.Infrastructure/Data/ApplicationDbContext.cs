@@ -30,6 +30,7 @@ namespace OCSP.Infrastructure.Data
             public DbSet<ProfileDocument> ProfileDocuments { get; set; }
             // NEW
             public DbSet<ProjectParticipant> ProjectParticipants { get; set; }
+            public DbSet<ProjectInvitation> ProjectInvitations { get; set; }
             public DbSet<QuoteRequest> QuoteRequests { get; set; }
             public DbSet<QuoteInvite> QuoteInvites { get; set; }
             public DbSet<Proposal> Proposals { get; set; }
@@ -76,6 +77,17 @@ namespace OCSP.Infrastructure.Data
             public DbSet<MeshGroup> MeshGroups { get; set; }
             public DbSet<ElementTrackingHistory> ElementTrackingHistory { get; set; }
             public DbSet<TrackingPhoto> TrackingPhotos { get; set; }
+
+            // NEW: Budget System Entities
+            public DbSet<WorkItem> WorkItems { get; set; }
+            public DbSet<WorkItemActivity> WorkItemActivities { get; set; }
+            public DbSet<WorkItemComment> WorkItemComments { get; set; }
+            public DbSet<WorkItemMaterial> WorkItemMaterials { get; set; }
+            public DbSet<WorkItemDocument> WorkItemDocuments { get; set; }
+            public DbSet<WorkItemUpdateHistory> WorkItemUpdateHistories { get; set; }
+            public DbSet<BudgetDetail> BudgetDetails { get; set; }
+            public DbSet<PaymentRequest> PaymentRequests { get; set; }
+            public DbSet<ConstructionLog> ConstructionLogs { get; set; }
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
@@ -254,6 +266,7 @@ namespace OCSP.Infrastructure.Data
 
                         // Enum → int
                         b.Property(pp => pp.Role).HasConversion<int>();
+                        b.Property(pp => pp.DetailedRole).HasConversion<int>();
                         b.Property(pp => pp.Status).HasConversion<int>();
 
                         b.HasOne(pp => pp.Project)
@@ -269,6 +282,47 @@ namespace OCSP.Infrastructure.Data
                         // 1 user chỉ tham gia 1 lần trong 1 project
                         b.HasIndex(pp => new { pp.ProjectId, pp.UserId }).IsUnique();
                         b.HasIndex(pp => new { pp.ProjectId, pp.Role });
+                  });
+
+                  // ✅ ProjectInvitation configuration (NEW)
+                  modelBuilder.Entity<ProjectInvitation>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+
+                        entity.Property(e => e.InviteeEmail)
+                              .IsRequired()
+                              .HasMaxLength(255);
+
+                        entity.Property(e => e.InvitationToken)
+                              .IsRequired()
+                              .HasMaxLength(100);
+
+                        entity.Property(e => e.Role).HasConversion<int>();
+                        entity.Property(e => e.Status).HasConversion<int>();
+
+                        // FK to Project
+                        entity.HasOne(e => e.Project)
+                              .WithMany(p => p.Invitations)
+                              .HasForeignKey(e => e.ProjectId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        // FK to InvitedBy User
+                        entity.HasOne(e => e.InvitedByUser)
+                              .WithMany()
+                              .HasForeignKey(e => e.InvitedBy)
+                              .OnDelete(DeleteBehavior.Restrict);
+
+                        // FK to Invitee User (optional)
+                        entity.HasOne(e => e.InviteeUser)
+                              .WithMany()
+                              .HasForeignKey(e => e.InviteeUserId)
+                              .OnDelete(DeleteBehavior.SetNull);
+
+                        // Indexes
+                        entity.HasIndex(e => e.InvitationToken).IsUnique();
+                        entity.HasIndex(e => new { e.ProjectId, e.Status });
+                        entity.HasIndex(e => new { e.ProjectId, e.InviteeEmail });
+                        entity.HasIndex(e => e.ExpiresAt);
                   });
 
 

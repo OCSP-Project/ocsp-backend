@@ -126,7 +126,10 @@ builder.Services.AddHttpClient<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IProjectDocumentService, ProjectDocumentService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 // Infrastructure Services
-builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<OCSP.Infrastructure.ExternalServices.Interfaces.IEmailService, OCSP.Infrastructure.ExternalServices.EmailService>();
+
+// Project Invitation Service
+builder.Services.AddScoped<OCSP.Application.Interfaces.IProjectInvitationService, ProjectInvitationService>();
 
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -153,6 +156,11 @@ builder.Services.AddScoped<IFileService, FileService>();
 
 // Template Service
 builder.Services.AddScoped<ITemplateService, TemplateService>();
+
+// Budget System Services
+builder.Services.AddScoped<IWorkItemService, WorkItemService>();
+builder.Services.AddScoped<IBudgetService, BudgetService>();
+builder.Services.AddScoped<IPaymentRequestService, PaymentRequestService>();
 
 // SignalR (required for MapHub)
 builder.Services.AddSignalR();

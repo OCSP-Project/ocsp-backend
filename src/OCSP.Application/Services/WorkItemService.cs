@@ -415,6 +415,55 @@ namespace OCSP.Application.Services
             }
         }
 
+        public async Task HardDeleteAllByProjectAsync(Guid projectId, CancellationToken ct = default)
+        {
+            // Get all work items for the project (including soft deleted)
+            var workItems = await _context.Set<WorkItem>()
+                .Where(w => w.ProjectId == projectId)
+                .ToListAsync(ct);
+
+            if (workItems.Count == 0)
+                return;
+
+            // Delete related data first (cascade delete might not work for all)
+            var workItemIds = workItems.Select(w => w.Id).ToList();
+
+            // Delete activities
+            var activities = await _context.Set<WorkItemActivity>()
+                .Where(a => workItemIds.Contains(a.WorkItemId))
+                .ToListAsync(ct);
+            _context.Set<WorkItemActivity>().RemoveRange(activities);
+
+            // Delete comments
+            var comments = await _context.Set<WorkItemComment>()
+                .Where(c => workItemIds.Contains(c.WorkItemId))
+                .ToListAsync(ct);
+            _context.Set<WorkItemComment>().RemoveRange(comments);
+
+            // Delete documents
+            var documents = await _context.Set<WorkItemDocument>()
+                .Where(d => workItemIds.Contains(d.WorkItemId))
+                .ToListAsync(ct);
+            _context.Set<WorkItemDocument>().RemoveRange(documents);
+
+            // Delete materials
+            var materials = await _context.Set<WorkItemMaterial>()
+                .Where(m => workItemIds.Contains(m.WorkItemId))
+                .ToListAsync(ct);
+            _context.Set<WorkItemMaterial>().RemoveRange(materials);
+
+            // Delete update history
+            var updateHistories = await _context.Set<WorkItemUpdateHistory>()
+                .Where(h => workItemIds.Contains(h.WorkItemId))
+                .ToListAsync(ct);
+            _context.Set<WorkItemUpdateHistory>().RemoveRange(updateHistories);
+
+            // Finally, delete all work items
+            _context.Set<WorkItem>().RemoveRange(workItems);
+
+            await _context.SaveChangesAsync(ct);
+        }
+
         public async Task<WorkItemDto> UpdateProgressAsync(Guid id, UpdateProgressDto dto, Guid currentUserId, CancellationToken ct = default)
         {
             var workItem = await _context.Set<WorkItem>()

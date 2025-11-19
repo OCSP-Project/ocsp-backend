@@ -90,6 +90,12 @@ namespace OCSP.Infrastructure.Data
             public DbSet<PaymentRequest> PaymentRequests { get; set; }
             public DbSet<ConstructionLog> ConstructionLogs { get; set; }
 
+            // NEW: Material Management Entities
+            public DbSet<MaterialRequest> MaterialRequests { get; set; }
+            public DbSet<Material> Materials { get; set; }
+            public DbSet<MaterialPayment> MaterialPayments { get; set; }
+            public DbSet<MaterialApprovalHistory> MaterialApprovalHistories { get; set; }
+
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
                   base.OnModelCreating(modelBuilder);
@@ -654,6 +660,9 @@ namespace OCSP.Infrastructure.Data
                         e.Property(x => x.Available).HasColumnType("numeric(18,2)");
                         e.HasIndex(x => x.UserId).IsUnique();
                   });
+
+                  // Material Management Entities Configuration
+                  ConfigureMaterialEntities(modelBuilder);
 
                   // WalletTransaction
                   modelBuilder.Entity<WalletTransaction>(e =>

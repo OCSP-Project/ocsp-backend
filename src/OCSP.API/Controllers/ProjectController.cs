@@ -238,6 +238,42 @@ namespace OCSP.API.Controllers
             }
         }
 
+        // PUT api/projects/{id}/delegation
+        [HttpPut("{id:guid}/delegation")]
+        [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> UpdateDelegationSetting(
+            [FromRoute] Guid id,
+            [FromBody] UpdateDelegationDto dto,
+            CancellationToken ct)
+        {
+            try
+            {
+                var homeownerId = GetCurrentUserId();
+                if (homeownerId == Guid.Empty)
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                var updated = await _projectService.UpdateDelegationSettingAsync(id, homeownerId, dto.DelegateApprovalToSupervisor, ct);
+                return Ok(updated);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Bad request updating delegation setting");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error updating delegation setting");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
         private Guid GetCurrentUserId()
         {
             // Ưu tiên NameIdentifier, fallback sang "sub" (OIDC/JWT phổ biến)
@@ -245,5 +281,10 @@ namespace OCSP.API.Controllers
                      ?? User.FindFirstValue("sub");
             return Guid.TryParse(id, out var g) ? g : Guid.Empty;
         }
+    }
+
+    public class UpdateDelegationDto
+    {
+        public bool DelegateApprovalToSupervisor { get; set; }
     }
 }

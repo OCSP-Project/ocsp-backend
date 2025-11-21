@@ -23,5 +23,8 @@ namespace OCSP.Application.Services.Interfaces
 
         // Assign random available supervisor to a project (homeowner only)
         Task<ProjectDetailDto> AssignRandomAvailableSupervisorAsync(Guid projectId, Guid homeownerId, CancellationToken ct = default);
+
+        // Update delegation setting for material approval (homeowner only)
+        Task<ProjectDetailDto> UpdateDelegationSettingAsync(Guid projectId, Guid homeownerId, bool delegateToSupervisor, CancellationToken ct = default);
     }
 }

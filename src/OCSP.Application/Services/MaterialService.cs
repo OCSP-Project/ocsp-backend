@@ -51,6 +51,7 @@ namespace OCSP.Application.Services
             var requests = await _context.MaterialRequests
                 .Where(r => r.ProjectId == projectId)
                 .Include(r => r.Materials)
+                .Include(r => r.Project) // Include project for delegation setting
                 .OrderByDescending(r => r.RequestDate)
                 .ToListAsync(ct);
 
@@ -190,6 +191,10 @@ namespace OCSP.Application.Services
             request.ApprovedByHomeownerId = homeownerId;
             request.ApprovedByHomeownerAt = DateTime.UtcNow;
 
+            // Explicitly mark properties as modified to ensure EF Core tracks changes
+            _context.Entry(request).Property(r => r.ApprovedByHomeowner).IsModified = true;
+            _context.Entry(request).Property(r => r.ApprovedByHomeownerId).IsModified = true;
+
             // Create approval history
             var history = new MaterialApprovalHistory
             {
@@ -215,6 +220,9 @@ namespace OCSP.Application.Services
             {
                 request.Status = MaterialRequestStatus.PartiallyApproved;
             }
+
+            // Explicitly mark Status as modified
+            _context.Entry(request).Property(r => r.Status).IsModified = true;
 
             request.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);
@@ -247,6 +255,10 @@ namespace OCSP.Application.Services
             request.ApprovedBySupervisorId = supervisorId;
             request.ApprovedBySupervisorAt = DateTime.UtcNow;
 
+            // Explicitly mark properties as modified to ensure EF Core tracks changes
+            _context.Entry(request).Property(r => r.ApprovedBySupervisor).IsModified = true;
+            _context.Entry(request).Property(r => r.ApprovedBySupervisorId).IsModified = true;
+
             // Create approval history
             var history = new MaterialApprovalHistory
             {
@@ -263,15 +275,34 @@ namespace OCSP.Application.Services
 
             _context.MaterialApprovalHistories.Add(history);
 
-            // Update status if both approved
-            if (request.ApprovedByHomeowner)
+            // Update status based on delegation setting
+            if (request.Project.DelegateApprovalToSupervisor)
             {
+                // If delegated, supervisor approval alone is sufficient
+                // Automatically approve on behalf of homeowner
+                request.ApprovedByHomeowner = true;
+                request.ApprovedByHomeownerId = request.Project.HomeownerId;
+                request.ApprovedByHomeownerAt = DateTime.UtcNow;
+                _context.Entry(request).Property(r => r.ApprovedByHomeowner).IsModified = true;
+                _context.Entry(request).Property(r => r.ApprovedByHomeownerId).IsModified = true;
+
                 request.Status = MaterialRequestStatus.Approved;
             }
             else
             {
-                request.Status = MaterialRequestStatus.PartiallyApproved;
+                // Normal flow: need both approvals
+                if (request.ApprovedByHomeowner)
+                {
+                    request.Status = MaterialRequestStatus.Approved;
+                }
+                else
+                {
+                    request.Status = MaterialRequestStatus.PartiallyApproved;
+                }
             }
+
+            // Explicitly mark Status as modified
+            _context.Entry(request).Property(r => r.Status).IsModified = true;
 
             request.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);
@@ -521,6 +552,7 @@ namespace OCSP.Application.Services
                 ApprovedByHomeownerAt = request.ApprovedByHomeownerAt,
                 ApprovedBySupervisor = request.ApprovedBySupervisor,
                 ApprovedBySupervisorAt = request.ApprovedBySupervisorAt,
+                ProjectDelegatesApprovalToSupervisor = request.Project?.DelegateApprovalToSupervisor ?? false,
                 Notes = request.Notes,
                 RejectionReason = request.RejectionReason,
                 FileName = request.FileName,

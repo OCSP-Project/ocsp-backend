@@ -22,6 +22,9 @@ namespace OCSP.Application.DTOs.Material
         public string? SupervisorName { get; set; }
         public DateTime? ApprovedBySupervisorAt { get; set; }
 
+        // Delegation setting from project
+        public bool ProjectDelegatesApprovalToSupervisor { get; set; }
+
         public string? Notes { get; set; }
         public string? RejectionReason { get; set; }
 

@@ -14,11 +14,13 @@ namespace OCSP.Application.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
 
-        public MaterialService(ApplicationDbContext context, IEmailService emailService)
+        public MaterialService(ApplicationDbContext context, IEmailService emailService, INotificationService notificationService)
         {
             _context = context;
             _emailService = emailService;
+            _notificationService = notificationService;
         }
 
         #region Material Request Operations
@@ -314,6 +316,7 @@ namespace OCSP.Application.Services
         {
             var request = await _context.MaterialRequests
                 .Include(r => r.Project)
+                .Include(r => r.Contractor)
                 .FirstOrDefaultAsync(r => r.Id == requestId, ct);
 
             if (request == null)
@@ -321,13 +324,17 @@ namespace OCSP.Application.Services
 
             // Determine approver role
             ApproverRole role;
+            string approverName = "";
             if (request.Project.HomeownerId == userId)
             {
                 role = ApproverRole.Homeowner;
+                var homeowner = await _context.Users.FindAsync(new object[] { userId }, ct);
+                approverName = homeowner?.Username ?? "Chủ nhà";
             }
             else
             {
                 var participant = await _context.ProjectParticipants
+                    .Include(p => p.User)
                     .FirstOrDefaultAsync(p => p.ProjectId == request.ProjectId &&
                                             p.UserId == userId &&
                                             p.DetailedRole == ProjectParticipantRole.MainSupervisor, ct);
@@ -335,10 +342,13 @@ namespace OCSP.Application.Services
                     throw new UnauthorizedAccessException("Only homeowner or chief supervisor can reject");
 
                 role = ApproverRole.Supervisor;
+                approverName = participant.User?.Username ?? "Giám sát";
             }
 
             request.Status = MaterialRequestStatus.Rejected;
             request.RejectionReason = dto.Reason;
+            request.RejectedById = userId;
+            request.RejectedAt = DateTime.UtcNow;
 
             // Create rejection history
             var history = new MaterialApprovalHistory
@@ -358,7 +368,115 @@ namespace OCSP.Application.Services
             request.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);
 
+            // Send notification to contractor
+            if (request.Contractor != null)
+            {
+                var notificationTitle = $"Yêu cầu vật tư bị từ chối - {request.Project?.Name}";
+                var notificationMessage = $"{approverName} đã từ chối yêu cầu vật tư của bạn.\n\nLý do: {dto.Reason}\n\nGhi chú: {dto.Comments ?? "Không có"}";
+
+                await _notificationService.CreateNotificationAsync(
+                    request.ContractorId,
+                    notificationTitle,
+                    notificationMessage,
+                    ct
+                );
+
+                // Send email to contractor
+                if (!string.IsNullOrEmpty(request.Contractor.Email))
+                {
+                    var emailSubject = $"[OCSP] Yêu cầu vật tư bị từ chối - {request.Project?.Name}";
+                    var emailBody = $@"
+                        <h2>Yêu cầu vật tư bị từ chối</h2>
+                        <p>Xin chào {request.Contractor.Username},</p>
+                        <p>{approverName} đã từ chối yêu cầu vật tư của bạn cho dự án <strong>{request.Project?.Name}</strong>.</p>
+                        <p><strong>Lý do từ chối:</strong> {dto.Reason}</p>
+                        {(!string.IsNullOrEmpty(dto.Comments) ? $"<p><strong>Ghi chú:</strong> {dto.Comments}</p>" : "")}
+                        <p>Vui lòng xem lại và chỉnh sửa yêu cầu của bạn.</p>
+                    ";
+
+                    try
+                    {
+                        await _emailService.SendEmailAsync(request.Contractor.Email, emailSubject, emailBody);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error but don't fail the rejection
+                        Console.WriteLine($"Failed to send rejection email: {ex.Message}");
+                    }
+                }
+            }
+
             return await MapToRequestDetailDto(request, ct);
+        }
+
+        public async Task DeleteRequestAsync(Guid requestId, Guid userId, CancellationToken ct = default)
+        {
+            var request = await _context.MaterialRequests
+                .Include(r => r.Materials)
+                .Include(r => r.ApprovalHistories)
+                .Include(r => r.Project)
+                .FirstOrDefaultAsync(r => r.Id == requestId, ct);
+
+            if (request == null)
+                throw new ArgumentException("Material request not found");
+
+            // Check permissions: only contractor who created it or homeowner/supervisor can delete
+            var isContractor = request.ContractorId == userId;
+            var isHomeowner = request.Project?.HomeownerId == userId;
+            var isSupervisor = await _context.ProjectParticipants
+                .AnyAsync(p => p.ProjectId == request.ProjectId &&
+                              p.UserId == userId &&
+                              p.DetailedRole == ProjectParticipantRole.MainSupervisor, ct);
+
+            if (!isContractor && !isHomeowner && !isSupervisor)
+                throw new UnauthorizedAccessException("You do not have permission to delete this request");
+
+            // Contractors can only delete Pending or Rejected requests
+            // Homeowners and Supervisors can delete any request (including Approved)
+            if (isContractor && !isHomeowner && !isSupervisor)
+            {
+                if (request.Status == MaterialRequestStatus.Approved ||
+                    request.Status == MaterialRequestStatus.PartiallyApproved)
+                    throw new InvalidOperationException("Contractors cannot delete approved or partially approved requests. Contact the homeowner or supervisor.");
+            }
+
+            // Delete will cascade to Materials and ApprovalHistories due to EF relationships
+            _context.MaterialRequests.Remove(request);
+            await _context.SaveChangesAsync(ct);
+        }
+
+        public async Task ClearImportedMaterialsAsync(Guid requestId, Guid userId, CancellationToken ct = default)
+        {
+            var request = await _context.MaterialRequests
+                .Include(r => r.Materials)
+                .Include(r => r.Project)
+                .FirstOrDefaultAsync(r => r.Id == requestId, ct);
+
+            if (request == null)
+                throw new ArgumentException("Material request not found");
+
+            // Only allow clearing materials from Pending or Rejected requests
+            if (request.Status == MaterialRequestStatus.Approved ||
+                request.Status == MaterialRequestStatus.PartiallyApproved)
+                throw new InvalidOperationException("Cannot clear materials from approved or partially approved requests");
+
+            // Check permissions: only contractor who created it or homeowner/supervisor can clear
+            var isContractor = request.ContractorId == userId;
+            var isHomeowner = request.Project?.HomeownerId == userId;
+            var isSupervisor = await _context.ProjectParticipants
+                .AnyAsync(p => p.ProjectId == request.ProjectId &&
+                              p.UserId == userId &&
+                              p.DetailedRole == ProjectParticipantRole.MainSupervisor, ct);
+
+            if (!isContractor && !isHomeowner && !isSupervisor)
+                throw new UnauthorizedAccessException("You do not have permission to clear materials from this request");
+
+            // Clear all materials
+            if (request.Materials.Any())
+            {
+                _context.Materials.RemoveRange(request.Materials);
+                await _context.SaveChangesAsync(ct);
+            }
         }
 
         #endregion
@@ -552,6 +670,7 @@ namespace OCSP.Application.Services
                 ApprovedByHomeownerAt = request.ApprovedByHomeownerAt,
                 ApprovedBySupervisor = request.ApprovedBySupervisor,
                 ApprovedBySupervisorAt = request.ApprovedBySupervisorAt,
+                RejectedAt = request.RejectedAt,
                 ProjectDelegatesApprovalToSupervisor = request.Project?.DelegateApprovalToSupervisor ?? false,
                 Notes = request.Notes,
                 RejectionReason = request.RejectionReason,
@@ -579,6 +698,7 @@ namespace OCSP.Application.Services
                 ApprovedByHomeownerAt = request.ApprovedByHomeownerAt,
                 ApprovedBySupervisor = request.ApprovedBySupervisor,
                 ApprovedBySupervisorAt = request.ApprovedBySupervisorAt,
+                RejectedAt = request.RejectedAt,
                 Notes = request.Notes,
                 RejectionReason = request.RejectionReason,
                 FileName = request.FileName,

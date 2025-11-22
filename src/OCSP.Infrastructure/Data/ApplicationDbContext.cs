@@ -95,6 +95,7 @@ namespace OCSP.Infrastructure.Data
             public DbSet<Material> Materials { get; set; }
             public DbSet<MaterialPayment> MaterialPayments { get; set; }
             public DbSet<MaterialApprovalHistory> MaterialApprovalHistories { get; set; }
+            public DbSet<Notification> Notifications { get; set; }
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {

@@ -165,6 +165,7 @@ builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IPaymentRequestService, PaymentRequestService>();
 
 // Material Management Services
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
 
 // SignalR (required for MapHub)

@@ -31,6 +31,10 @@ namespace OCSP.Domain.Entities
         public Guid? ApprovedBySupervisorId { get; set; }
         public DateTime? ApprovedBySupervisorAt { get; set; }
 
+        // Rejection tracking
+        public Guid? RejectedById { get; set; }
+        public DateTime? RejectedAt { get; set; }
+
         public string? Notes { get; set; }
         public string? RejectionReason { get; set; }
 

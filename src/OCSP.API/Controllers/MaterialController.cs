@@ -214,6 +214,70 @@ namespace OCSP.API.Controllers
             }
         }
 
+        // DELETE api/material/requests/{id}
+        [HttpDelete("requests/{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> DeleteRequest([FromRoute] Guid id, CancellationToken ct)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _materialService.DeleteRequestAsync(id, userId, ct);
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting material request");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // DELETE api/material/requests/{id}/materials
+        [HttpDelete("requests/{id:guid}/materials")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> ClearImportedMaterials([FromRoute] Guid id, CancellationToken ct)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _materialService.ClearImportedMaterialsAsync(id, userId, ct);
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing imported materials");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
         #endregion
 
         #region Material Endpoints

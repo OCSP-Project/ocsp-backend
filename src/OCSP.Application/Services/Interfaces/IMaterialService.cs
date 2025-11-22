@@ -17,6 +17,8 @@ namespace OCSP.Application.Services.Interfaces
         Task<MaterialRequestDetailDto> ApproveByHomeownerAsync(Guid requestId, Guid homeownerId, ApproveMaterialRequestDto dto, CancellationToken ct = default);
         Task<MaterialRequestDetailDto> ApproveBySupervisorAsync(Guid requestId, Guid supervisorId, ApproveMaterialRequestDto dto, CancellationToken ct = default);
         Task<MaterialRequestDetailDto> RejectRequestAsync(Guid requestId, Guid userId, RejectMaterialRequestDto dto, CancellationToken ct = default);
+        Task DeleteRequestAsync(Guid requestId, Guid userId, CancellationToken ct = default);
+        Task ClearImportedMaterialsAsync(Guid requestId, Guid userId, CancellationToken ct = default);
 
         // Material operations
         Task<List<MaterialDto>> GetMaterialsByProjectAsync(Guid projectId, CancellationToken ct = default);

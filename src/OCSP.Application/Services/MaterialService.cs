@@ -106,11 +106,11 @@ namespace OCSP.Application.Services
             int sortOrder = 0;
 
             // Start from row 2 (assuming row 1 is header)
-            // STT | Mã số | Hạng mục | Đơn vị | Đơn giá | Khối lượng theo HĐ | Khối lượng theo NKTC | ...
+            // Column A (1): STT | B (2): Mã số | C (3): Hạng mục | D (4): Đơn vị | E (5): Đơn giá | F (6): Khối lượng theo HĐ
             for (int row = 2; row <= rowCount; row++)
             {
-                var code = worksheet.Cells[row, 2].Text?.Trim(); // Mã số
-                var name = worksheet.Cells[row, 3].Text?.Trim(); // Hạng mục
+                var code = worksheet.Cells[row, 2].Text?.Trim(); // Mã số (column B)
+                var name = worksheet.Cells[row, 3].Text?.Trim(); // Hạng mục (column C)
 
                 if (string.IsNullOrEmpty(name)) continue;
 
@@ -121,27 +121,27 @@ namespace OCSP.Application.Services
                     ProjectId = request.ProjectId,
                     Code = code ?? $"MAT{sortOrder:D5}",
                     Name = name,
-                    Unit = worksheet.Cells[row, 4].Text?.Trim() ?? "m³", // Đơn vị
+                    Unit = worksheet.Cells[row, 4].Text?.Trim() ?? "m³", // Đơn vị (column D)
                     SortOrder = sortOrder++,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                // Parse unit price (Đơn giá - column 5)
+                // Parse unit price (Đơn giá - column E/5)
                 if (decimal.TryParse(worksheet.Cells[row, 5].Text?.Replace(",", ""), out decimal unitPrice))
                 {
                     material.UnitPrice = unitPrice;
                 }
 
-                // Parse contract quantity (Khối lượng theo HĐ - column 6)
+                // Parse contract quantity (Khối lượng theo HĐ - column F/6)
                 if (decimal.TryParse(worksheet.Cells[row, 6].Text?.Replace(",", ""), out decimal contractQty))
                 {
                     material.ContractQuantity = contractQty;
                     material.ContractAmount = contractQty * material.UnitPrice;
                 }
 
-                // Parse estimated quantity (Khối lượng theo NKTC - column 7)
-                if (decimal.TryParse(worksheet.Cells[row, 7].Text?.Replace(",", ""), out decimal estimatedQty))
+                // Parse estimated quantity (Khối lượng theo NKTC - column 9 if exists)
+                if (decimal.TryParse(worksheet.Cells[row, 9].Text?.Replace(",", ""), out decimal estimatedQty))
                 {
                     material.EstimatedQuantity = estimatedQty;
                     material.EstimatedAmount = estimatedQty * material.UnitPrice;
@@ -166,6 +166,20 @@ namespace OCSP.Application.Services
 
             // Send email notifications to Homeowner and Supervisor
             await SendApprovalRequestEmailsAsync(request, ct);
+
+            // Create notifications for all project participants (except contractor)
+            var project = await _context.Projects.FindAsync(new object[] { request.ProjectId }, ct);
+            var contractor = await _context.Users.FindAsync(new object[] { request.ContractorId }, ct);
+            await _notificationService.CreateForProjectParticipantsAsync(
+                request.ProjectId,
+                "Nhà thầu đã tạo phiếu xuất vật tư mới",
+                $"Nhà thầu {contractor?.Username ?? "N/A"} đã tạo phiếu xuất vật tư cho dự án {project?.Name ?? "N/A"}. Vui lòng kiểm tra và phê duyệt.",
+                NotificationType.MaterialRequestUploaded,
+                request.Id,
+                $"/projects/{request.ProjectId}/materials",
+                request.ContractorId, // Exclude contractor from notification
+                ct
+            );
 
             return await MapToRequestDetailDto(request, ct);
         }
@@ -228,6 +242,27 @@ namespace OCSP.Application.Services
 
             request.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);
+
+            // Create notifications for all project participants
+            var homeowner = await _context.Users.FindAsync(new object[] { homeownerId }, ct);
+            var notificationType = request.Status == MaterialRequestStatus.Approved
+                ? NotificationType.MaterialRequestApproved
+                : NotificationType.MaterialRequestPartiallyApproved;
+            var title = request.Status == MaterialRequestStatus.Approved
+                ? "Phiếu xuất vật tư đã được phê duyệt"
+                : "Phiếu xuất vật tư đã được phê duyệt một phần";
+            var message = $"Chủ nhà {homeowner?.Username ?? "N/A"} đã phê duyệt phiếu xuất vật tư cho dự án {request.Project?.Name ?? "N/A"}.";
+
+            await _notificationService.CreateForProjectParticipantsAsync(
+                request.ProjectId,
+                title,
+                message,
+                notificationType,
+                requestId,
+                $"/projects/{request.ProjectId}/materials",
+                homeownerId, // Exclude homeowner from notification
+                ct
+            );
 
             return await MapToRequestDetailDto(request, ct);
         }
@@ -309,6 +344,27 @@ namespace OCSP.Application.Services
             request.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);
 
+            // Create notifications for all project participants
+            var supervisor = await _context.Users.FindAsync(new object[] { supervisorId }, ct);
+            var notificationType = request.Status == MaterialRequestStatus.Approved
+                ? NotificationType.MaterialRequestApproved
+                : NotificationType.MaterialRequestPartiallyApproved;
+            var title = request.Status == MaterialRequestStatus.Approved
+                ? "Phiếu xuất vật tư đã được phê duyệt"
+                : "Phiếu xuất vật tư đã được phê duyệt một phần";
+            var message = $"Giám sát {supervisor?.Username ?? "N/A"} đã phê duyệt phiếu xuất vật tư cho dự án {request.Project?.Name ?? "N/A"}.";
+
+            await _notificationService.CreateForProjectParticipantsAsync(
+                request.ProjectId,
+                title,
+                message,
+                notificationType,
+                requestId,
+                $"/projects/{request.ProjectId}/materials",
+                supervisorId, // Exclude supervisor from notification
+                ct
+            );
+
             return await MapToRequestDetailDto(request, ct);
         }
 
@@ -368,20 +424,24 @@ namespace OCSP.Application.Services
             request.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);
 
-            // Send notification to contractor
+            // Create notifications for all project participants
+            var notificationTitle = $"Phiếu xuất vật tư bị từ chối";
+            var notificationMessage = $"{approverName} đã từ chối phiếu xuất vật tư cho dự án {request.Project?.Name}.\n\nLý do: {dto.Reason}\n\nGhi chú: {dto.Comments ?? "Không có"}";
+
+            await _notificationService.CreateForProjectParticipantsAsync(
+                request.ProjectId,
+                notificationTitle,
+                notificationMessage,
+                NotificationType.MaterialRequestRejected,
+                requestId,
+                $"/projects/{request.ProjectId}/materials",
+                userId, // Exclude the person who rejected
+                ct
+            );
+
+            // Send email to contractor
             if (request.Contractor != null)
             {
-                var notificationTitle = $"Yêu cầu vật tư bị từ chối - {request.Project?.Name}";
-                var notificationMessage = $"{approverName} đã từ chối yêu cầu vật tư của bạn.\n\nLý do: {dto.Reason}\n\nGhi chú: {dto.Comments ?? "Không có"}";
-
-                await _notificationService.CreateNotificationAsync(
-                    request.ContractorId,
-                    notificationTitle,
-                    notificationMessage,
-                    ct
-                );
-
-                // Send email to contractor
                 if (!string.IsNullOrEmpty(request.Contractor.Email))
                 {
                     var emailSubject = $"[OCSP] Yêu cầu vật tư bị từ chối - {request.Project?.Name}";
@@ -420,6 +480,11 @@ namespace OCSP.Application.Services
             if (request == null)
                 throw new ArgumentException("Material request not found");
 
+            // Only allow deletion of Pending or Rejected requests
+            if (request.Status == MaterialRequestStatus.Approved ||
+                request.Status == MaterialRequestStatus.PartiallyApproved)
+                throw new InvalidOperationException("Cannot delete approved or partially approved requests");
+
             // Check permissions: only contractor who created it or homeowner/supervisor can delete
             var isContractor = request.ContractorId == userId;
             var isHomeowner = request.Project?.HomeownerId == userId;
@@ -430,15 +495,6 @@ namespace OCSP.Application.Services
 
             if (!isContractor && !isHomeowner && !isSupervisor)
                 throw new UnauthorizedAccessException("You do not have permission to delete this request");
-
-            // Contractors can only delete Pending or Rejected requests
-            // Homeowners and Supervisors can delete any request (including Approved)
-            if (isContractor && !isHomeowner && !isSupervisor)
-            {
-                if (request.Status == MaterialRequestStatus.Approved ||
-                    request.Status == MaterialRequestStatus.PartiallyApproved)
-                    throw new InvalidOperationException("Contractors cannot delete approved or partially approved requests. Contact the homeowner or supervisor.");
-            }
 
             // Delete will cascade to Materials and ApprovalHistories due to EF relationships
             _context.MaterialRequests.Remove(request);
@@ -455,11 +511,6 @@ namespace OCSP.Application.Services
             if (request == null)
                 throw new ArgumentException("Material request not found");
 
-            // Only allow clearing materials from Pending or Rejected requests
-            if (request.Status == MaterialRequestStatus.Approved ||
-                request.Status == MaterialRequestStatus.PartiallyApproved)
-                throw new InvalidOperationException("Cannot clear materials from approved or partially approved requests");
-
             // Check permissions: only contractor who created it or homeowner/supervisor can clear
             var isContractor = request.ContractorId == userId;
             var isHomeowner = request.Project?.HomeownerId == userId;
@@ -471,7 +522,7 @@ namespace OCSP.Application.Services
             if (!isContractor && !isHomeowner && !isSupervisor)
                 throw new UnauthorizedAccessException("You do not have permission to clear materials from this request");
 
-            // Clear all materials
+            // Clear all materials (allowed for all statuses)
             if (request.Materials.Any())
             {
                 _context.Materials.RemoveRange(request.Materials);

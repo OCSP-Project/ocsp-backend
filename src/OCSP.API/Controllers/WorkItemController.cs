@@ -208,6 +208,24 @@ namespace OCSP.API.Controllers
             }
         }
 
+        // DELETE api/work-items/project/{projectId}/hard-delete
+        [HttpDelete("project/{projectId:guid}/hard-delete")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> HardDeleteAllByProject([FromRoute] Guid projectId, CancellationToken ct)
+        {
+            try
+            {
+                await _workItemService.HardDeleteAllByProjectAsync(projectId, ct);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting all work items for project {ProjectId}", projectId);
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
         // POST api/work-items/{id}/comments
         [HttpPost("{id:guid}/comments")]
         [ProducesResponseType(typeof(WorkItemDetailDto), StatusCodes.Status200OK)]

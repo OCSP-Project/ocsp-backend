@@ -16,6 +16,7 @@ namespace OCSP.Application.DTOs.Project
         public Guid HomeownerId { get; set; }
         public Guid? SupervisorId { get; set; }
         public bool HasSupervisorsAvailable { get; set; } // có supervisor availableNow=true không
+        public bool DelegateApprovalToSupervisor { get; set; } // Homeowner delegates approval authority to Supervisor
 
         public List<ProjectParticipantDto> Participants { get; set; } = new();
     }

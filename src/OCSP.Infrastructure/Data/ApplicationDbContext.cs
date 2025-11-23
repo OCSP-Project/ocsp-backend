@@ -90,6 +90,13 @@ namespace OCSP.Infrastructure.Data
             public DbSet<PaymentRequest> PaymentRequests { get; set; }
             public DbSet<ConstructionLog> ConstructionLogs { get; set; }
 
+            // NEW: Material Management Entities
+            public DbSet<MaterialRequest> MaterialRequests { get; set; }
+            public DbSet<Material> Materials { get; set; }
+            public DbSet<MaterialPayment> MaterialPayments { get; set; }
+            public DbSet<MaterialApprovalHistory> MaterialApprovalHistories { get; set; }
+            public DbSet<Notification> Notifications { get; set; }
+
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
                   base.OnModelCreating(modelBuilder);
@@ -655,6 +662,9 @@ namespace OCSP.Infrastructure.Data
                         e.HasIndex(x => x.UserId).IsUnique();
                   });
 
+                  // Material Management Entities Configuration
+                  ConfigureMaterialEntities(modelBuilder);
+
                   // WalletTransaction
                   modelBuilder.Entity<WalletTransaction>(e =>
                   {
@@ -678,6 +688,112 @@ namespace OCSP.Infrastructure.Data
                    .HasForeignKey(x => x.WalletId)
                    .OnDelete(DeleteBehavior.Cascade);
                         e.HasIndex(x => new { x.WalletId, x.CreatedAt });
+                  });
+            }
+
+            private void ConfigureMaterialEntities(ModelBuilder modelBuilder)
+            {
+                  // MaterialRequest configuration
+                  modelBuilder.Entity<MaterialRequest>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Status).HasConversion<int>();
+
+                        entity.HasOne(e => e.Project)
+                              .WithMany()
+                              .HasForeignKey(e => e.ProjectId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Contractor)
+                              .WithMany()
+                              .HasForeignKey(e => e.ContractorId)
+                              .OnDelete(DeleteBehavior.Restrict);
+
+                        entity.HasIndex(e => new { e.ProjectId, e.Status });
+                        entity.HasIndex(e => e.RequestDate);
+                  });
+
+                  // Material configuration
+                  modelBuilder.Entity<Material>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+
+                        entity.Property(e => e.Code).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(500);
+                        entity.Property(e => e.Unit).IsRequired().HasMaxLength(50);
+                        entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.ContractQuantity).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.EstimatedQuantity).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.ActualQuantity).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.ContractAmount).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.EstimatedAmount).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.ActualAmount).HasColumnType("decimal(18,2)");
+
+                        entity.HasOne(e => e.MaterialRequest)
+                              .WithMany(mr => mr.Materials)
+                              .HasForeignKey(e => e.MaterialRequestId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Project)
+                              .WithMany()
+                              .HasForeignKey(e => e.ProjectId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.WorkItem)
+                              .WithMany()
+                              .HasForeignKey(e => e.WorkItemId)
+                              .OnDelete(DeleteBehavior.SetNull);
+
+                        entity.HasIndex(e => e.MaterialRequestId);
+                        entity.HasIndex(e => new { e.ProjectId, e.Code });
+                  });
+
+                  // MaterialPayment configuration
+                  modelBuilder.Entity<MaterialPayment>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+
+                        entity.Property(e => e.PaidQuantity).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.PaidAmount).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.RemainingQuantity).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.RemainingAmount).HasColumnType("decimal(18,2)");
+                        entity.Property(e => e.PaymentMethod).HasMaxLength(100);
+                        entity.Property(e => e.InvoiceNumber).HasMaxLength(100);
+
+                        entity.HasOne(e => e.Material)
+                              .WithMany(m => m.Payments)
+                              .HasForeignKey(e => e.MaterialId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Project)
+                              .WithMany()
+                              .HasForeignKey(e => e.ProjectId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasIndex(e => e.MaterialId);
+                        entity.HasIndex(e => new { e.ProjectId, e.PaymentDate });
+                  });
+
+                  // MaterialApprovalHistory configuration
+                  modelBuilder.Entity<MaterialApprovalHistory>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+
+                        entity.Property(e => e.ApproverRole).HasConversion<int>();
+                        entity.Property(e => e.Action).HasConversion<int>();
+
+                        entity.HasOne(e => e.MaterialRequest)
+                              .WithMany(mr => mr.ApprovalHistories)
+                              .HasForeignKey(e => e.MaterialRequestId)
+                              .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.ApprovedBy)
+                              .WithMany()
+                              .HasForeignKey(e => e.ApprovedById)
+                              .OnDelete(DeleteBehavior.Restrict);
+
+                        entity.HasIndex(e => e.MaterialRequestId);
+                        entity.HasIndex(e => e.ActionDate);
                   });
             }
 

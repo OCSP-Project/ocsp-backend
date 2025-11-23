@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OCSP.Infrastructure.Data;
@@ -11,9 +12,11 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251121181547_AddNotificationsTable")]
+    partial class AddNotificationsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1380,12 +1383,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RejectedById")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("RejectionReason")
                         .HasColumnType("text");
 
@@ -1525,9 +1522,6 @@ namespace OCSP.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ActionUrl")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1544,18 +1538,9 @@ namespace OCSP.Infrastructure.Migrations
                     b.Property<DateTime>("NotificationDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReferenceId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1567,8 +1552,6 @@ namespace OCSP.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
 
                     b.HasIndex("UserId");
 
@@ -3765,17 +3748,11 @@ namespace OCSP.Infrastructure.Migrations
 
             modelBuilder.Entity("OCSP.Domain.Entities.Notification", b =>
                 {
-                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId");
-
                     b.HasOne("OCSP.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Project");
 
                     b.Navigation("User");
                 });

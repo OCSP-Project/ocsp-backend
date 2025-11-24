@@ -52,6 +52,7 @@ namespace OCSP.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+<<<<<<< HEAD
             // Create SupervisorContracts table only if it doesn't exist
             // (Table may have been created via SQL script: 001_add_supervisor_contracts.sql)
             migrationBuilder.Sql(@"
@@ -89,6 +90,47 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+=======
+            migrationBuilder.CreateTable(
+                name: "SupervisorContracts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SupervisorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    HomeownerUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SupervisorUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MonthlyPrice = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Terms = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: false, defaultValue: ""),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    SignedByHomeownerAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    SignedBySupervisorAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    homeownersignaturebase64 = table.Column<string>(type: "character varying(1000000)", maxLength: 1000000, nullable: true),
+                    supervisorsignaturebase64 = table.Column<string>(type: "character varying(1000000)", maxLength: 1000000, nullable: true),
+                    templatepdfurl = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    signedpdfurl = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupervisorContracts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SupervisorContracts_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupervisorContracts_Supervisors_SupervisorId",
+                        column: x => x.SupervisorId,
+                        principalTable: "Supervisors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+>>>>>>> 4bb8c9d575355129311ea350af4b1d10c01d0f56
 
             migrationBuilder.CreateTable(
                 name: "MaterialApprovalHistories",
@@ -268,6 +310,7 @@ namespace OCSP.Infrastructure.Migrations
                 table: "Materials",
                 column: "WorkItemId");
 
+<<<<<<< HEAD
             // Create indexes for SupervisorContracts only if table exists and indexes don't exist
             migrationBuilder.Sql(@"
                 DO $$
@@ -314,6 +357,32 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+=======
+            migrationBuilder.CreateIndex(
+                name: "IX_SupervisorContracts_HomeownerUserId",
+                table: "SupervisorContracts",
+                column: "HomeownerUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupervisorContracts_ProjectId",
+                table: "SupervisorContracts",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupervisorContracts_Status",
+                table: "SupervisorContracts",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupervisorContracts_SupervisorId",
+                table: "SupervisorContracts",
+                column: "SupervisorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupervisorContracts_SupervisorUserId",
+                table: "SupervisorContracts",
+                column: "SupervisorUserId");
+>>>>>>> 4bb8c9d575355129311ea350af4b1d10c01d0f56
         }
 
         /// <inheritdoc />
@@ -325,6 +394,7 @@ namespace OCSP.Infrastructure.Migrations
             migrationBuilder.DropTable(
                 name: "MaterialPayments");
 
+<<<<<<< HEAD
             // Only drop SupervisorContracts if it exists (may have been created via SQL script)
             migrationBuilder.Sql(@"
                 DO $$
@@ -338,6 +408,10 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+=======
+            migrationBuilder.DropTable(
+                name: "SupervisorContracts");
+>>>>>>> 4bb8c9d575355129311ea350af4b1d10c01d0f56
 
             migrationBuilder.DropTable(
                 name: "Materials");

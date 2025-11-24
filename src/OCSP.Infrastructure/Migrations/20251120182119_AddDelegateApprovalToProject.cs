@@ -10,6 +10,7 @@ namespace OCSP.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+<<<<<<< HEAD
             // Only add column if table exists and column doesn't exist
             migrationBuilder.Sql(@"
                 DO $$
@@ -33,11 +34,20 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+=======
+            migrationBuilder.AddColumn<bool>(
+                name: "DelegateApprovalToSupervisor",
+                table: "Projects",
+                type: "boolean",
+                nullable: false,
+                defaultValue: false);
+>>>>>>> 4bb8c9d575355129311ea350af4b1d10c01d0f56
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+<<<<<<< HEAD
             // Only drop column if table and column exist
             migrationBuilder.Sql(@"
                 DO $$
@@ -58,6 +68,11 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+=======
+            migrationBuilder.DropColumn(
+                name: "DelegateApprovalToSupervisor",
+                table: "Projects");
+>>>>>>> 4bb8c9d575355129311ea350af4b1d10c01d0f56
         }
     }
 }

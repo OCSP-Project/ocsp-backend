@@ -5,7 +5,7 @@
 namespace OCSP.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddColorToBuildingElement : Migration
+    public partial class AddDelegateApprovalToProject : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,18 +17,18 @@ namespace OCSP.Infrastructure.Migrations
                     IF EXISTS (
                         SELECT 1 FROM pg_catalog.pg_class c
                         JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
-                        WHERE n.nspname='public' AND c.relname='BuildingElements'
+                        WHERE n.nspname='public' AND c.relname='Projects'
                     ) THEN
                         IF NOT EXISTS (
                             SELECT 1 FROM information_schema.columns 
                             WHERE table_schema='public' 
-                            AND table_name='BuildingElements' 
-                            AND column_name='Color'
+                            AND table_name='Projects' 
+                            AND column_name='DelegateApprovalToSupervisor'
                         ) THEN
-                            ALTER TABLE ""BuildingElements"" 
-                            ADD COLUMN ""Color"" character varying(7) NOT NULL DEFAULT '#CCCCCC';
+                            ALTER TABLE ""Projects"" 
+                            ADD COLUMN ""DelegateApprovalToSupervisor"" BOOLEAN NOT NULL DEFAULT false;
                             
-                            COMMENT ON COLUMN ""BuildingElements"".""Color"" IS 'Hex color code for 3D visualization (format: #RRGGBB, default: #CCCCCC)';
+                            COMMENT ON COLUMN ""Projects"".""DelegateApprovalToSupervisor"" IS 'Homeowner delegates material approval authority to Supervisor (default: false)';
                         END IF;
                     END IF;
                 END $$;
@@ -45,15 +45,15 @@ namespace OCSP.Infrastructure.Migrations
                     IF EXISTS (
                         SELECT 1 FROM pg_catalog.pg_class c
                         JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
-                        WHERE n.nspname='public' AND c.relname='BuildingElements'
+                        WHERE n.nspname='public' AND c.relname='Projects'
                     ) THEN
                         IF EXISTS (
                             SELECT 1 FROM information_schema.columns 
                             WHERE table_schema='public' 
-                            AND table_name='BuildingElements' 
-                            AND column_name='Color'
+                            AND table_name='Projects' 
+                            AND column_name='DelegateApprovalToSupervisor'
                         ) THEN
-                            ALTER TABLE ""BuildingElements"" DROP COLUMN ""Color"";
+                            ALTER TABLE ""Projects"" DROP COLUMN ""DelegateApprovalToSupervisor"";
                         END IF;
                     END IF;
                 END $$;

@@ -101,6 +101,7 @@ public class ProjectService : IProjectService
             Status = p.Status.ToString(),
             HomeownerId = p.HomeownerId,
             SupervisorId = p.SupervisorId,
+            DelegateApprovalToSupervisor = p.DelegateApprovalToSupervisor,
             HasSupervisorsAvailable = hasSupervisorsAvailable,
             Participants = (p.Participants ?? new List<ProjectParticipant>())
                 .Select(pp => new ProjectParticipantDto
@@ -376,6 +377,54 @@ public class ProjectService : IProjectService
             Status = project.Status.ToString(),
             HomeownerId = project.HomeownerId,
             SupervisorId = project.SupervisorId,
+            Participants = (project.Participants ?? new List<ProjectParticipant>())
+                .Select(pp => new ProjectParticipantDto
+                {
+                    UserId = pp.UserId,
+                    UserName = pp.User?.Username ?? "Unknown User",
+                    Role = pp.Role.ToString(),
+                    Status = pp.Status.ToString()
+                }).ToList()
+        };
+    }
+
+    public async Task<ProjectDetailDto> UpdateDelegationSettingAsync(Guid projectId, Guid homeownerId, bool delegateToSupervisor, CancellationToken ct = default)
+    {
+        var project = await _db.Projects
+            .Include(p => p.Participants)
+                .ThenInclude(pp => pp.User)
+            .FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
+        if (project == null)
+            throw new ArgumentException("Project not found");
+
+        if (project.HomeownerId != homeownerId)
+            throw new UnauthorizedAccessException("Only project homeowner can update delegation setting");
+
+        project.DelegateApprovalToSupervisor = delegateToSupervisor;
+
+        // Explicitly mark property as modified to ensure EF Core tracks the change
+        _db.Entry(project).Property(p => p.DelegateApprovalToSupervisor).IsModified = true;
+
+        project.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        // Return updated details
+        return new ProjectDetailDto
+        {
+            Id = project.Id,
+            Name = project.Name,
+            Address = project.Address,
+            Description = project.Description,
+            FloorArea = project.FloorArea,
+            NumberOfFloors = project.NumberOfFloors,
+            Budget = project.Budget,
+            StartDate = project.StartDate,
+            EstimatedCompletionDate = project.EstimatedCompletionDate,
+            Status = project.Status.ToString(),
+            HomeownerId = project.HomeownerId,
+            SupervisorId = project.SupervisorId,
+            DelegateApprovalToSupervisor = project.DelegateApprovalToSupervisor,
             Participants = (project.Participants ?? new List<ProjectParticipant>())
                 .Select(pp => new ProjectParticipantDto
                 {

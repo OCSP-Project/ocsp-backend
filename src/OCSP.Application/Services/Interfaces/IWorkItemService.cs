@@ -14,6 +14,7 @@ namespace OCSP.Application.Services.Interfaces
         Task<WorkItemDto> CreateAsync(CreateWorkItemDto dto, Guid currentUserId, CancellationToken ct = default);
         Task<WorkItemDto> UpdateAsync(Guid id, UpdateWorkItemDto dto, Guid currentUserId, CancellationToken ct = default);
         Task DeleteAsync(Guid id, CancellationToken ct = default);
+        Task HardDeleteAllByProjectAsync(Guid projectId, CancellationToken ct = default);
 
         // Progress operations
         Task<WorkItemDto> UpdateProgressAsync(Guid id, UpdateProgressDto dto, Guid currentUserId, CancellationToken ct = default);

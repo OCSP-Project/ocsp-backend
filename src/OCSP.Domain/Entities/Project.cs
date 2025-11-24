@@ -24,6 +24,9 @@ namespace OCSP.Domain.Entities
 
         public PaymentStatus SupervisorPackagePaymentStatus { get; set; } = PaymentStatus.Pending;
 
+        // Delegation: Homeowner delegates material approval authority to Supervisor
+        public bool DelegateApprovalToSupervisor { get; set; } = false;
+
         // Chủ nhà (bắt buộc)
         public Guid HomeownerId { get; set; }
         public User? Homeowner { get; set; }

@@ -52,6 +52,45 @@ namespace OCSP.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+<<<<<<< HEAD
+            // Create SupervisorContracts table only if it doesn't exist
+            // (Table may have been created via SQL script: 001_add_supervisor_contracts.sql)
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_catalog.pg_class c
+                        JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+                        WHERE n.nspname='public' AND c.relname='SupervisorContracts'
+                    ) THEN
+                        CREATE TABLE ""SupervisorContracts"" (
+                            ""Id"" uuid NOT NULL PRIMARY KEY,
+                            ""ProjectId"" uuid NOT NULL,
+                            ""SupervisorId"" uuid NOT NULL,
+                            ""HomeownerUserId"" uuid NOT NULL,
+                            ""SupervisorUserId"" uuid NOT NULL,
+                            ""MonthlyPrice"" numeric(18,2) NOT NULL,
+                            ""Terms"" character varying(10000) NOT NULL DEFAULT '',
+                            ""Status"" integer NOT NULL,
+                            ""SignedByHomeownerAt"" timestamp with time zone NULL,
+                            ""SignedBySupervisorAt"" timestamp with time zone NULL,
+                            ""homeownersignaturebase64"" character varying(1000000) NULL,
+                            ""supervisorsignaturebase64"" character varying(1000000) NULL,
+                            ""templatepdfurl"" character varying(1000) NULL,
+                            ""signedpdfurl"" character varying(1000) NULL,
+                            ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                            ""UpdatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                            ""CreatedBy"" text NULL,
+                            ""UpdatedBy"" text NULL,
+                            CONSTRAINT ""FK_SupervisorContracts_Projects_ProjectId""
+                                FOREIGN KEY (""ProjectId"") REFERENCES ""Projects""(""Id"") ON DELETE RESTRICT,
+                            CONSTRAINT ""FK_SupervisorContracts_Supervisors_SupervisorId""
+                                FOREIGN KEY (""SupervisorId"") REFERENCES ""Supervisors""(""Id"") ON DELETE RESTRICT
+                        );
+                    END IF;
+                END $$;
+            ");
+=======
             migrationBuilder.CreateTable(
                 name: "SupervisorContracts",
                 columns: table => new
@@ -91,6 +130,7 @@ namespace OCSP.Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
+>>>>>>> 4bb8c9d575355129311ea350af4b1d10c01d0f56
 
             migrationBuilder.CreateTable(
                 name: "MaterialApprovalHistories",
@@ -270,6 +310,54 @@ namespace OCSP.Infrastructure.Migrations
                 table: "Materials",
                 column: "WorkItemId");
 
+<<<<<<< HEAD
+            // Create indexes for SupervisorContracts only if table exists and indexes don't exist
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM pg_catalog.pg_class c
+                        JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+                        WHERE n.nspname='public' AND c.relname='SupervisorContracts'
+                    ) THEN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_indexes 
+                            WHERE tablename='SupervisorContracts' AND indexname='IX_SupervisorContracts_HomeownerUserId'
+                        ) THEN
+                            CREATE INDEX ""IX_SupervisorContracts_HomeownerUserId"" ON ""SupervisorContracts"" (""HomeownerUserId"");
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_indexes 
+                            WHERE tablename='SupervisorContracts' AND indexname='IX_SupervisorContracts_ProjectId'
+                        ) THEN
+                            CREATE INDEX ""IX_SupervisorContracts_ProjectId"" ON ""SupervisorContracts"" (""ProjectId"");
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_indexes 
+                            WHERE tablename='SupervisorContracts' AND indexname='IX_SupervisorContracts_Status'
+                        ) THEN
+                            CREATE INDEX ""IX_SupervisorContracts_Status"" ON ""SupervisorContracts"" (""Status"");
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_indexes 
+                            WHERE tablename='SupervisorContracts' AND indexname='IX_SupervisorContracts_SupervisorId'
+                        ) THEN
+                            CREATE INDEX ""IX_SupervisorContracts_SupervisorId"" ON ""SupervisorContracts"" (""SupervisorId"");
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_indexes 
+                            WHERE tablename='SupervisorContracts' AND indexname='IX_SupervisorContracts_SupervisorUserId'
+                        ) THEN
+                            CREATE INDEX ""IX_SupervisorContracts_SupervisorUserId"" ON ""SupervisorContracts"" (""SupervisorUserId"");
+                        END IF;
+                    END IF;
+                END $$;
+            ");
+=======
             migrationBuilder.CreateIndex(
                 name: "IX_SupervisorContracts_HomeownerUserId",
                 table: "SupervisorContracts",
@@ -294,6 +382,7 @@ namespace OCSP.Infrastructure.Migrations
                 name: "IX_SupervisorContracts_SupervisorUserId",
                 table: "SupervisorContracts",
                 column: "SupervisorUserId");
+>>>>>>> 4bb8c9d575355129311ea350af4b1d10c01d0f56
         }
 
         /// <inheritdoc />
@@ -305,8 +394,24 @@ namespace OCSP.Infrastructure.Migrations
             migrationBuilder.DropTable(
                 name: "MaterialPayments");
 
+<<<<<<< HEAD
+            // Only drop SupervisorContracts if it exists (may have been created via SQL script)
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM pg_catalog.pg_class c
+                        JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+                        WHERE n.nspname='public' AND c.relname='SupervisorContracts'
+                    ) THEN
+                        DROP TABLE IF EXISTS ""SupervisorContracts"" CASCADE;
+                    END IF;
+                END $$;
+            ");
+=======
             migrationBuilder.DropTable(
                 name: "SupervisorContracts");
+>>>>>>> 4bb8c9d575355129311ea350af4b1d10c01d0f56
 
             migrationBuilder.DropTable(
                 name: "Materials");

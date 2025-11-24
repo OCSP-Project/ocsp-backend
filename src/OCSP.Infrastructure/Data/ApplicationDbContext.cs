@@ -96,6 +96,9 @@ namespace OCSP.Infrastructure.Data
             public DbSet<MaterialPayment> MaterialPayments { get; set; }
             public DbSet<MaterialApprovalHistory> MaterialApprovalHistories { get; set; }
             public DbSet<Notification> Notifications { get; set; }
+            
+            // NEW: Registration Requests
+            public DbSet<RegistrationRequest> RegistrationRequests { get; set; }
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
@@ -124,6 +127,9 @@ namespace OCSP.Infrastructure.Data
                   modelBuilder.ApplyConfiguration(new ContractConfiguration());
                   modelBuilder.ApplyConfiguration(new ContractItemConfiguration());
                   modelBuilder.ApplyConfiguration(new SupervisorContractConfiguration());
+                  
+                  // NEW: Apply registration request configuration
+                  modelBuilder.ApplyConfiguration(new RegistrationRequestConfiguration());
                   // Existing User configuration
                   modelBuilder.Entity<User>(entity =>
                   {

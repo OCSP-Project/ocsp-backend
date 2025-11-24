@@ -106,6 +106,7 @@ builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<ISupervisorContractService, SupervisorContractService>();
 builder.Services.AddScoped<IContractorService, ContractorService>();
 builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+builder.Services.AddScoped<IRegistrationRequestService, RegistrationRequestService>();
 builder.Services.AddScoped<IContractMilestoneService, ContractMilestoneService>();
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.AddScoped<OCSP.Infrastructure.ExternalServices.Interfaces.IPdfService, OCSP.Infrastructure.ExternalServices.PdfService>();

@@ -14,6 +14,7 @@ namespace OCSP.Domain.Entities
         ProjectInvitation = 100,
         PaymentRequest = 200,
         ProgressUpdate = 300,
+        WorkItemCommentMention = 400,
     }
 
     public class Notification : AuditableEntity

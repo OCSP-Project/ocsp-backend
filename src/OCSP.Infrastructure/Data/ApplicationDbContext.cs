@@ -83,6 +83,7 @@ namespace OCSP.Infrastructure.Data
             public DbSet<WorkItem> WorkItems { get; set; }
             public DbSet<WorkItemActivity> WorkItemActivities { get; set; }
             public DbSet<WorkItemComment> WorkItemComments { get; set; }
+            public DbSet<WorkItemCommentMention> WorkItemCommentMentions { get; set; }
             public DbSet<WorkItemMaterial> WorkItemMaterials { get; set; }
             public DbSet<WorkItemDocument> WorkItemDocuments { get; set; }
             public DbSet<WorkItemUpdateHistory> WorkItemUpdateHistories { get; set; }
@@ -96,6 +97,14 @@ namespace OCSP.Infrastructure.Data
             public DbSet<MaterialPayment> MaterialPayments { get; set; }
             public DbSet<MaterialApprovalHistory> MaterialApprovalHistories { get; set; }
             public DbSet<Notification> Notifications { get; set; }
+
+            // NEW: Construction Diary Entities
+            public DbSet<ConstructionDiary> ConstructionDiaries { get; set; }
+            public DbSet<DiaryWorkItem> DiaryWorkItems { get; set; }
+            public DbSet<DiaryLabor> DiaryLabors { get; set; }
+            public DbSet<DiaryEquipment> DiaryEquipments { get; set; }
+            public DbSet<DiaryWeatherPeriod> DiaryWeatherPeriods { get; set; }
+            public DbSet<DiaryImage> DiaryImages { get; set; }
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
@@ -664,6 +673,14 @@ namespace OCSP.Infrastructure.Data
 
                   // Material Management Entities Configuration
                   ConfigureMaterialEntities(modelBuilder);
+
+                  // Construction Diary Configurations
+                  modelBuilder.ApplyConfiguration(new ConstructionDiaryConfiguration());
+                  modelBuilder.ApplyConfiguration(new DiaryWorkItemConfiguration());
+                  modelBuilder.ApplyConfiguration(new DiaryLaborConfiguration());
+                  modelBuilder.ApplyConfiguration(new DiaryEquipmentConfiguration());
+                  modelBuilder.ApplyConfiguration(new DiaryWeatherPeriodConfiguration());
+                  modelBuilder.ApplyConfiguration(new DiaryImageConfiguration());
 
                   // WalletTransaction
                   modelBuilder.Entity<WalletTransaction>(e =>

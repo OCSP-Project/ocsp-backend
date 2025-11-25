@@ -161,6 +161,7 @@ builder.Services.AddScoped<ITemplateService, TemplateService>();
 
 // Budget System Services
 builder.Services.AddScoped<IWorkItemService, WorkItemService>();
+builder.Services.AddScoped<IWorkItemCommentService, WorkItemCommentService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IPaymentRequestService, PaymentRequestService>();
 

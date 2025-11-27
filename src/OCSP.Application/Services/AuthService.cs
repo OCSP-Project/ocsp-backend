@@ -33,6 +33,11 @@ namespace OCSP.Application.Services
                 throw new ValidationException("Email hoặc mật khẩu không đúng");
             }
 
+            if (user.IsBanned)
+            {
+                throw new ValidationException("Tài khoản của bạn đã bị ban. Vui lòng liên hệ quản trị viên để được hỗ trợ");
+            }
+
             if (!user.IsEmailVerified)
             {
                 throw new ValidationException("Vui lòng xác thực email trước khi đăng nhập");

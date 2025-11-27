@@ -9,6 +9,7 @@ namespace OCSP.Application.DTOs.Admin
         public string Email { get; set; } = string.Empty;
         public UserRole Role { get; set; }
         public bool IsEmailVerified { get; set; }
+        public bool IsBanned { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<UserProjectInfoDto> Projects { get; set; } = new();
     }

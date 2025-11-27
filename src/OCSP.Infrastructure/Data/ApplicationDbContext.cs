@@ -97,6 +97,9 @@ namespace OCSP.Infrastructure.Data
             public DbSet<MaterialPayment> MaterialPayments { get; set; }
             public DbSet<MaterialApprovalHistory> MaterialApprovalHistories { get; set; }
             public DbSet<Notification> Notifications { get; set; }
+            
+            // NEW: Registration Requests
+            public DbSet<RegistrationRequest> RegistrationRequests { get; set; }
 
             // NEW: Construction Diary Entities
             public DbSet<ConstructionDiary> ConstructionDiaries { get; set; }
@@ -133,6 +136,9 @@ namespace OCSP.Infrastructure.Data
                   modelBuilder.ApplyConfiguration(new ContractConfiguration());
                   modelBuilder.ApplyConfiguration(new ContractItemConfiguration());
                   modelBuilder.ApplyConfiguration(new SupervisorContractConfiguration());
+                  
+                  // NEW: Apply registration request configuration
+                  modelBuilder.ApplyConfiguration(new RegistrationRequestConfiguration());
                   // Existing User configuration
                   modelBuilder.Entity<User>(entity =>
                   {
@@ -154,6 +160,9 @@ namespace OCSP.Infrastructure.Data
                         .HasConversion<int>();
 
                         entity.Property(e => e.IsEmailVerified)
+                        .HasDefaultValue(false);
+
+                        entity.Property(e => e.IsBanned)
                         .HasDefaultValue(false);
 
                         entity.HasIndex(e => e.Email).IsUnique();

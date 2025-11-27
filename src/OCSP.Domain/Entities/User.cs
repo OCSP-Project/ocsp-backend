@@ -12,6 +12,7 @@ namespace OCSP.Domain.Entities
 
         // Authentication specific properties
         public bool IsEmailVerified { get; set; } = false;
+        public bool IsBanned { get; set; } = false;
         public string? EmailVerificationToken { get; set; }
         public DateTime? EmailVerificationTokenExpiry { get; set; }
         public string? PasswordResetToken { get; set; }

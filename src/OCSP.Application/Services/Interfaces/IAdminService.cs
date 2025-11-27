@@ -20,5 +20,7 @@ namespace OCSP.Application.Services.Interfaces
             int page = 1,
             int pageSize = 20);
         Task<FinancialReportDto> GetFinancialReportAsync();
+        Task<bool> BanUserAsync(Guid userId);
+        Task<bool> UnbanUserAsync(Guid userId);
     }
 }

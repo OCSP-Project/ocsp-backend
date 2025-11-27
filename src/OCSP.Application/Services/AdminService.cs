@@ -112,6 +112,7 @@ namespace OCSP.Application.Services
                     Email = user.Email,
                     Role = user.Role,
                     IsEmailVerified = user.IsEmailVerified,
+                    IsBanned = user.IsBanned,
                     CreatedAt = user.CreatedAt,
                     Projects = await GetUserProjectsAsync(user.Id)
                 };
@@ -203,6 +204,7 @@ namespace OCSP.Application.Services
                 Email = user.Email,
                 Role = user.Role,
                 IsEmailVerified = user.IsEmailVerified,
+                IsBanned = user.IsBanned,
                 CreatedAt = user.CreatedAt,
                 Projects = await GetUserProjectsAsync(user.Id)
             };
@@ -599,6 +601,73 @@ namespace OCSP.Application.Services
                 LargestTransactionAmount = largestTransactionAmount,
                 SmallestTransactionAmount = smallestTransactionAmount
             };
+        }
+
+        public async Task<bool> BanUserAsync(Guid userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                throw new ValidationException("Người dùng không tồn tại");
+            }
+
+            // Không cho phép ban admin
+            if (user.Role == OCSP.Domain.Enums.UserRole.Admin)
+            {
+                throw new ValidationException("Không thể ban tài khoản admin");
+            }
+
+            try
+            {
+                user.IsBanned = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                // Vô hiệu hóa refresh token khi ban
+                user.RefreshToken = null;
+                user.RefreshTokenExpiryTime = null;
+
+                var rowsAffected = await _context.SaveChangesAsync();
+                if (rowsAffected == 0)
+                {
+                    throw new ValidationException("Không thể cập nhật trạng thái ban của người dùng");
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new ValidationException($"Lỗi khi ban người dùng: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> UnbanUserAsync(Guid userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                throw new ValidationException("Người dùng không tồn tại");
+            }
+
+            // Không cho phép unban admin (vì admin không thể bị ban)
+            if (user.Role == OCSP.Domain.Enums.UserRole.Admin)
+            {
+                throw new ValidationException("Không thể unban tài khoản admin");
+            }
+
+            try
+            {
+                user.IsBanned = false;
+                user.UpdatedAt = DateTime.UtcNow;
+
+                var rowsAffected = await _context.SaveChangesAsync();
+                if (rowsAffected == 0)
+                {
+                    throw new ValidationException("Không thể cập nhật trạng thái unban của người dùng");
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new ValidationException($"Lỗi khi unban người dùng: {ex.Message}");
+            }
         }
     }
 }

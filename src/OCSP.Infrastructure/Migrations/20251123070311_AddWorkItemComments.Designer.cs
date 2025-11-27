@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OCSP.Infrastructure.Data;
@@ -11,9 +12,11 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251123070311_AddWorkItemComments")]
+    partial class AddWorkItemComments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -293,81 +296,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.HasIndex("ToUserId");
 
                     b.ToTable("Communications", (string)null);
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.ConstructionDiary", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("CleanlinessRating")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ConstructionTeam")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ContractorName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("DiaryDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("IncidentReport")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<int>("ProgressRating")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("QualityRating")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Recommendations")
-                        .HasColumnType("text");
-
-                    b.Property<int>("SafetyRating")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SupervisorName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("SupervisorPosition")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("SupervisorUnitName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DiaryDate");
-
-                    b.HasIndex("ProjectId", "DiaryDate")
-                        .IsUnique();
-
-                    b.ToTable("ConstructionDiaries", (string)null);
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.ConstructionLog", b =>
@@ -1063,265 +991,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.HasIndex("MilestoneId");
 
                     b.ToTable("Deliverables");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryEquipment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("DiaryWorkItemId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("EquipmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("EquipmentName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal>("HoursUsed")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Specifications")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DiaryWorkItemId");
-
-                    b.ToTable("DiaryEquipments", (string)null);
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Category")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ConstructionDiaryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Category");
-
-                    b.HasIndex("ConstructionDiaryId");
-
-                    b.HasIndex("UploadedAt");
-
-                    b.ToTable("DiaryImages", (string)null);
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryLabor", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("DiaryWorkItemId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("LaborId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("LaborName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Position")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Shift")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Team")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("WorkHours")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DiaryWorkItemId");
-
-                    b.ToTable("DiaryLabors", (string)null);
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryWeatherPeriod", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Condition")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("ConstructionDiaryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Period")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Temperature")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConstructionDiaryId");
-
-                    b.ToTable("DiaryWeatherPeriods", (string)null);
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryWorkItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("ConstructedQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ConstructionArea")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("ConstructionDiaryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("PlannedQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("RemainingQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("WorkItemId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("WorkItemName")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConstructionDiaryId");
-
-                    b.HasIndex("WorkItemId");
-
-                    b.ToTable("DiaryWorkItems", (string)null);
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.ElementTrackingHistory", b =>
@@ -2938,140 +2607,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.ToTable("QuoteRequests");
                 });
 
-            modelBuilder.Entity("OCSP.Domain.Entities.RegistrationRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("BusinessLicense")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("CompanyName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int?>("CompletedProjects")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("CreatedUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Department")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<string>("District")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<decimal?>("MaxProjectBudget")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal?>("MaxRate")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal?>("MinProjectBudget")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal?>("MinRate")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Position")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Province")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("RequestedRole")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReviewedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("TaxCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("TeamSize")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Website")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int?>("YearsOfExperience")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("CreatedUserId");
-
-                    b.HasIndex("Email");
-
-                    b.HasIndex("RequestedRole");
-
-                    b.HasIndex("ReviewedByUserId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("RegistrationRequests", (string)null);
-                });
-
             modelBuilder.Entity("OCSP.Domain.Entities.Review", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3338,9 +2873,6 @@ namespace OCSP.Infrastructure.Migrations
 
                     b.Property<DateTime?>("EmailVerificationTokenExpiry")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsBanned")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsEmailVerified")
                         .ValueGeneratedOnAdd()
@@ -3953,17 +3485,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("ToUser");
                 });
 
-            modelBuilder.Entity("OCSP.Domain.Entities.ConstructionDiary", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
             modelBuilder.Entity("OCSP.Domain.Entities.ConstructionLog", b =>
                 {
                     b.HasOne("OCSP.Domain.Entities.Project", "Project")
@@ -4124,69 +3645,6 @@ namespace OCSP.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Milestone");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryEquipment", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.DiaryWorkItem", "DiaryWorkItem")
-                        .WithMany("EquipmentEntries")
-                        .HasForeignKey("DiaryWorkItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DiaryWorkItem");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryImage", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.ConstructionDiary", "ConstructionDiary")
-                        .WithMany("Images")
-                        .HasForeignKey("ConstructionDiaryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ConstructionDiary");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryLabor", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.DiaryWorkItem", "DiaryWorkItem")
-                        .WithMany("LaborEntries")
-                        .HasForeignKey("DiaryWorkItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DiaryWorkItem");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryWeatherPeriod", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.ConstructionDiary", "ConstructionDiary")
-                        .WithMany("WeatherPeriods")
-                        .HasForeignKey("ConstructionDiaryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ConstructionDiary");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryWorkItem", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.ConstructionDiary", "ConstructionDiary")
-                        .WithMany("WorkItems")
-                        .HasForeignKey("ConstructionDiaryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("OCSP.Domain.Entities.WorkItem", "WorkItem")
-                        .WithMany()
-                        .HasForeignKey("WorkItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ConstructionDiary");
-
-                    b.Navigation("WorkItem");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.ElementTrackingHistory", b =>
@@ -4625,23 +4083,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("OCSP.Domain.Entities.RegistrationRequest", b =>
-                {
-                    b.HasOne("OCSP.Domain.Entities.User", "CreatedUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("OCSP.Domain.Entities.User", "ReviewedByUser")
-                        .WithMany()
-                        .HasForeignKey("ReviewedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("CreatedUser");
-
-                    b.Navigation("ReviewedByUser");
-                });
-
             modelBuilder.Entity("OCSP.Domain.Entities.Review", b =>
                 {
                     b.HasOne("OCSP.Domain.Entities.Contractor", "Contractor")
@@ -4844,15 +4285,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("TrackingHistory");
                 });
 
-            modelBuilder.Entity("OCSP.Domain.Entities.ConstructionDiary", b =>
-                {
-                    b.Navigation("Images");
-
-                    b.Navigation("WeatherPeriods");
-
-                    b.Navigation("WorkItems");
-                });
-
             modelBuilder.Entity("OCSP.Domain.Entities.Contract", b =>
                 {
                     b.Navigation("Escrow");
@@ -4889,13 +4321,6 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("Messages");
 
                     b.Navigation("Participants");
-                });
-
-            modelBuilder.Entity("OCSP.Domain.Entities.DiaryWorkItem", b =>
-                {
-                    b.Navigation("EquipmentEntries");
-
-                    b.Navigation("LaborEntries");
                 });
 
             modelBuilder.Entity("OCSP.Domain.Entities.ElementTrackingHistory", b =>

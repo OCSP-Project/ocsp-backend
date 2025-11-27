@@ -5,26 +5,25 @@
 namespace OCSP.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddColorToBuildingElement : Migration
+    public partial class AddIsBannedToUser : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Color",
-                table: "BuildingElements",
-                type: "character varying(7)",
-                maxLength: 7,
+            migrationBuilder.AddColumn<bool>(
+                name: "IsBanned",
+                table: "Users",
+                type: "boolean",
                 nullable: false,
-                defaultValue: "#CCCCCC");
+                defaultValue: false);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Color",
-                table: "BuildingElements");
+                name: "IsBanned",
+                table: "Users");
         }
     }
 }

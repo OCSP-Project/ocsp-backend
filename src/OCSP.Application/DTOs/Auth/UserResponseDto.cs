@@ -7,6 +7,7 @@ namespace OCSP.Application.DTOs.Auth
         public string Email { get; set; } = string.Empty;
         public OCSP.Domain.Enums.UserRole Role { get; set; }
         public bool IsEmailVerified { get; set; }
+        public bool IsBanned { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

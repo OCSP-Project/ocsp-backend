@@ -267,7 +267,7 @@ namespace OCSP.Infrastructure.Data.Configurations
             // Properties
             b.Property(x => x.Url)
              .IsRequired()
-             .HasMaxLength(2000); // For S3 URLs or base64
+             .HasColumnType("text"); // Changed from varchar(2000) to text for base64 images
 
             b.Property(x => x.Category)
              .HasConversion<int>()

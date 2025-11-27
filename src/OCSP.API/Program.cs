@@ -169,6 +169,9 @@ builder.Services.AddScoped<IPaymentRequestService, PaymentRequestService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
 
+// Construction Diary Service
+builder.Services.AddScoped<IConstructionDiaryService, ConstructionDiaryService>();
+
 // SignalR (required for MapHub)
 builder.Services.AddSignalR();
 

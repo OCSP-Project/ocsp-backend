@@ -216,6 +216,11 @@ public async Task<ActionResult<ContractDto>> UpdateStatus(Guid id, [FromBody] Up
                 Console.WriteLine($"UnauthorizedAccessException in GetContractPdf: {ex.Message}");
                 return Forbid(ex.Message); 
             }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"InvalidOperationException in GetContractPdf: {ex.Message}");
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

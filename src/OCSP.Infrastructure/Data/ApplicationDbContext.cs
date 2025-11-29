@@ -153,6 +153,9 @@ namespace OCSP.Infrastructure.Data
                         entity.Property(e => e.IsEmailVerified)
                         .HasDefaultValue(false);
 
+                        entity.Property(e => e.IsBanned)
+                        .HasDefaultValue(false);
+
                         entity.HasIndex(e => e.Email).IsUnique();
                         entity.HasIndex(e => e.Username).IsUnique();
                   });

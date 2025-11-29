@@ -10,6 +10,7 @@ namespace OCSP.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+
             // Only add column if table exists and column doesn't exist
             migrationBuilder.Sql(@"
                 DO $$
@@ -33,11 +34,13 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+
             // Only drop column if table and column exist
             migrationBuilder.Sql(@"
                 DO $$
@@ -58,6 +61,7 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+
         }
     }
 }

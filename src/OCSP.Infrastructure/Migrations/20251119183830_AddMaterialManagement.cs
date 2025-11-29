@@ -52,6 +52,7 @@ namespace OCSP.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+
             // Create SupervisorContracts table only if it doesn't exist
             // (Table may have been created via SQL script: 001_add_supervisor_contracts.sql)
             migrationBuilder.Sql(@"
@@ -89,6 +90,7 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+
 
             migrationBuilder.CreateTable(
                 name: "MaterialApprovalHistories",
@@ -268,6 +270,7 @@ namespace OCSP.Infrastructure.Migrations
                 table: "Materials",
                 column: "WorkItemId");
 
+
             // Create indexes for SupervisorContracts only if table exists and indexes don't exist
             migrationBuilder.Sql(@"
                 DO $$
@@ -314,6 +317,7 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+
         }
 
         /// <inheritdoc />
@@ -324,6 +328,7 @@ namespace OCSP.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "MaterialPayments");
+
 
             // Only drop SupervisorContracts if it exists (may have been created via SQL script)
             migrationBuilder.Sql(@"
@@ -338,6 +343,7 @@ namespace OCSP.Infrastructure.Migrations
                     END IF;
                 END $$;
             ");
+
 
             migrationBuilder.DropTable(
                 name: "Materials");

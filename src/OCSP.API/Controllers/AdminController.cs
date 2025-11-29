@@ -154,6 +154,70 @@ namespace OCSP.API.Controllers
             }
         }
 
+        // POST api/admin/users/{userId}/ban
+        [HttpPost("users/{userId:guid}/ban")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> BanUser([FromRoute] Guid userId)
+        {
+            try
+            {
+                // Check if current user is Admin
+                if (!IsAdmin())
+                {
+                    return Forbid("Chỉ admin mới có quyền ban người dùng");
+                }
+
+                await _adminService.BanUserAsync(userId);
+                return Ok(new { message = "Người dùng đã bị ban thành công" });
+            }
+            catch (OCSP.Application.Common.Exceptions.ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Validation error banning user");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error banning user");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // POST api/admin/users/{userId}/unban
+        [HttpPost("users/{userId:guid}/unban")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UnbanUser([FromRoute] Guid userId)
+        {
+            try
+            {
+                // Check if current user is Admin
+                if (!IsAdmin())
+                {
+                    return Forbid("Chỉ admin mới có quyền unban người dùng");
+                }
+
+                await _adminService.UnbanUserAsync(userId);
+                return Ok(new { message = "Người dùng đã được unban thành công" });
+            }
+            catch (OCSP.Application.Common.Exceptions.ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Validation error unbanning user");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error unbanning user");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
         // GET api/admin/dashboard/stats
         [HttpGet("dashboard/stats")]
         [ProducesResponseType(typeof(OCSP.Application.DTOs.Admin.AdminDashboardStatsDto), StatusCodes.Status200OK)]

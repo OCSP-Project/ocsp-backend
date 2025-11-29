@@ -64,19 +64,6 @@ namespace OCSP.Application.DTOs.Budget
         public string UploadedByUsername { get; set; } = string.Empty;
     }
 
-    public class WorkItemCommentDto
-    {
-        public Guid Id { get; set; }
-        public string Content { get; set; } = string.Empty;
-        public Guid CreatedById { get; set; }
-        public string CreatedByUsername { get; set; } = string.Empty;
-        public string? AvatarUrl { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public Guid? ParentCommentId { get; set; }
-        public List<WorkItemCommentDto> Replies { get; set; } = new();
-        public List<string> Attachments { get; set; } = new();
-    }
-
     public class WorkItemActivityDto
     {
         public Guid Id { get; set; }

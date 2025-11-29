@@ -15,6 +15,7 @@ namespace OCSP.Domain.Entities
         public WorkItemComment? ParentComment { get; set; }
 
         public ICollection<WorkItemComment> Replies { get; set; } = new List<WorkItemComment>();
+        public ICollection<WorkItemCommentMention> Mentions { get; set; } = new List<WorkItemCommentMention>();
 
         public string? Attachments { get; set; }                         // JSON array of file URLs
         public bool IsDeleted { get; set; } = false;

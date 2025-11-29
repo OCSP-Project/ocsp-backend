@@ -607,11 +607,15 @@ namespace OCSP.Application.Services
             {
                 Id = comment.Id,
                 Content = comment.Content,
+                WorkItemId = comment.WorkItemId,
                 CreatedById = comment.CreatedById,
-                CreatedByUsername = "User", // TODO: Get from User relation
+                CreatedByName = "User", // TODO: Get from User relation
+                CreatedByAvatar = "",
+                CreatedByRole = "",
                 CreatedAt = comment.CreatedAt,
+                UpdatedAt = comment.UpdatedAt,
                 ParentCommentId = comment.ParentCommentId,
-                Attachments = comment.Attachments != null ? JsonSerializer.Deserialize<List<string>>(comment.Attachments) ?? new List<string>() : new List<string>()
+                Attachments = comment.Attachments
             };
         }
 
@@ -1294,11 +1298,15 @@ namespace OCSP.Application.Services
             {
                 Id = c.Id,
                 Content = c.Content,
+                WorkItemId = c.WorkItemId,
                 CreatedById = c.CreatedById,
-                CreatedByUsername = "User", // TODO: Get from User relation
+                CreatedByName = "User", // TODO: Get from User relation
+                CreatedByAvatar = "",
+                CreatedByRole = "",
                 CreatedAt = c.CreatedAt,
+                UpdatedAt = c.UpdatedAt,
                 ParentCommentId = c.ParentCommentId,
-                Attachments = c.Attachments != null ? JsonSerializer.Deserialize<List<string>>(c.Attachments) ?? new List<string>() : new List<string>(),
+                Attachments = c.Attachments,
                 Replies = new List<WorkItemCommentDto>()
             }).ToList();
 

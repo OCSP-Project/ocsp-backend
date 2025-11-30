@@ -25,6 +25,7 @@ namespace OCSP.Application.Services
                     .ThenInclude(w => w.LaborEntries)
                 .Include(d => d.WorkItems)
                     .ThenInclude(w => w.EquipmentEntries)
+                .Include(d => d.MaterialEntries)
                 .Include(d => d.WeatherPeriods)
                 .Include(d => d.Images)
                 .Include(d => d.Project)
@@ -162,6 +163,35 @@ namespace OCSP.Application.Services
                 diary.WorkItems.Add(diaryWorkItem);
             }
 
+            // Add material entries
+            foreach (var materialDto in dto.MaterialEntries)
+            {
+                var material = await _context.Materials.FindAsync(new object[] { materialDto.MaterialId }, ct);
+                if (material == null) continue;
+
+                var diaryMaterialEntry = new DiaryMaterialEntry
+                {
+                    Id = Guid.NewGuid(),
+                    ConstructionDiaryId = diary.Id,
+                    MaterialId = materialDto.MaterialId,
+                    MaterialName = materialDto.MaterialName,
+                    Code = materialDto.Code,
+                    Unit = materialDto.Unit,
+                    ContractQuantity = materialDto.ContractQuantity,
+                    ActualQuantity = materialDto.ActualQuantity,
+                    Variance = materialDto.Variance,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                diary.MaterialEntries.Add(diaryMaterialEntry);
+
+                // Update actualQuantity in Materials table
+                material.ActualQuantity = materialDto.ActualQuantity;
+                material.ActualAmount = materialDto.ActualQuantity * material.UnitPrice;
+                material.UpdatedAt = DateTime.UtcNow;
+            }
+
             // Add weather periods
             foreach (var weatherDto in dto.WeatherPeriods)
             {
@@ -207,6 +237,7 @@ namespace OCSP.Application.Services
                     .ThenInclude(w => w.LaborEntries)
                 .Include(d => d.WorkItems)
                     .ThenInclude(w => w.EquipmentEntries)
+                .Include(d => d.MaterialEntries)
                 .Include(d => d.WeatherPeriods)
                 .Include(d => d.Images)
                 .FirstOrDefaultAsync(d => d.Id == diaryId, ct);
@@ -231,7 +262,7 @@ namespace OCSP.Application.Services
             diary.UpdatedBy = userId.ToString();
 
             // Detach all old tracked entities BEFORE deleting to prevent EF from trying to update them
-            Console.WriteLine($"[UPDATE DIARY] Starting detach process. Diary has {diary.WorkItems.Count} work items, {diary.WeatherPeriods.Count} weather periods, {diary.Images.Count} images");
+            Console.WriteLine($"[UPDATE DIARY] Starting detach process. Diary has {diary.WorkItems.Count} work items, {diary.MaterialEntries.Count} material entries, {diary.WeatherPeriods.Count} weather periods, {diary.Images.Count} images");
 
             foreach (var workItem in diary.WorkItems.ToList())
             {
@@ -252,6 +283,13 @@ namespace OCSP.Application.Services
                 Console.WriteLine($"[UPDATE DIARY] WorkItem {workItem.Id}, state after: {_context.Entry(workItem).State}");
             }
 
+            foreach (var materialEntry in diary.MaterialEntries.ToList())
+            {
+                Console.WriteLine($"[UPDATE DIARY] Detaching MaterialEntry {materialEntry.Id}, state before: {_context.Entry(materialEntry).State}");
+                _context.Entry(materialEntry).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+                Console.WriteLine($"[UPDATE DIARY] MaterialEntry {materialEntry.Id}, state after: {_context.Entry(materialEntry).State}");
+            }
+
             foreach (var weather in diary.WeatherPeriods.ToList())
             {
                 Console.WriteLine($"[UPDATE DIARY] Detaching Weather {weather.Id}, state before: {_context.Entry(weather).State}");
@@ -268,9 +306,10 @@ namespace OCSP.Application.Services
 
             Console.WriteLine($"[UPDATE DIARY] Clearing collections...");
             diary.WorkItems.Clear();
+            diary.MaterialEntries.Clear();
             diary.WeatherPeriods.Clear();
             diary.Images.Clear();
-            Console.WriteLine($"[UPDATE DIARY] Collections cleared. Diary now has {diary.WorkItems.Count} work items, {diary.WeatherPeriods.Count} weather, {diary.Images.Count} images");
+            Console.WriteLine($"[UPDATE DIARY] Collections cleared. Diary now has {diary.WorkItems.Count} work items, {diary.MaterialEntries.Count} material entries, {diary.WeatherPeriods.Count} weather, {diary.Images.Count} images");
 
             // Remove existing nested entities - use direct SQL
             await _context.DiaryLabors
@@ -287,6 +326,9 @@ namespace OCSP.Application.Services
                 .ExecuteDeleteAsync(ct);
             await _context.DiaryWorkItems
                 .Where(w => w.ConstructionDiaryId == diaryId)
+                .ExecuteDeleteAsync(ct);
+            await _context.DiaryMaterialEntries
+                .Where(m => m.ConstructionDiaryId == diaryId)
                 .ExecuteDeleteAsync(ct);
             await _context.DiaryWeatherPeriods
                 .Where(w => w.ConstructionDiaryId == diaryId)
@@ -364,6 +406,38 @@ namespace OCSP.Application.Services
                 {
                     _context.Entry(equip).State = Microsoft.EntityFrameworkCore.EntityState.Added;
                 }
+            }
+
+            // Re-add material entries
+            foreach (var materialDto in dto.MaterialEntries)
+            {
+                var material = await _context.Materials.FindAsync(new object[] { materialDto.MaterialId }, ct);
+                if (material == null) continue;
+
+                var diaryMaterialEntry = new DiaryMaterialEntry
+                {
+                    Id = Guid.NewGuid(),
+                    ConstructionDiaryId = diary.Id,
+                    MaterialId = materialDto.MaterialId,
+                    MaterialName = materialDto.MaterialName,
+                    Code = materialDto.Code,
+                    Unit = materialDto.Unit,
+                    ContractQuantity = materialDto.ContractQuantity,
+                    ActualQuantity = materialDto.ActualQuantity,
+                    Variance = materialDto.Variance,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                diary.MaterialEntries.Add(diaryMaterialEntry);
+
+                // Explicitly set state to Added
+                _context.Entry(diaryMaterialEntry).State = Microsoft.EntityFrameworkCore.EntityState.Added;
+
+                // Update actualQuantity in Materials table
+                material.ActualQuantity = materialDto.ActualQuantity;
+                material.ActualAmount = materialDto.ActualQuantity * material.UnitPrice;
+                material.UpdatedAt = DateTime.UtcNow;
             }
 
             foreach (var weatherDto in dto.WeatherPeriods)
@@ -472,6 +546,7 @@ namespace OCSP.Application.Services
                 CreatedBy = diary.CreatedBy,
                 UpdatedBy = diary.UpdatedBy,
                 WorkItems = diary.WorkItems.Select(w => MapToWorkItemDto(w)).ToList(),
+                MaterialEntries = diary.MaterialEntries.Select(m => MapToMaterialEntryDto(m)).ToList(),
                 WeatherPeriods = diary.WeatherPeriods.Select(wp => MapToWeatherDto(wp)).ToList(),
                 Images = diary.Images.Select(i => MapToImageDto(i)).ToList()
             };
@@ -539,6 +614,22 @@ namespace OCSP.Application.Services
                 HoursUsed = equipment.HoursUsed,
                 Quantity = equipment.Quantity,
                 Unit = equipment.Unit
+            };
+        }
+
+        private DiaryMaterialEntryDto MapToMaterialEntryDto(DiaryMaterialEntry materialEntry)
+        {
+            return new DiaryMaterialEntryDto
+            {
+                Id = materialEntry.Id,
+                ConstructionDiaryId = materialEntry.ConstructionDiaryId,
+                MaterialId = materialEntry.MaterialId,
+                MaterialName = materialEntry.MaterialName,
+                Code = materialEntry.Code,
+                Unit = materialEntry.Unit,
+                ContractQuantity = materialEntry.ContractQuantity,
+                ActualQuantity = materialEntry.ActualQuantity,
+                Variance = materialEntry.Variance
             };
         }
 

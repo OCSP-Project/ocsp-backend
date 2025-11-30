@@ -51,6 +51,7 @@ namespace OCSP.Application.DTOs.ConstructionDiary
     public class ConstructionDiaryDetailDto : ConstructionDiaryDto
     {
         public List<DiaryWorkItemDto> WorkItems { get; set; } = new();
+        public List<DiaryMaterialEntryDto> MaterialEntries { get; set; } = new();
         public List<DiaryWeatherPeriodDto> WeatherPeriods { get; set; } = new();
         public List<DiaryImageDto> Images { get; set; } = new();
     }
@@ -100,6 +101,20 @@ namespace OCSP.Application.DTOs.ConstructionDiary
         public string Unit { get; set; } = string.Empty;
     }
 
+    // Material Entry DTOs
+    public class DiaryMaterialEntryDto
+    {
+        public Guid Id { get; set; }
+        public Guid ConstructionDiaryId { get; set; }
+        public Guid MaterialId { get; set; }
+        public string MaterialName { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string Unit { get; set; } = string.Empty;
+        public decimal ContractQuantity { get; set; }
+        public decimal ActualQuantity { get; set; }
+        public decimal? Variance { get; set; }
+    }
+
     // Weather DTOs
     public class DiaryWeatherPeriodDto
     {
@@ -143,6 +158,7 @@ namespace OCSP.Application.DTOs.ConstructionDiary
         public string? SupervisorUnitName { get; set; }
 
         public List<CreateDiaryWorkItemDto> WorkItems { get; set; } = new();
+        public List<CreateDiaryMaterialEntryDto> MaterialEntries { get; set; } = new();
         public List<CreateDiaryWeatherPeriodDto> WeatherPeriods { get; set; } = new();
         public List<CreateDiaryImageDto> Images { get; set; } = new();
     }
@@ -166,6 +182,7 @@ namespace OCSP.Application.DTOs.ConstructionDiary
         public string? SupervisorUnitName { get; set; }
 
         public List<CreateDiaryWorkItemDto> WorkItems { get; set; } = new();
+        public List<CreateDiaryMaterialEntryDto> MaterialEntries { get; set; } = new();
         public List<CreateDiaryWeatherPeriodDto> WeatherPeriods { get; set; } = new();
         public List<CreateDiaryImageDto> Images { get; set; } = new();
     }
@@ -201,6 +218,17 @@ namespace OCSP.Application.DTOs.ConstructionDiary
         public decimal HoursUsed { get; set; }
         public decimal Quantity { get; set; }
         public string Unit { get; set; } = string.Empty;
+    }
+
+    public class CreateDiaryMaterialEntryDto
+    {
+        public Guid MaterialId { get; set; }
+        public string MaterialName { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string Unit { get; set; } = string.Empty;
+        public decimal ContractQuantity { get; set; }
+        public decimal ActualQuantity { get; set; }
+        public decimal? Variance { get; set; }
     }
 
     public class CreateDiaryWeatherPeriodDto

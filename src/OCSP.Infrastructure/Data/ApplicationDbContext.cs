@@ -106,6 +106,7 @@ namespace OCSP.Infrastructure.Data
             public DbSet<DiaryWorkItem> DiaryWorkItems { get; set; }
             public DbSet<DiaryLabor> DiaryLabors { get; set; }
             public DbSet<DiaryEquipment> DiaryEquipments { get; set; }
+            public DbSet<DiaryMaterialEntry> DiaryMaterialEntries { get; set; }
             public DbSet<DiaryWeatherPeriod> DiaryWeatherPeriods { get; set; }
             public DbSet<DiaryImage> DiaryImages { get; set; }
 

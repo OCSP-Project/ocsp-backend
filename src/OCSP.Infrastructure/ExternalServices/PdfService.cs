@@ -20,20 +20,22 @@ namespace OCSP.Infrastructure.ExternalServices
         public Task<byte[]> GenerateContractPdfAsync(
             Contract contract, 
             Profile homeownerProfile, 
-            Profile contractorProfile,
+            Profile? contractorProfile,
             Contractor? contractorCompany,
             Proposal proposal,
             string? homeownerSignatureBase64 = null,
             string? contractorSignatureBase64 = null)
         {
             if (homeownerProfile == null)
-    throw new InvalidOperationException("Homeowner profile not found for contract PDF.");
+                throw new InvalidOperationException("Homeowner profile not found for contract PDF.");
 
-if (contractorProfile == null)
-    throw new InvalidOperationException("Contractor profile not found for contract PDF.");
+            // Contractor info can come from either contractorCompany (preferred) or contractorProfile
+            // If both are null, we can't generate the PDF
+            if (contractorCompany == null && contractorProfile == null)
+                throw new InvalidOperationException("Contractor information not found for contract PDF. Either Contractor entity or Profile is required.");
 
-if (proposal == null)
-    throw new InvalidOperationException("Proposal not found for contract PDF.");
+            if (proposal == null)
+                throw new InvalidOperationException("Proposal not found for contract PDF.");
 
             using var ms = new MemoryStream();
             using var writer = new PdfWriter(ms);
@@ -147,19 +149,33 @@ if (proposal == null)
                 .SetBold()
                 .SetFontSize(12));
             
-            var contractorName = contractorCompany?.CompanyName ?? $"{contractorProfile.LastName ?? ""} {contractorProfile.FirstName ?? ""} ".Trim();
+            // Prefer contractorCompany over contractorProfile
+            string contractorName;
+            if (!string.IsNullOrEmpty(contractorCompany?.CompanyName))
+            {
+                contractorName = contractorCompany.CompanyName;
+            }
+            else if (contractorProfile != null)
+            {
+                contractorName = $"{contractorProfile.LastName ?? ""} {contractorProfile.FirstName ?? ""} ".Trim();
+            }
+            else
+            {
+                contractorName = "[Chưa cập nhật]";
+            }
+            
             if (string.IsNullOrEmpty(contractorName)) contractorName = "[Chưa cập nhật]";
             
             document.Add(new Paragraph($"Ông/Bà/Công ty: {contractorName}")
                 .SetFontSize(11));
             
-            var contractorAddress = contractorCompany?.Address ?? contractorProfile.Address ?? "[Chưa cập nhật]";
-            var contractorCity = contractorCompany?.City ?? contractorProfile.City ?? "";
+            var contractorAddress = contractorCompany?.Address ?? contractorProfile?.Address ?? "[Chưa cập nhật]";
+            var contractorCity = contractorCompany?.City ?? contractorProfile?.City ?? "";
             
             document.Add(new Paragraph($"Địa chỉ: {contractorAddress}, {contractorCity}")
                 .SetFontSize(11));
             
-            var contractorPhone = contractorCompany?.ContactPhone ?? contractorProfile.PhoneNumber ?? "[Chưa cập nhật]";
+            var contractorPhone = contractorCompany?.ContactPhone ?? contractorProfile?.PhoneNumber ?? "[Chưa cập nhật]";
             document.Add(new Paragraph($"Điện thoại: {contractorPhone}")
                 .SetFontSize(11)
                 .SetMarginBottom(15));

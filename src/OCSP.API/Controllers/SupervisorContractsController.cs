@@ -169,6 +169,7 @@ namespace OCSP.API.Controllers
             }
             catch (ArgumentException ex) { return NotFound(ex.Message); }
             catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
             catch (NotImplementedException) { return StatusCode(500, "PDF generation not yet implemented"); }
         }
     }

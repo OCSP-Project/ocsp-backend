@@ -33,21 +33,74 @@ namespace OCSP.Application.Services
 
         public async Task<Conversation> StartConversationAsync(Guid? projectId, Guid[] participantIds) // Make projectId nullable
         {
-            // Check if conversation already exists
-            var existing = await _context.Conversations
-                .Include(c => c.Participants)
-                .FirstOrDefaultAsync(c =>
-                    c.ProjectId == projectId && // Handle null projectId
-                    c.Participants.Count == participantIds.Length &&
-                    c.Participants.All(p => participantIds.Contains(p.UserId))
-                );
+            // If projectId is provided, automatically include all project participants
+            var finalParticipantIds = participantIds.ToList();
+            if (projectId.HasValue)
+            {
+                var projectParticipants = await _context.ProjectParticipants
+                    .Where(pp => pp.ProjectId == projectId.Value)
+                    .Select(pp => pp.UserId)
+                    .ToListAsync();
 
-            if (existing != null) return existing;
+                // Merge with provided participantIds, avoiding duplicates
+                foreach (var projectParticipantId in projectParticipants)
+                {
+                    if (!finalParticipantIds.Contains(projectParticipantId))
+                    {
+                        finalParticipantIds.Add(projectParticipantId);
+                    }
+                }
+            }
+
+            // Check if conversation already exists for this project
+            if (projectId.HasValue)
+            {
+                var existing = await _context.Conversations
+                    .Include(c => c.Participants)
+                    .FirstOrDefaultAsync(c => c.ProjectId == projectId.Value);
+
+                if (existing != null)
+                {
+                    // Add any new participants that aren't already in the conversation
+                    var existingParticipantIds = existing.Participants.Select(p => p.UserId).ToHashSet();
+                    var newParticipantIds = finalParticipantIds.Where(id => !existingParticipantIds.Contains(id)).ToList();
+
+                    foreach (var newParticipantId in newParticipantIds)
+                    {
+                        existing.Participants.Add(new ConversationParticipant
+                        {
+                            ConversationId = existing.Id,
+                            UserId = newParticipantId
+                        });
+                    }
+
+                    if (newParticipantIds.Count > 0)
+                    {
+                        await _context.SaveChangesAsync();
+                    }
+
+                    return existing;
+                }
+            }
+            else
+            {
+                // For non-project conversations, check exact match
+                var existing = await _context.Conversations
+                    .Include(c => c.Participants)
+                    .FirstOrDefaultAsync(c =>
+                        c.ProjectId == null &&
+                        c.Participants.Count == finalParticipantIds.Count &&
+                        c.Participants.All(p => finalParticipantIds.Contains(p.UserId)) &&
+                        finalParticipantIds.All(id => c.Participants.Any(p => p.UserId == id))
+                    );
+
+                if (existing != null) return existing;
+            }
 
             var conversation = new Conversation
             {
                 ProjectId = projectId, // Can be null for consultation chats
-                Participants = participantIds.Select(id => new ConversationParticipant
+                Participants = finalParticipantIds.Select(id => new ConversationParticipant
                 {
                     UserId = id
                 }).ToList()
@@ -115,6 +168,32 @@ namespace OCSP.Application.Services
                 .Include(c => c.Messages)
                 .Where(c => c.Participants.Any(p => p.UserId == userId))
                 .ToListAsync();
+        }
+
+        public async Task<Conversation> JoinUsersToConversationAsync(Guid conversationId, Guid[] userIds)
+        {
+            var conversation = await _context.Conversations
+                .Include(c => c.Participants)
+                .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+            if (conversation == null)
+                throw new ArgumentException("Conversation not found", nameof(conversationId));
+
+            // Add only users that are not already participants
+            var existingUserIds = conversation.Participants.Select(p => p.UserId).ToHashSet();
+            var newUserIds = userIds.Where(id => !existingUserIds.Contains(id)).ToList();
+
+            foreach (var userId in newUserIds)
+            {
+                conversation.Participants.Add(new ConversationParticipant
+                {
+                    ConversationId = conversationId,
+                    UserId = userId
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return conversation;
         }
 
         private async Task<CommunicationWarningDto?> ValidateMessageContentAsync(string content, Guid senderId, Guid conversationId)

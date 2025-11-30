@@ -132,5 +132,55 @@ namespace OCSP.API.Controllers
             // Remove async since no await operations
             return Ok(new { Message = "Cảnh báo đã được ghi nhận" });
         }
+
+        [HttpPost("{conversationId:guid}/join")]
+        [ProducesResponseType(typeof(ConversationDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> JoinUsersToConversation([FromRoute] Guid conversationId, [FromBody] JoinUsersRequest request)
+        {
+            if (conversationId == Guid.Empty) return BadRequest("conversationId không hợp lệ.");
+            if (request is null || request.UserIds is null || request.UserIds.Length == 0)
+                return BadRequest("userIds là bắt buộc.");
+
+            try
+            {
+                var conversation = await _chatService.JoinUsersToConversationAsync(conversationId, request.UserIds);
+
+                var result = new ConversationDto
+                {
+                    Id = conversation.Id,
+                    ProjectId = conversation.ProjectId ?? Guid.Empty,
+                    Participants = conversation.Participants?.Select(p => new ParticipantDto
+                    {
+                        UserId = p.UserId,
+                        Username = p.User?.Username ?? string.Empty,
+                        Role = p.Role
+                    }).ToArray() ?? Array.Empty<ParticipantDto>(),
+                    LastMessage = conversation.Messages
+                        ?.OrderByDescending(m => m.CreatedAt)
+                        .Select(m => new MessageDto
+                        {
+                            Id = m.Id,
+                            ConversationId = m.ConversationId,
+                            SenderId = m.SenderId,
+                            Content = m.Content,
+                            CreatedAt = m.CreatedAt
+                        })
+                        .FirstOrDefault(),
+                    UnreadCount = conversation.Messages?.Count(m => !m.IsRead) ?? 0,
+                    UpdatedAt = conversation.Messages?.OrderByDescending(m => m.CreatedAt).FirstOrDefault()?.CreatedAt ?? conversation.CreatedAt
+                };
+
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        public class JoinUsersRequest
+        {
+            public Guid[] UserIds { get; set; } = Array.Empty<Guid>();
+        }
     }
 }

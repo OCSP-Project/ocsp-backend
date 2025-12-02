@@ -1,4 +1,6 @@
 using OCSP.Application.Services.Interfaces;
+using OCSP.Application.Helpers;
+using OCSP.Infrastructure.Services;
 using System.IO;
 using System.Net.Http;
 
@@ -6,85 +8,55 @@ namespace OCSP.Application.Services
 {
     public class FileService : IFileService
     {
-        private readonly string _uploadPath;
+        private readonly IFileStorageService _fileStorageService;
 
-        public FileService()
+        public FileService(IFileStorageService fileStorageService)
         {
-            // Tạo thư mục uploads trong project
-            _uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-            if (!Directory.Exists(_uploadPath))
-            {
-                Directory.CreateDirectory(_uploadPath);
-            }
+            _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
         }
 
         public async Task<string> UploadFileAsync(Stream fileStream, string fileName, string folder)
         {
             try
             {
-                // Hỗ trợ đường dẫn con trong fileName (ví dụ: projectId/drawings/abc.pdf)
-                var safeFileName = Path.GetFileName(fileName);
-                var subDirectory = Path.GetDirectoryName(fileName)?.Replace('\\', '/') ?? string.Empty;
+                // Ensure stream is at the beginning
+                if (fileStream.CanSeek)
+                    fileStream.Position = 0;
 
-                // Tạo thư mục gốc + thư mục con nếu chưa tồn tại
-                var destinationDir = string.IsNullOrEmpty(subDirectory)
-                    ? Path.Combine(_uploadPath, folder)
-                    : Path.Combine(_uploadPath, folder, subDirectory);
+                // Determine content type from file extension
+                var contentType = GetContentType(fileName);
 
-                if (!Directory.Exists(destinationDir))
-                {
-                    Directory.CreateDirectory(destinationDir);
-                }
+                // Wrap the stream as IFormFile
+                var formFile = new StreamFormFile(fileStream, fileName, contentType);
 
-                // Tạo tên file unique
-                var uniqueFileName = $"{Guid.NewGuid()}_{safeFileName}";
-                var filePath = Path.Combine(destinationDir, uniqueFileName);
+                // Use the storage service to upload (handles both local and S3)
+                var fileUrl = await _fileStorageService.UploadFileAsync(
+                    formFile,
+                    folder,
+                    fileName);
 
-                // Đảm bảo stream ở vị trí bắt đầu
-                if (fileStream.CanSeek) fileStream.Position = 0;
-
-                // Lưu file
-                using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    await fileStream.CopyToAsync(stream);
-                }
-
-                // Trả về đường dẫn tương đối (URL)
-                var relativePath = string.IsNullOrEmpty(subDirectory)
-                    ? $"/uploads/{folder}/{uniqueFileName}"
-                    : $"/uploads/{folder}/{subDirectory}/{uniqueFileName}".Replace("\\", "/");
-
-                return relativePath;
+                return fileUrl;
             }
             catch (Exception ex)
             {
-                throw new Exception($"Lỗi khi upload file: {ex.Message}");
+                throw new Exception($"Lỗi khi upload file: {ex.Message}", ex);
             }
         }
 
-        public Task DeleteFileAsync(string fileUrl)
+        public async Task DeleteFileAsync(string fileUrl)
         {
             try
             {
                 if (string.IsNullOrEmpty(fileUrl))
-                    return Task.CompletedTask;
+                    return;
 
-                // Chuyển đổi URL thành đường dẫn file system
-                var relativePath = fileUrl.TrimStart('/');
-                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
-
-                if (File.Exists(fullPath))
-                {
-                    File.Delete(fullPath);
-                }
+                await _fileStorageService.DeleteFileAsync(fileUrl);
             }
             catch (Exception ex)
             {
                 // Log lỗi nhưng không throw exception để tránh ảnh hưởng đến flow chính
                 Console.WriteLine($"Lỗi khi xóa file: {ex.Message}");
             }
-
-            return Task.CompletedTask;
         }
 
         public async Task<byte[]> GetFileAsync(string fileUrl)
@@ -94,7 +66,7 @@ namespace OCSP.Application.Services
                 if (string.IsNullOrEmpty(fileUrl))
                     throw new ArgumentException("File URL không được để trống");
 
-                // Nếu là URL tuyệt đối (http/https) → tải qua HTTP
+                // If it's an HTTP/HTTPS URL (external file or signed URL from S3)
                 if (Uri.TryCreate(fileUrl, UriKind.Absolute, out var absoluteUri) &&
                     (absoluteUri.Scheme == Uri.UriSchemeHttp || absoluteUri.Scheme == Uri.UriSchemeHttps))
                 {
@@ -102,19 +74,80 @@ namespace OCSP.Application.Services
                     return await http.GetByteArrayAsync(absoluteUri);
                 }
 
-                // Ngược lại: coi như đường dẫn tương đối trong app (/uploads/...)
-                var relativePath = fileUrl.TrimStart('/');
-                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
+                // For S3: Generate signed URL and download
+                // For Local: fileUrl is already a path we can serve directly
+                // Since we're using the storage service abstraction, we need to handle this differently
 
-                if (!File.Exists(fullPath))
-                    throw new FileNotFoundException("File không tồn tại");
+                // Generate a signed URL (for S3 this creates a temporary URL, for local it returns the same path)
+                var signedUrl = await _fileStorageService.GetSignedUrlAsync(
+                    fileUrl,
+                    TimeSpan.FromMinutes(5));
 
-                return await File.ReadAllBytesAsync(fullPath);
+                // Download from the signed URL
+                if (Uri.TryCreate(signedUrl, UriKind.Absolute, out var signedUri) &&
+                    (signedUri.Scheme == Uri.UriSchemeHttp || signedUri.Scheme == Uri.UriSchemeHttps))
+                {
+                    using var http = new HttpClient();
+                    return await http.GetByteArrayAsync(signedUri);
+                }
+
+                // If it's a local path (starts with /uploads/), read directly
+                if (signedUrl.StartsWith("/uploads/"))
+                {
+                    var relativePath = signedUrl.TrimStart('/');
+                    var fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
+
+                    if (!File.Exists(fullPath))
+                        throw new FileNotFoundException("File không tồn tại");
+
+                    return await File.ReadAllBytesAsync(fullPath);
+                }
+
+                throw new InvalidOperationException($"Không thể đọc file từ: {fileUrl}");
             }
             catch (Exception ex)
             {
-                throw new Exception($"Lỗi khi đọc file: {ex.Message}");
+                throw new Exception($"Lỗi khi đọc file: {ex.Message}", ex);
             }
+        }
+
+        private static string GetContentType(string fileName)
+        {
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            return extension switch
+            {
+                // Images
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".bmp" => "image/bmp",
+                ".webp" => "image/webp",
+
+                // Documents
+                ".pdf" => "application/pdf",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".xls" => "application/vnd.ms-excel",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+                // 3D Models
+                ".glb" => "model/gltf-binary",
+                ".gltf" => "model/gltf+json",
+                ".obj" => "model/obj",
+                ".fbx" => "application/octet-stream",
+
+                // Archives
+                ".zip" => "application/zip",
+                ".rar" => "application/x-rar-compressed",
+
+                // Video
+                ".mp4" => "video/mp4",
+                ".avi" => "video/x-msvideo",
+                ".mov" => "video/quicktime",
+
+                // Default
+                _ => "application/octet-stream"
+            };
         }
     }
 }

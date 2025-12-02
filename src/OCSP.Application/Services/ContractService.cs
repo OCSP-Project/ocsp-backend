@@ -194,11 +194,26 @@ namespace OCSP.Application.Services
             var canAccess = project.HomeownerId == currentUserId || contract.ContractorUserId == currentUserId;
             if (!canAccess) throw new UnauthorizedAccessException("No access to this contract");
 
+            // Validate homeowner profile before generating PDF
+            var homeownerProfile = await _db.Profiles
+                .FirstOrDefaultAsync(p => p.UserId == contract.HomeownerUserId, ct);
+            
+            // Check if homeowner profile is complete
+            bool homeownerProfileComplete = homeownerProfile != null && 
+                !string.IsNullOrWhiteSpace(homeownerProfile.FirstName) && 
+                !string.IsNullOrWhiteSpace(homeownerProfile.LastName) &&
+                !string.IsNullOrWhiteSpace(homeownerProfile.PhoneNumber) &&
+                !string.IsNullOrWhiteSpace(homeownerProfile.Address);
+            
+            // If profile is incomplete, throw error (don't generate PDF)
+            if (!homeownerProfileComplete)
+            {
+                throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật đầy đủ thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+            }
+            
             // Generate PDF if not exists
             if (string.IsNullOrEmpty(contract.TemplatePdfUrl))
             {
-                var homeownerProfile = await _db.Profiles
-                    .FirstOrDefaultAsync(p => p.UserId == contract.HomeownerUserId, ct);
                 var contractorProfile = await _db.Profiles
                     .FirstOrDefaultAsync(p => p.UserId == contract.ContractorUserId, ct);
                 var contractorCompany = await _db.Contractors
@@ -209,10 +224,10 @@ namespace OCSP.Application.Services
                     .Include(p => p.Items)
                     .FirstOrDefaultAsync(p => p.Id == contract.ProposalId, ct);
 
-                if (homeownerProfile != null && contractorProfile != null && proposal != null)
+                if (contractorCompany != null && proposal != null)
                 {
                     var pdfBytes = await _pdfService.GenerateContractPdfAsync(
-                        contract, homeownerProfile, contractorProfile, contractorCompany, proposal);
+                        contract, homeownerProfile!, contractorProfile, contractorCompany, proposal);
 
                     var pdfUrl = await _fileService.UploadFileAsync(
                         new System.IO.MemoryStream(pdfBytes),
@@ -525,63 +540,33 @@ namespace OCSP.Application.Services
                            && !string.IsNullOrEmpty(contract.ContractorSignatureBase64);
 
             // Return signed PDF if available and both have signed
-            if (bothSigned && !string.IsNullOrEmpty(contract.SignedPdfUrl))
-            {
-                try
-                {
-                    return await _fileService.GetFileAsync(contract.SignedPdfUrl);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error reading signed PDF: {ex.Message}. Will regenerate with signatures.");
-                    // File doesn't exist, regenerate signed PDF below
-                }
-            }
-
-            // If both have signed but no signed PDF file, regenerate it with signatures embedded
+            // Signed PDF is FROZEN - never regenerate after both parties have signed
             if (bothSigned)
             {
-                Console.WriteLine("Both parties signed but PDF missing. Regenerating signed PDF with embedded signatures...");
-                
-                // Get profiles and proposal
-                var homeownerProfile = await _db.Profiles
-                    .FirstOrDefaultAsync(p => p.UserId == contract.HomeownerUserId, ct);
-                var contractorProfile = await _db.Profiles
-                    .FirstOrDefaultAsync(p => p.UserId == contract.ContractorUserId, ct);
-                var contractorCompany = await _db.Contractors
-                    .FirstOrDefaultAsync(c => c.UserId == contract.ContractorUserId, ct);
-                var proposal = await _db.Proposals
-                    .Include(p => p.Items)
-                    .FirstOrDefaultAsync(p => p.Id == contract.ProposalId, ct);
-
-                // Generate PDF with signatures embedded directly in the table
-                var signedPdfBytes = await _pdfService.GenerateContractPdfAsync(
-                    contract, 
-                    homeownerProfile!, 
-                    contractorProfile!, 
-                    contractorCompany, 
-                    proposal!,
-                    contract.HomeownerSignatureBase64,   // Include signatures
-                    contract.ContractorSignatureBase64);
-
-                return signedPdfBytes;
-            }
-
-            // If not both signed yet, return template PDF
-            if (!string.IsNullOrEmpty(contract.TemplatePdfUrl))
-            {
-                try
+                if (!string.IsNullOrEmpty(contract.SignedPdfUrl))
                 {
-                    return await _fileService.GetFileAsync(contract.TemplatePdfUrl);
+                    try
+                    {
+                        return await _fileService.GetFileAsync(contract.SignedPdfUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Signed PDF file is missing - this should not happen
+                        // Throw error instead of regenerating to preserve contract integrity
+                        throw new InvalidOperationException($"Signed PDF file not found for contract {contract.Id}. Please contact support.");
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Console.WriteLine($"Error reading template PDF: {ex.Message}. Will generate new PDF.");
-                    // Continue to generate new PDF below
+                    // Signed PDF URL is missing - this should not happen if contract is completed
+                    // Throw error instead of regenerating to preserve contract integrity
+                    throw new InvalidOperationException($"Signed PDF URL not found for completed contract {contract.Id}. Please contact support.");
                 }
             }
 
-            // Generate new template PDF if none exists
+            // If not both signed yet, always regenerate template PDF to ensure it uses latest profile information
+            // This ensures that if user updates their profile, the template PDF reflects the changes
+            // Template PDF is regenerated each time to keep it up-to-date until contract is signed
             return await GenerateTemplatePdfBytesAsync(contract, ct);
         }
 
@@ -599,8 +584,31 @@ namespace OCSP.Application.Services
                 .Include(p => p.Items)
                 .FirstOrDefaultAsync(p => p.Id == contract.ProposalId, ct);
 
+            // Check for missing profiles and provide clear error messages
+            if (homeownerProfile == null)
+                throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+
+            // Validate homeowner profile fields
+            if (string.IsNullOrWhiteSpace(homeownerProfile.FirstName) || 
+                string.IsNullOrWhiteSpace(homeownerProfile.LastName) ||
+                string.IsNullOrWhiteSpace(homeownerProfile.PhoneNumber) ||
+                string.IsNullOrWhiteSpace(homeownerProfile.Address))
+            {
+                throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật đầy đủ thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+            }
+
+            // For contractor: we can use either contractorCompany (preferred) or contractorProfile
+            // PDF generation logic already handles this by preferring contractorCompany over contractorProfile
+            // So we only need to check if at least one exists
+            if (contractorCompany == null && contractorProfile == null)
+                throw new InvalidOperationException("CONTRACTOR_INFO_MISSING: Không tìm thấy thông tin nhà thầu. Vui lòng liên hệ hỗ trợ.");
+
+            if (proposal == null)
+                throw new InvalidOperationException("Proposal not found for contract PDF.");
+
+            // Pass contractorProfile even if null - PdfService will use contractorCompany if available
             return await _pdfService.GenerateContractPdfAsync(
-                contract, homeownerProfile!, contractorProfile!, contractorCompany, proposal!);
+                contract, homeownerProfile, contractorProfile, contractorCompany, proposal);
         }
 
         private async Task GenerateFinalSignedPdfAsync(Contract contract, CancellationToken ct)
@@ -617,6 +625,28 @@ namespace OCSP.Application.Services
             var proposal = await _db.Proposals
                 .Include(p => p.Items)
                 .FirstOrDefaultAsync(p => p.Id == contract.ProposalId, ct);
+
+            // Check for missing profiles and provide clear error messages
+            if (homeownerProfile == null)
+                throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+
+            // Validate homeowner profile fields
+            if (string.IsNullOrWhiteSpace(homeownerProfile.FirstName) || 
+                string.IsNullOrWhiteSpace(homeownerProfile.LastName) ||
+                string.IsNullOrWhiteSpace(homeownerProfile.PhoneNumber) ||
+                string.IsNullOrWhiteSpace(homeownerProfile.Address))
+            {
+                throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật đầy đủ thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+            }
+
+            // For contractor: we can use either contractorCompany (preferred) or contractorProfile
+            // PDF generation logic already handles this by preferring contractorCompany over contractorProfile
+            // So we only need to check if at least one exists
+            if (contractorCompany == null && contractorProfile == null)
+                throw new InvalidOperationException("CONTRACTOR_INFO_MISSING: Không tìm thấy thông tin nhà thầu. Vui lòng liên hệ hỗ trợ.");
+
+            if (proposal == null)
+                throw new InvalidOperationException("Proposal not found for contract PDF.");
 
             // Generate PDF with signatures embedded in the signature table
             var signedPdfBytes = await _pdfService.GenerateContractPdfAsync(

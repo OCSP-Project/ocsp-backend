@@ -1226,6 +1226,59 @@ namespace OCSP.Infrastructure.Migrations
                     b.ToTable("DiaryLabors", (string)null);
                 });
 
+            modelBuilder.Entity("OCSP.Domain.Entities.DiaryMaterialEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ActualQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Code")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ConstructionDiaryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ContractQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("MaterialId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("MaterialName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("Variance")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConstructionDiaryId");
+
+                    b.HasIndex("MaterialId");
+
+                    b.ToTable("DiaryMaterialEntries");
+                });
+
             modelBuilder.Entity("OCSP.Domain.Entities.DiaryWeatherPeriod", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3340,7 +3393,9 @@ namespace OCSP.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsBanned")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsEmailVerified")
                         .ValueGeneratedOnAdd()
@@ -4159,6 +4214,25 @@ namespace OCSP.Infrastructure.Migrations
                     b.Navigation("DiaryWorkItem");
                 });
 
+            modelBuilder.Entity("OCSP.Domain.Entities.DiaryMaterialEntry", b =>
+                {
+                    b.HasOne("OCSP.Domain.Entities.ConstructionDiary", "ConstructionDiary")
+                        .WithMany("MaterialEntries")
+                        .HasForeignKey("ConstructionDiaryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OCSP.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConstructionDiary");
+
+                    b.Navigation("Material");
+                });
+
             modelBuilder.Entity("OCSP.Domain.Entities.DiaryWeatherPeriod", b =>
                 {
                     b.HasOne("OCSP.Domain.Entities.ConstructionDiary", "ConstructionDiary")
@@ -4847,6 +4921,8 @@ namespace OCSP.Infrastructure.Migrations
             modelBuilder.Entity("OCSP.Domain.Entities.ConstructionDiary", b =>
                 {
                     b.Navigation("Images");
+
+                    b.Navigation("MaterialEntries");
 
                     b.Navigation("WeatherPeriods");
 

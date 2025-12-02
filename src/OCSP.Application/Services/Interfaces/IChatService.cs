@@ -9,5 +9,6 @@ namespace OCSP.Application.Services.Interfaces
         Task<ChatMessageResult> SendMessageAsync(Guid conversationId, Guid senderId, string content);
         Task<IEnumerable<ChatMessage>> GetMessagesAsync(Guid conversationId);
         Task<IEnumerable<Conversation>> GetUserConversationsAsync(Guid userId);
+        Task<Conversation> JoinUsersToConversationAsync(Guid conversationId, Guid[] userIds);
     }
 }

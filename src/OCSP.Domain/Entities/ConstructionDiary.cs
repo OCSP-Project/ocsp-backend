@@ -39,6 +39,7 @@ namespace OCSP.Domain.Entities
 
         // Navigation Properties
         public ICollection<DiaryWorkItem> WorkItems { get; set; } = new List<DiaryWorkItem>();
+        public ICollection<DiaryMaterialEntry> MaterialEntries { get; set; } = new List<DiaryMaterialEntry>();
         public ICollection<DiaryWeatherPeriod> WeatherPeriods { get; set; } = new List<DiaryWeatherPeriod>();
         public ICollection<DiaryImage> Images { get; set; } = new List<DiaryImage>();
     }

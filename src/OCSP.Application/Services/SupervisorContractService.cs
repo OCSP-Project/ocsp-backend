@@ -277,8 +277,33 @@ namespace OCSP.Application.Services
             var supervisorProfile = await _db.Profiles
                 .FirstOrDefaultAsync(p => p.UserId == contract.SupervisorUserId, ct);
 
-            if (homeownerProfile == null || supervisorProfile == null || contract.Project == null)
-                throw new InvalidOperationException("Missing required data for PDF generation");
+            // Check for missing profiles and provide clear error messages
+            if (homeownerProfile == null)
+                throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+
+            // Validate homeowner profile fields
+            if (string.IsNullOrWhiteSpace(homeownerProfile.FirstName) || 
+                string.IsNullOrWhiteSpace(homeownerProfile.LastName) ||
+                string.IsNullOrWhiteSpace(homeownerProfile.PhoneNumber) ||
+                string.IsNullOrWhiteSpace(homeownerProfile.Address))
+            {
+                throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật đầy đủ thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+            }
+
+            if (supervisorProfile == null)
+                throw new InvalidOperationException("SUPERVISOR_PROFILE_MISSING: Giám sát viên chưa cập nhật thông tin cá nhân. Vui lòng yêu cầu giám sát viên cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+
+            // Validate supervisor profile fields
+            if (string.IsNullOrWhiteSpace(supervisorProfile.FirstName) || 
+                string.IsNullOrWhiteSpace(supervisorProfile.LastName) ||
+                string.IsNullOrWhiteSpace(supervisorProfile.PhoneNumber) ||
+                string.IsNullOrWhiteSpace(supervisorProfile.Address))
+            {
+                throw new InvalidOperationException("SUPERVISOR_PROFILE_MISSING: Giám sát viên chưa cập nhật đầy đủ thông tin cá nhân. Vui lòng yêu cầu giám sát viên cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+            }
+
+            if (contract.Project == null)
+                throw new InvalidOperationException("Project not found for supervisor contract PDF.");
 
             // Generate PDF with signatures if available
             var pdfBytes = await _pdfService.GenerateSupervisorContractPdfAsync(
@@ -313,6 +338,34 @@ namespace OCSP.Application.Services
                     .FirstOrDefaultAsync(p => p.UserId == contract.HomeownerUserId, ct);
                 var supervisorProfile = await _db.Profiles
                     .FirstOrDefaultAsync(p => p.UserId == contract.SupervisorUserId, ct);
+
+                // Check for missing profiles and provide clear error messages
+                if (homeownerProfile == null)
+                    throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+
+                // Validate homeowner profile fields
+                if (string.IsNullOrWhiteSpace(homeownerProfile.FirstName) || 
+                    string.IsNullOrWhiteSpace(homeownerProfile.LastName) ||
+                    string.IsNullOrWhiteSpace(homeownerProfile.PhoneNumber) ||
+                    string.IsNullOrWhiteSpace(homeownerProfile.Address))
+                {
+                    throw new InvalidOperationException("HOMEOWNER_PROFILE_MISSING: Chủ nhà chưa cập nhật đầy đủ thông tin cá nhân. Vui lòng yêu cầu chủ nhà cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+                }
+
+                if (supervisorProfile == null)
+                    throw new InvalidOperationException("SUPERVISOR_PROFILE_MISSING: Giám sát viên chưa cập nhật thông tin cá nhân. Vui lòng yêu cầu giám sát viên cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+
+                // Validate supervisor profile fields
+                if (string.IsNullOrWhiteSpace(supervisorProfile.FirstName) || 
+                    string.IsNullOrWhiteSpace(supervisorProfile.LastName) ||
+                    string.IsNullOrWhiteSpace(supervisorProfile.PhoneNumber) ||
+                    string.IsNullOrWhiteSpace(supervisorProfile.Address))
+                {
+                    throw new InvalidOperationException("SUPERVISOR_PROFILE_MISSING: Giám sát viên chưa cập nhật đầy đủ thông tin cá nhân. Vui lòng yêu cầu giám sát viên cập nhật đầy đủ thông tin (Họ tên, SĐT, Địa chỉ) trong mục Hồ sơ trước khi xem hợp đồng.");
+                }
+
+                if (contract.Project == null)
+                    throw new InvalidOperationException("Project not found for supervisor contract PDF.");
 
                 if (homeownerProfile != null && supervisorProfile != null && contract.Project != null)
                 {

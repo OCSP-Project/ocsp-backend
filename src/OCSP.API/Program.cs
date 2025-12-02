@@ -21,6 +21,8 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Http.Features;
 using OCSP.API.Extensions;
 using Microsoft.AspNetCore.StaticFiles;
+using Amazon.S3;
+using OCSP.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,7 +91,22 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+// AWS S3 Configuration
+builder.Services.AddDefaultAWSOptions(builder.Configuration.GetAWSOptions());
+builder.Services.AddAWSService<IAmazonS3>();
 
+// File Storage Service - S3 or Local based on configuration
+var useS3Storage = builder.Configuration.GetValue<bool>("FileStorage:UseS3", false);
+if (useS3Storage)
+{
+    builder.Services.AddScoped<IFileStorageService, S3FileStorageService>();
+    Console.WriteLine("✅ Using AWS S3 for file storage");
+}
+else
+{
+    builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+    Console.WriteLine("✅ Using Local file storage");
+}
 
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(OCSP.Application.Mappings.ContractorMappingProfile).Assembly);

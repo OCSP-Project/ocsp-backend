@@ -30,10 +30,6 @@ public class ProjectService : IProjectService
 
     public async Task<List<ProjectResponseDto>> GetProjectsByHomeownerAsync(Guid homeownerId, CancellationToken ct = default)
     {
-        var homeowner = await _userRepository.GetByIdAsync(homeownerId);
-        if (homeowner == null)
-            throw new ArgumentException("Homeowner not found");
-
         // Get projects where user is homeowner
         var ownedProjects = await _projectRepository.GetByHomeownerIdAsync(homeownerId, ct);
 

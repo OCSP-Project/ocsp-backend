@@ -246,7 +246,7 @@ public class ProjectService : IProjectService
             }).ToList()
         };
     }
-    public async Task<ProjectDetailDto> UpdateProjectAsync(Guid projectId, UpdateProjectDto dto, Guid homeownerId)
+    public async Task<ProjectDetailDto> UpdateProjectAsync(Guid projectId, UpdateProjectDto dto, Guid homeownerId, CancellationToken ct = default)
     {
         var project = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new ArgumentException("Project not found");
@@ -288,6 +288,9 @@ public class ProjectService : IProjectService
 
         await _projectRepository.SaveChangesAsync();
 
+        // Check if there are any supervisors available (same logic as GetProjectByIdAsync)
+        var hasSupervisorsAvailable = await _db.Supervisors.AnyAsync(s => s.AvailableNow, ct);
+
         // Map trả về
         return new ProjectDetailDto
         {
@@ -303,6 +306,8 @@ public class ProjectService : IProjectService
             Status = project.Status.ToString(),
             HomeownerId = project.HomeownerId,
             SupervisorId = project.SupervisorId,
+            HasSupervisorsAvailable = hasSupervisorsAvailable,
+            DelegateApprovalToSupervisor = project.DelegateApprovalToSupervisor,
             Participants = project.Participants.Select(pp => new ProjectParticipantDto
             {
                 UserId = pp.UserId,

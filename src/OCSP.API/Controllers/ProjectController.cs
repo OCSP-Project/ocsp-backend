@@ -146,7 +146,7 @@ namespace OCSP.API.Controllers
                 if (homeownerId == Guid.Empty)
                     return Unauthorized(new { message = "User not authenticated" });
 
-                var project = await _projectService.UpdateProjectAsync(id, dto, homeownerId);
+                var project = await _projectService.UpdateProjectAsync(id, dto, homeownerId, ct);
                 return Ok(project);
             }
             catch (ArgumentException ex)

@@ -112,6 +112,35 @@ namespace OCSP.Infrastructure.Services
             }
         }
 
+        public async Task<byte[]> GetFileAsync(string fileUrl, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(fileUrl))
+                throw new ArgumentException("File URL cannot be empty");
+
+            try
+            {
+                // fileUrl is the S3 key (e.g., "proposals/{quoteId}/{fileName}")
+                var request = new GetObjectRequest
+                {
+                    BucketName = _bucketName,
+                    Key = fileUrl
+                };
+
+                using var response = await _s3Client.GetObjectAsync(request, cancellationToken);
+                using var memoryStream = new MemoryStream();
+                await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
+                return memoryStream.ToArray();
+            }
+            catch (Amazon.S3.AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                throw new FileNotFoundException($"File not found in S3: {fileUrl}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to get file from S3: {ex.Message}", ex);
+            }
+        }
+
         private static string GetContentType(string fileName)
         {
             var extension = Path.GetExtension(fileName).ToLowerInvariant();

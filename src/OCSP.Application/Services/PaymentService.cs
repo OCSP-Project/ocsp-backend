@@ -240,6 +240,20 @@ namespace OCSP.Application.Services
             var contract = await _db.Contracts.Include(c => c.Escrow).FirstOrDefaultAsync(c => c.Id == contractId, ct);
             if (contract == null) return;
 
+            // Check if this orderId has already been processed (idempotency check)
+            var existingTransaction = await _db.PaymentTransactions
+                .FirstOrDefaultAsync(t => t.ContractId == contractId 
+                    && t.ProviderTxnId == payload.OrderId 
+                    && t.Type == PaymentType.Fund
+                    && t.Status == PaymentStatus.Succeeded, ct);
+            
+            if (existingTransaction != null)
+            {
+                _logger.LogWarning("[MoMo] Commission payment already processed for orderId={OrderId}, contractId={ContractId}. Skipping duplicate.", 
+                    payload.OrderId, contractId);
+                return; // Already processed, skip to prevent duplicate balance increase
+            }
+
             if (contract.Escrow == null)
             {
                 contract.Escrow = new EscrowAccount
@@ -262,7 +276,8 @@ namespace OCSP.Application.Services
                 Type = PaymentType.Fund,
                 Status = PaymentStatus.Succeeded,
                 Amount = (decimal)payload.Amount,
-                Description = "Phí môi giới"
+                Description = "Phí môi giới",
+                ProviderTxnId = payload.OrderId // Store OrderId to prevent duplicates
             });
 
             _logger.LogInformation("[MoMo] Escrow funded for contract={ContractId}, newBalance={Balance}", contract.Id, contract.Escrow.Balance);
@@ -367,26 +382,9 @@ namespace OCSP.Application.Services
 
         public async Task<bool> IsCommissionPaidAsync(Guid userId, Guid contractId, CancellationToken ct = default)
         {
-            // Logic: Chỉ thu phí 1 trong 2:
-            // - Nếu homeowner đã trả supervisor package → contractor KHÔNG cần trả commission
-            // - Nếu homeowner KHÔNG trả supervisor package → contractor PHẢI trả commission
+            // Logic: Nhà thầu luôn phải trả phí hoa hồng 1% dù dự án có đăng ký giám sát viên hay không
+            // Chỉ kiểm tra xem commission đã được thanh toán chưa
             
-            // 1. Check if project has supervisor package paid
-            var contract = await _db.Contracts
-                .AsNoTracking()
-                .Include(c => c.Project)
-                .FirstOrDefaultAsync(c => c.Id == contractId, ct);
-            
-            if (contract?.Project != null && 
-                contract.Project.SupervisorPackagePaymentStatus == Domain.Enums.PaymentStatus.Succeeded)
-            {
-                // Supervisor package paid → no commission needed
-                _logger.LogInformation("[Commission] Project {ProjectId} has supervisor package paid, waiving commission for contract {ContractId}", 
-                    contract.Project.Id, contractId);
-                return true;
-            }
-            
-            // 2. Check if commission was paid
             var paidCommission = await _db.PaymentTransactions
                 .AsNoTracking()
                 .AnyAsync(p => p.ContractId == contractId

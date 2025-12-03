@@ -18,6 +18,10 @@ namespace OCSP.Infrastructure.Services
             string fileUrl,
             TimeSpan expiration,
             CancellationToken cancellationToken = default);
+
+        Task<byte[]> GetFileAsync(
+            string fileUrl,
+            CancellationToken cancellationToken = default);
     }
 }
 

@@ -124,7 +124,7 @@ namespace OCSP.Application.Services
                     await _context.SaveChangesAsync(ct);
 
                     // Tạo invitation link
-                    var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
+                    var frontendUrl = _configuration["Frontend:Url"] ?? "https://ocsp-tech-fe.vercel.app";
                     var invitationLink = $"{frontendUrl}/invitations/{token}";
 
                     // Gửi email

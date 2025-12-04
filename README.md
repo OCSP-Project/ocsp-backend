@@ -33,7 +33,7 @@ docker-compose up -d
 
 # Xem logs
 
-docker-compose logs -f api --50
+docker-compose logs -f api
 🌐 Truy cập:
 
 API Swagger: http://localhost:8080/swagger

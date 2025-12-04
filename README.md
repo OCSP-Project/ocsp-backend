@@ -17,6 +17,9 @@ bash# Clone và navigate
 git clone <repository-url>
 cd OCSP.Backend
 
+cloudflared tunnel --url http://localhost:80
+sudo nano /etc/nginx/sites-available/ocsp-backend
+
 # Cấu hình email trong docker-compose.yml
 
 # Thay your-email@gmail.com và your-app-password

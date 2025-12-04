@@ -58,7 +58,7 @@ namespace OCSP.API.Controllers
             {
                 if (!IsAdmin())
                 {
-                    return Forbid("Chỉ admin mới có quyền xem danh sách yêu cầu đăng ký");
+                    return StatusCode(403, new { message = "Chỉ admin mới có quyền xem danh sách yêu cầu đăng ký" });
                 }
 
                 var requests = await _service.GetAllAsync();

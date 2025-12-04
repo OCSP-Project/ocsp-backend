@@ -500,17 +500,8 @@ namespace OCSP.Application.Services
             if (contract.Status != ContractStatus.PendingSignatures)
                 throw new InvalidOperationException("Contract must be signed by homeowner first");
 
-            // Check if contractor profile is complete
-            var contractorProfile = await _db.Profiles
-                .FirstOrDefaultAsync(p => p.UserId == contractorId, ct);
-            
-            if (contractorProfile == null || 
-                string.IsNullOrEmpty(contractorProfile.FirstName) || 
-                string.IsNullOrEmpty(contractorProfile.LastName) ||
-                string.IsNullOrEmpty(contractorProfile.PhoneNumber))
-            {
-                throw new InvalidOperationException("Vui lòng cập nhật đầy đủ thông tin cá nhân (Họ tên, SĐT, Địa chỉ) tại mục hồ sơ trước khi ký hợp đồng");
-            }
+            // Note: Contractor info comes from ContractorBusiness table (set during registration)
+            // No need to validate contractor Profile - contractor info is always available
 
             // Save signature
             contract.ContractorSignatureBase64 = dto.SignatureBase64;

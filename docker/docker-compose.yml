@@ -70,6 +70,10 @@ services:
       Email__Password: ${EMAIL__PASSWORD}
       Email__FromEmail: ${EMAIL__FROMEMAIL}
       Email__EnableSsl: ${EMAIL__ENABLESSL}
+
+      # File Storage Configuration - Must match volume mount path
+      FileStorage__LocalPath: /app/uploads/models
+      FileStorage__BaseUrl: /uploads/models
     ports:
       - "8080:8080"
     volumes:

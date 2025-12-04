@@ -63,47 +63,9 @@ namespace OCSP.Application.Services
         {
             try
             {
-                if (string.IsNullOrEmpty(fileUrl))
-                    throw new ArgumentException("File URL không được để trống");
-
-                // If it's an HTTP/HTTPS URL (external file or signed URL from S3)
-                if (Uri.TryCreate(fileUrl, UriKind.Absolute, out var absoluteUri) &&
-                    (absoluteUri.Scheme == Uri.UriSchemeHttp || absoluteUri.Scheme == Uri.UriSchemeHttps))
-                {
-                    using var http = new HttpClient();
-                    return await http.GetByteArrayAsync(absoluteUri);
-                }
-
-                // For S3: Generate signed URL and download
-                // For Local: fileUrl is already a path we can serve directly
-                // Since we're using the storage service abstraction, we need to handle this differently
-
-                // Generate a signed URL (for S3 this creates a temporary URL, for local it returns the same path)
-                var signedUrl = await _fileStorageService.GetSignedUrlAsync(
-                    fileUrl,
-                    TimeSpan.FromMinutes(5));
-
-                // Download from the signed URL
-                if (Uri.TryCreate(signedUrl, UriKind.Absolute, out var signedUri) &&
-                    (signedUri.Scheme == Uri.UriSchemeHttp || signedUri.Scheme == Uri.UriSchemeHttps))
-                {
-                    using var http = new HttpClient();
-                    return await http.GetByteArrayAsync(signedUri);
-                }
-
-                // If it's a local path (starts with /uploads/), read directly
-                if (signedUrl.StartsWith("/uploads/"))
-                {
-                    var relativePath = signedUrl.TrimStart('/');
-                    var fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
-
-                    if (!File.Exists(fullPath))
-                        throw new FileNotFoundException("File không tồn tại");
-
-                    return await File.ReadAllBytesAsync(fullPath);
-                }
-
-                throw new InvalidOperationException($"Không thể đọc file từ: {fileUrl}");
+                // Use the storage service to get the file
+                // This handles both local and S3 storage correctly
+                return await _fileStorageService.GetFileAsync(fileUrl);
             }
             catch (Exception ex)
             {

@@ -123,8 +123,8 @@ namespace OCSP.Application.Services
             // Save Excel file to storage
             var excelFileUrl = await _fileService.UploadFileAsync(
                 excelFile.OpenReadStream(), 
-                $"proposals/{quoteId}/{excelFile.FileName}", 
-                "proposals"
+                excelFile.FileName, 
+                $"proposals/{quoteId}"
             );
 
             // Create proposal with data from "Tổng hợp" tab
@@ -179,8 +179,8 @@ ProjectId = quote.ProjectId,
             // Save new Excel file to storage
             var excelFileUrl = await _fileService.UploadFileAsync(
                 excelFile.OpenReadStream(), 
-                $"proposals/{proposal.QuoteRequestId}/{excelFile.FileName}", 
-                "proposals"
+                excelFile.FileName, 
+                $"proposals/{proposal.QuoteRequestId}"
             );
 
             // Update proposal basic info
@@ -227,7 +227,7 @@ ProjectId = quote.ProjectId,
                 throw new UnauthorizedAccessException("Not your proposal");
 
             if (p.Status != ProposalStatus.Draft)
-                throw new InvalidOperationException("Only Draft proposal can be submitted");
+                throw new InvalidOperationException("chỉnh sửa file và upload lại");
 
             // Check if this proposal was revised by homeowner request
             var isResubmission = p.WasRevised;

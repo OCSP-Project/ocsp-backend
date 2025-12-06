@@ -157,13 +157,14 @@ namespace OCSP.Application.Services
 
             // Verify signature (bypass for supervisor payments in demo mode)
             var (purpose, projectId) = ExtractPurposeAndProjectId(payload.ExtraData);
-            if (!string.Equals(purpose, "supervisor", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(purpose, "supervisor", StringComparison.OrdinalIgnoreCase) 
+                && !string.Equals(purpose, "supervisor-features", StringComparison.OrdinalIgnoreCase))
             {
                 ValidateWebhookSignature(payload);
             }
             else
             {
-                _logger.LogWarning("[MoMo] Bypassing signature check for supervisor payment (demo mode)");
+                _logger.LogWarning("[MoMo] Bypassing signature check for {Purpose} payment (demo mode)", purpose);
             }
 
             var tx = await _db.WalletTransactions.FirstOrDefaultAsync(x => x.MomoOrderId == payload.OrderId && x.MomoRequestId == payload.RequestId, ct);
@@ -226,6 +227,10 @@ namespace OCSP.Application.Services
                 else if (string.Equals(purpose, "supervisor", StringComparison.OrdinalIgnoreCase))
                 {
                     await HandleSupervisorPaymentAsync(payload, projectId, ct);
+                }
+                else if (string.Equals(purpose, "supervisor-features", StringComparison.OrdinalIgnoreCase))
+                {
+                    await HandleSupervisorFeaturesPaymentAsync(payload, tx.UserId, ct);
                 }
             }
 
@@ -308,6 +313,53 @@ namespace OCSP.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[MoMo] Failed to update payment status for project={ProjectId}", projectId);
+            }
+        }
+
+        private async Task HandleSupervisorFeaturesPaymentAsync(MomoWebhookDto payload, Guid userId, CancellationToken ct)
+        {
+            if (userId == Guid.Empty)
+            {
+                _logger.LogError("[MoMo] Supervisor features payment missing userId");
+                return;
+            }
+
+            try
+            {
+                // Get user
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+                if (user == null)
+                {
+                    _logger.LogError("[MoMo] User not found for supervisor features payment: userId={UserId}", userId);
+                    return;
+                }
+
+                // Idempotency check: if user is already a Supervisor, skip (already processed)
+                if (user.Role == Domain.Enums.UserRole.Supervisor)
+                {
+                    _logger.LogInformation("[MoMo] User {UserId} is already a Supervisor, skipping upgrade. orderId={OrderId}", 
+                        userId, payload.OrderId);
+                    return; // Already processed
+                }
+
+                // Only allow if user is currently a homeowner (role = 3)
+                if (user.Role != Domain.Enums.UserRole.Homeowner)
+                {
+                    _logger.LogWarning("[MoMo] User {UserId} is not a homeowner, cannot upgrade to supervisor features. Current role: {Role}", 
+                        userId, user.Role);
+                    return;
+                }
+
+                // Change role from Homeowner (3) to Supervisor (1)
+                user.Role = Domain.Enums.UserRole.Supervisor;
+                user.UpdatedAt = DateTime.UtcNow;
+
+                _logger.LogInformation("[MoMo] Upgraded user {UserId} from Homeowner to Supervisor after payment. orderId={OrderId}", 
+                    userId, payload.OrderId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[MoMo] Failed to upgrade user to supervisor features: userId={UserId}", userId);
             }
         }
 

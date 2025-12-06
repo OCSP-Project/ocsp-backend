@@ -110,6 +110,37 @@ namespace OCSP.API.Controllers
             return Ok(model);
         }
 
+        /// <summary>
+        /// Delete 3D model by model ID
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ CHỈ SUPERVISOR MỚI CÓ QUYỀN XÓA
+        /// - Xóa model trong database
+        /// - Xóa file GLB trên S3/local storage
+        /// - Xóa tất cả building elements liên quan
+        /// </remarks>
+        [HttpDelete("models/{modelId:guid}")]
+        [Authorize(Roles = "Supervisor")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> DeleteModel(
+            [FromRoute] Guid modelId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var deleted = await _service.DeleteModelAsync(modelId, cancellationToken);
+                if (!deleted) return NotFound(new { message = "Model not found" });
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting model {ModelId}", modelId);
+                return StatusCode(500, new { message = "Error deleting model" });
+            }
+        }
+
         private Guid GetCurrentUserId()
         {
             var id = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

@@ -12,8 +12,8 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251204034456_Add")]
-    partial class Add
+    [Migration("20251204044056_AddRegistrationRequestsTable_Production")]
+    partial class AddRegistrationRequestsTable_Production
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

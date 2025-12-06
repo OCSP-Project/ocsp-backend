@@ -26,6 +26,10 @@ namespace OCSP.Application.Services
         Task<Project3DModelDto?> GetModelByIdAsync(
             Guid modelId,
             CancellationToken cancellationToken = default);
+
+        Task<bool> DeleteModelAsync(
+            Guid modelId,
+            CancellationToken cancellationToken = default);
     }
 
     public class ModelAnalysisService : IModelAnalysisService
@@ -153,6 +157,42 @@ namespace OCSP.Application.Services
                 CreatedAt = model.CreatedAt,
                 CreatedBy = model.CreatedBy
             };
+        }
+
+        public async Task<bool> DeleteModelAsync(Guid modelId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var model = await _modelRepository.GetByIdAsync(modelId, cancellationToken);
+                if (model == null)
+                {
+                    _logger.LogWarning("Model {ModelId} not found for deletion", modelId);
+                    return false;
+                }
+
+                // Delete file from storage (S3 or local)
+                try
+                {
+                    await _fileStorage.DeleteFileAsync(model.FileUrl, cancellationToken);
+                    _logger.LogInformation("Deleted file {FileUrl} for model {ModelId}", model.FileUrl, modelId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete file {FileUrl}, continuing with database deletion", model.FileUrl);
+                    // Continue with database deletion even if file deletion fails
+                }
+
+                // Delete model from database (cascade delete will handle building elements)
+                await _modelRepository.DeleteAsync(modelId, cancellationToken);
+                _logger.LogInformation("Deleted model {ModelId} from database", modelId);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting model {ModelId}", modelId);
+                throw;
+            }
         }
     }
 }

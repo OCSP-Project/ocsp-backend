@@ -110,6 +110,9 @@ namespace OCSP.Infrastructure.Data
             public DbSet<DiaryWeatherPeriod> DiaryWeatherPeriods { get; set; }
             public DbSet<DiaryImage> DiaryImages { get; set; }
 
+            // NEW: News Management
+            public DbSet<News> News { get; set; }
+
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
                   base.OnModelCreating(modelBuilder);

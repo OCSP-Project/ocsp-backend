@@ -190,6 +190,9 @@ builder.Services.AddScoped<IMaterialService, MaterialService>();
 // Construction Diary Service
 builder.Services.AddScoped<IConstructionDiaryService, ConstructionDiaryService>();
 
+// News Management Service
+builder.Services.AddScoped<INewsService, NewsService>();
+
 // SignalR (required for MapHub)
 builder.Services.AddSignalR();
 

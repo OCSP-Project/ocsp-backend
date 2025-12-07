@@ -10,69 +10,56 @@ namespace OCSP.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "RegistrationRequests",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Username = table.Column<string>(type: "text", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: false),
-                    Phone = table.Column<string>(type: "text", nullable: false),
-                    RequestedRole = table.Column<int>(type: "integer", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    RejectionReason = table.Column<string>(type: "text", nullable: true),
-                    ReviewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ReviewedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Department = table.Column<string>(type: "text", nullable: true),
-                    Position = table.Column<string>(type: "text", nullable: true),
-                    District = table.Column<string>(type: "text", nullable: true),
-                    MinRate = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    MaxRate = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    CompanyName = table.Column<string>(type: "text", nullable: true),
-                    BusinessLicense = table.Column<string>(type: "text", nullable: true),
-                    TaxCode = table.Column<string>(type: "text", nullable: true),
-                    Description = table.Column<string>(type: "text", nullable: true),
-                    Website = table.Column<string>(type: "text", nullable: true),
-                    Address = table.Column<string>(type: "text", nullable: true),
-                    City = table.Column<string>(type: "text", nullable: true),
-                    Province = table.Column<string>(type: "text", nullable: true),
-                    YearsOfExperience = table.Column<int>(type: "integer", nullable: true),
-                    TeamSize = table.Column<int>(type: "integer", nullable: true),
-                    CompletedProjects = table.Column<int>(type: "integer", nullable: true),
-                    MinProjectBudget = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    MaxProjectBudget = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    CreatedUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_RegistrationRequests", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_RegistrationRequests_Users_CreatedUserId",
-                        column: x => x.CreatedUserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_RegistrationRequests_Users_ReviewedByUserId",
-                        column: x => x.ReviewedByUserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+            // Create table only if it doesn't exist
+            migrationBuilder.Sql(@"
+                CREATE TABLE IF NOT EXISTS ""RegistrationRequests"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""Username"" text NOT NULL,
+                    ""Email"" text NOT NULL,
+                    ""Phone"" text NOT NULL,
+                    ""RequestedRole"" integer NOT NULL,
+                    ""Status"" integer NOT NULL,
+                    ""RejectionReason"" text,
+                    ""ReviewedAt"" timestamp with time zone,
+                    ""ReviewedByUserId"" uuid,
+                    ""Department"" text,
+                    ""Position"" text,
+                    ""District"" text,
+                    ""MinRate"" numeric(18,2),
+                    ""MaxRate"" numeric(18,2),
+                    ""CompanyName"" text,
+                    ""BusinessLicense"" text,
+                    ""TaxCode"" text,
+                    ""Description"" text,
+                    ""Website"" text,
+                    ""Address"" text,
+                    ""City"" text,
+                    ""Province"" text,
+                    ""YearsOfExperience"" integer,
+                    ""TeamSize"" integer,
+                    ""CompletedProjects"" integer,
+                    ""MinProjectBudget"" numeric(18,2),
+                    ""MaxProjectBudget"" numeric(18,2),
+                    ""CreatedUserId"" uuid,
+                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""UpdatedAt"" timestamp with time zone,
+                    ""CreatedBy"" text,
+                    ""UpdatedBy"" text,
+                    CONSTRAINT ""FK_RegistrationRequests_Users_CreatedUserId"" FOREIGN KEY (""CreatedUserId"")
+                        REFERENCES ""Users""(""Id"") ON DELETE RESTRICT,
+                    CONSTRAINT ""FK_RegistrationRequests_Users_ReviewedByUserId"" FOREIGN KEY (""ReviewedByUserId"")
+                        REFERENCES ""Users""(""Id"") ON DELETE RESTRICT
+                );
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_RegistrationRequests_CreatedUserId",
-                table: "RegistrationRequests",
-                column: "CreatedUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_RegistrationRequests_ReviewedByUserId",
-                table: "RegistrationRequests",
-                column: "ReviewedByUserId");
+            // Create indexes only if they don't exist
+            migrationBuilder.Sql(@"
+                CREATE INDEX IF NOT EXISTS ""IX_RegistrationRequests_CreatedUserId"" 
+                ON ""RegistrationRequests""(""CreatedUserId"");
+                
+                CREATE INDEX IF NOT EXISTS ""IX_RegistrationRequests_ReviewedByUserId"" 
+                ON ""RegistrationRequests""(""ReviewedByUserId"");
+            ");
         }
 
         /// <inheritdoc />

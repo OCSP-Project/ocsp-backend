@@ -10,6 +10,7 @@ namespace OCSP.Application.Services.Interfaces
     {
         Task<SupervisorContractDto> CreateAsync(Guid projectId, Guid supervisorId, decimal monthlyPrice, CancellationToken ct = default);
         Task<SupervisorContractDto> CreateForProjectAsync(Guid projectId, Guid homeownerId, decimal monthlyPrice, CancellationToken ct = default);
+        Task<SupervisorContractDto> CreateWithSupervisorAsync(Guid projectId, Guid supervisorId, Guid homeownerId, decimal monthlyPrice, CancellationToken ct = default);
         Task<SupervisorContractDto> GetByIdAsync(Guid contractId, Guid currentUserId, CancellationToken ct = default);
         Task<SupervisorContractDto?> GetByProjectIdAsync(Guid projectId, Guid currentUserId, CancellationToken ct = default);
         Task<IEnumerable<SupervisorContractListItemDto>> ListMyContractsAsync(Guid userId, CancellationToken ct = default);

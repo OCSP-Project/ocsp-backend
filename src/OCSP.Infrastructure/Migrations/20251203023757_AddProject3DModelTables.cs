@@ -95,7 +95,7 @@ namespace OCSP.Infrastructure.Migrations
                 CREATE INDEX IF NOT EXISTS ""IX_MeshGroups_ComponentType"" ON ""MeshGroups""(""ComponentType"");
             ");
 
-            // Create ElementTrackingHistory table
+            // Create ElementTrackingHistory table (with migration support for existing tables)
             migrationBuilder.Sql(@"
                 CREATE TABLE IF NOT EXISTS ""ElementTrackingHistory"" (
                     ""Id"" uuid NOT NULL PRIMARY KEY,
@@ -121,12 +121,108 @@ namespace OCSP.Infrastructure.Migrations
                     CONSTRAINT ""FK_ElementTrackingHistory_Users_RecordedById"" FOREIGN KEY (""RecordedById"")
                         REFERENCES ""Users""(""Id"") ON DELETE RESTRICT
                 );
+            ");
 
+            // Migrate existing table schema if table already exists with old schema
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    -- Add PreviousStatus column if it doesn't exist
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'ElementTrackingHistory' 
+                        AND column_name = 'PreviousStatus'
+                    ) THEN
+                        ALTER TABLE ""ElementTrackingHistory"" 
+                        ADD COLUMN ""PreviousStatus"" integer;
+                        
+                        -- If old Status column exists, migrate data
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_schema = 'public' 
+                            AND table_name = 'ElementTrackingHistory' 
+                            AND column_name = 'Status'
+                        ) THEN
+                            UPDATE ""ElementTrackingHistory"" 
+                            SET ""PreviousStatus"" = ""Status"";
+                        END IF;
+                        
+                        -- Make it NOT NULL after data migration
+                        ALTER TABLE ""ElementTrackingHistory"" 
+                        ALTER COLUMN ""PreviousStatus"" SET NOT NULL;
+                    END IF;
+                    
+                    -- Add NewStatus column if it doesn't exist
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'ElementTrackingHistory' 
+                        AND column_name = 'NewStatus'
+                    ) THEN
+                        ALTER TABLE ""ElementTrackingHistory"" 
+                        ADD COLUMN ""NewStatus"" integer;
+                        
+                        -- If old Status column exists, migrate data
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_schema = 'public' 
+                            AND table_name = 'ElementTrackingHistory' 
+                            AND column_name = 'Status'
+                        ) THEN
+                            UPDATE ""ElementTrackingHistory"" 
+                            SET ""NewStatus"" = ""Status"";
+                        END IF;
+                        
+                        -- Make it NOT NULL after data migration
+                        ALTER TABLE ""ElementTrackingHistory"" 
+                        ALTER COLUMN ""NewStatus"" SET NOT NULL;
+                    END IF;
+                    
+                    -- Drop old Status column if it exists and both NewStatus and PreviousStatus exist
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'ElementTrackingHistory' 
+                        AND column_name = 'Status'
+                    ) AND EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'ElementTrackingHistory' 
+                        AND column_name = 'NewStatus'
+                    ) AND EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'ElementTrackingHistory' 
+                        AND column_name = 'PreviousStatus'
+                    ) THEN
+                        ALTER TABLE ""ElementTrackingHistory"" DROP COLUMN ""Status"";
+                    END IF;
+                END $$;
+            ");
+
+            // Create indexes (safe to run multiple times)
+            migrationBuilder.Sql(@"
                 CREATE INDEX IF NOT EXISTS ""IX_ElementTrackingHistory_BuildingElementId"" ON ""ElementTrackingHistory""(""BuildingElementId"");
                 CREATE INDEX IF NOT EXISTS ""IX_ElementTrackingHistory_TrackingDate"" ON ""ElementTrackingHistory""(""TrackingDate"");
                 CREATE INDEX IF NOT EXISTS ""IX_ElementTrackingHistory_RecordedById"" ON ""ElementTrackingHistory""(""RecordedById"");
                 CREATE INDEX IF NOT EXISTS ""IX_ElementTrackingHistory_BuildingElementId_TrackingDate"" ON ""ElementTrackingHistory""(""BuildingElementId"", ""TrackingDate"");
-                CREATE INDEX IF NOT EXISTS ""IX_ElementTrackingHistory_BuildingElementId_NewStatus"" ON ""ElementTrackingHistory""(""BuildingElementId"", ""NewStatus"");
+            ");
+
+            // Create NewStatus index only if column exists
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'ElementTrackingHistory' 
+                        AND column_name = 'NewStatus'
+                    ) THEN
+                        CREATE INDEX IF NOT EXISTS ""IX_ElementTrackingHistory_BuildingElementId_NewStatus"" 
+                        ON ""ElementTrackingHistory""(""BuildingElementId"", ""NewStatus"");
+                    END IF;
+                END $$;
             ");
 
             // Create TrackingPhotos table

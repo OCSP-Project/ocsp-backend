@@ -165,6 +165,12 @@ namespace OCSP.API.Controllers
             try
             {
                 var pdfBytes = await _service.GeneratePdfAsync(id, uid, ct);
+                
+                // Add CORS headers explicitly for file download
+                Response.Headers.Append("Access-Control-Allow-Origin", "*");
+                Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+                Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                
                 return File(pdfBytes, "application/pdf", $"supervisor_contract_{id}.pdf");
             }
             catch (ArgumentException ex) { return NotFound(ex.Message); }

@@ -51,4 +51,11 @@ namespace OCSP.Application.DTOs.Contracts
         public Guid ProjectId { get; set; }
         public decimal MonthlyPrice { get; set; }
     }
+
+    public class CreateSupervisorContractWithSupervisorDto
+    {
+        public Guid ProjectId { get; set; }
+        public Guid SupervisorId { get; set; }
+        public decimal MonthlyPrice { get; set; }
+    }
 }

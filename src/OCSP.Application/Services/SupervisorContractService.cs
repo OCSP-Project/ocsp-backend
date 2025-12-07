@@ -118,6 +118,54 @@ namespace OCSP.Application.Services
             return await BuildDtoAsync(contract.Id, homeownerId, ct);
         }
 
+        public async Task<SupervisorContractDto> CreateWithSupervisorAsync(Guid projectId, Guid supervisorId, Guid homeownerId, decimal monthlyPrice, CancellationToken ct = default)
+        {
+            var project = await _db.Projects
+                .FirstOrDefaultAsync(p => p.Id == projectId, ct)
+                ?? throw new ArgumentException("Project not found");
+
+            if (project.HomeownerId != homeownerId)
+                throw new UnauthorizedAccessException("Only project owner can create supervisor contract");
+
+            // Check if contract already exists for this project
+            var existingContract = await _db.SupervisorContracts
+                .FirstOrDefaultAsync(sc => sc.ProjectId == projectId, ct);
+
+            if (existingContract != null)
+                return await BuildDtoAsync(existingContract.Id, homeownerId, ct);
+
+            // Get the specified supervisor
+            var supervisor = await _db.Supervisors
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.Id == supervisorId, ct)
+                ?? throw new ArgumentException("Supervisor not found");
+
+            // Check if supervisor is available
+            if (!supervisor.AvailableNow)
+                throw new InvalidOperationException("Giám sát viên này hiện không sẵn sàng nhận việc");
+
+            var supervisorUser = supervisor.User ?? throw new InvalidOperationException("Supervisor user not found");
+
+            // Load terms from template
+            var terms = LoadSupervisorContractTerms();
+
+            var contract = new SupervisorContract
+            {
+                ProjectId = projectId,
+                SupervisorId = supervisorId,
+                SupervisorUserId = supervisorUser.Id,
+                HomeownerUserId = homeownerId,
+                MonthlyPrice = monthlyPrice,
+                Terms = terms,
+                Status = ContractStatus.Draft
+            };
+
+            _db.SupervisorContracts.Add(contract);
+            await _db.SaveChangesAsync(ct);
+
+            return await BuildDtoAsync(contract.Id, homeownerId, ct);
+        }
+
         public async Task<SupervisorContractDto> GetByIdAsync(Guid contractId, Guid currentUserId, CancellationToken ct = default)
         {
             return await BuildDtoAsync(contractId, currentUserId, ct);

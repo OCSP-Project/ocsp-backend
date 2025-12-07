@@ -18,12 +18,22 @@ namespace OCSP.Application.Services
 
         public async Task<NewsDto> ReceiveFromN8nAsync(N8nNewsWebhookDto dto)
         {
+            // Parse date string from n8n
+            DateTime? dateStart = null;
+            if (!string.IsNullOrEmpty(dto.DateStart))
+            {
+                if (DateTime.TryParse(dto.DateStart, out var parsedDate))
+                {
+                    dateStart = parsedDate;
+                }
+            }
+
             var news = new News
             {
                 Id = Guid.NewGuid(),
                 Title = dto.Title,
                 Author = dto.TácGiả ?? "VietnamNet",
-                DateStart = dto.DateStart,
+                DateStart = dateStart,
                 ImageLinks = dto.ImageLink,
                 ContentNews = dto.ContentNews,
                 OriginalLink = dto.OriginalLink,

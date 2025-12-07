@@ -24,7 +24,7 @@ namespace OCSP.API.Controllers
         }
 
         /// <summary>
-        /// Tạo hợp đồng giám sát viên cho project (chưa thanh toán)
+        /// Tạo hợp đồng giám sát viên cho project (chưa thanh toán) - tự động chọn supervisor ngẫu nhiên
         /// </summary>
         [HttpPost]
         public async Task<ActionResult<SupervisorContractDto>> Create([FromBody] CreateSupervisorContractDto dto, CancellationToken ct)
@@ -35,6 +35,25 @@ namespace OCSP.API.Controllers
             try
             {
                 var result = await _service.CreateForProjectAsync(dto.ProjectId, uid, dto.MonthlyPrice, ct);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (ArgumentException ex) { return NotFound(ex.Message); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
+        /// <summary>
+        /// Tạo hợp đồng giám sát viên cho project với supervisor cụ thể
+        /// </summary>
+        [HttpPost("with-supervisor")]
+        public async Task<ActionResult<SupervisorContractDto>> CreateWithSupervisor([FromBody] CreateSupervisorContractWithSupervisorDto dto, CancellationToken ct)
+        {
+            var uid = Me();
+            if (uid == Guid.Empty) return Unauthorized();
+
+            try
+            {
+                var result = await _service.CreateWithSupervisorAsync(dto.ProjectId, dto.SupervisorId, uid, dto.MonthlyPrice, ct);
                 return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }
             catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
@@ -165,6 +184,12 @@ namespace OCSP.API.Controllers
             try
             {
                 var pdfBytes = await _service.GeneratePdfAsync(id, uid, ct);
+                
+                // Add CORS headers explicitly for file download
+                Response.Headers.Append("Access-Control-Allow-Origin", "*");
+                Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+                Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                
                 return File(pdfBytes, "application/pdf", $"supervisor_contract_{id}.pdf");
             }
             catch (ArgumentException ex) { return NotFound(ex.Message); }

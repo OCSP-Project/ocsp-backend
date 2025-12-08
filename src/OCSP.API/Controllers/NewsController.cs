@@ -85,6 +85,15 @@ namespace OCSP.API.Controllers
         {
             try
             {
+                // DEBUG: Log received data
+                _logger.LogInformation("N8N Webhook received:");
+                _logger.LogInformation("Title: {Title}", dto.Title);
+                _logger.LogInformation("TácGiả: {Author}", dto.TácGiả);
+                _logger.LogInformation("DateStart: {DateStart}", dto.DateStart);
+                _logger.LogInformation("ImageLink count: {Count}", dto.ImageLink?.Length ?? 0);
+                _logger.LogInformation("ContentNews length: {Length}", dto.ContentNews?.Length ?? 0);
+                _logger.LogInformation("OriginalLink: {Link}", dto.OriginalLink);
+
                 var news = await _newsService.ReceiveFromN8nAsync(dto);
                 return CreatedAtAction(nameof(GetNewsById), new { id = news.Id }, news);
             }

@@ -221,5 +221,30 @@ namespace OCSP.Application.Services
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDto changePasswordDto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user == null)
+            {
+                throw new ValidationException("Người dùng không tồn tại");
+            }
+
+            // Verify current password
+            if (!PasswordHelper.VerifyPassword(changePasswordDto.CurrentPassword, user.PasswordHash))
+            {
+                throw new ValidationException("Mật khẩu hiện tại không đúng");
+            }
+
+            // Hash and update new password
+            user.PasswordHash = PasswordHelper.HashPassword(changePasswordDto.NewPassword);
+
+            await _context.SaveChangesAsync();
+
+            // Send confirmation email
+            await _emailService.SendPasswordChangeConfirmationEmailAsync(user.Email, user.Username);
+
+            return true;
+        }
     }
 }

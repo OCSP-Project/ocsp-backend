@@ -117,6 +117,14 @@ namespace OCSP.Application.Services
             var recentReviews = await _contractorRepository.GetRecentReviewsAsync(contractorId, 5);
             contractorDto.RecentReviews = _mapper.Map<List<ReviewSummaryDto>>(recentReviews);
 
+            // Count ongoing projects by userId (where contractor is involved and status is Active)
+            var ongoingProjectsCount = await _context.Projects
+                .Where(p => p.Status == Domain.Entities.ProjectStatus.Active)
+                .Where(p => p.Participants.Any(pp => pp.UserId == contractor.UserId))
+                .CountAsync();
+
+            contractorDto.OngoingProjects = ongoingProjectsCount;
+
             return contractorDto;
         }
 

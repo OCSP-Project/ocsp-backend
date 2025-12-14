@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using OCSP.Application.DTOs.Auth;
 using OCSP.Application.Services.Interfaces;
+using System.Security.Claims;
 
 namespace OCSP.API.Controllers
 {
@@ -9,10 +11,12 @@ namespace OCSP.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("login")]
@@ -109,6 +113,30 @@ namespace OCSP.API.Controllers
             }
             catch (Exception ex)
             {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                _logger.LogInformation("User {UserId} is changing password", userId);
+
+                await _authService.ChangePasswordAsync(Guid.Parse(userId), changePasswordDto);
+                return Ok(new { message = "Mật khẩu đã được thay đổi thành công. Email xác nhận đã được gửi." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing password");
                 return BadRequest(new { message = ex.Message });
             }
         }

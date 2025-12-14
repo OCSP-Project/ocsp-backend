@@ -11,5 +11,6 @@ namespace OCSP.Application.Services.Interfaces
         Task<bool> VerifyEmailAsync(VerifyEmailDto verifyEmailDto);
         Task<TokenDto> RefreshTokenAsync(string refreshToken);
         Task<bool> RevokeTokenAsync(string refreshToken);
+        Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDto changePasswordDto);
     }
 }

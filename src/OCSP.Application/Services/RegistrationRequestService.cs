@@ -69,8 +69,6 @@ namespace OCSP.Application.Services
             {
                 if (string.IsNullOrWhiteSpace(dto.CompanyName))
                     throw new ValidationException("Tên công ty là bắt buộc cho nhà thầu");
-                if (string.IsNullOrWhiteSpace(dto.BusinessLicense))
-                    throw new ValidationException("Giấy phép kinh doanh là bắt buộc cho nhà thầu");
             }
 
             var request = new RegistrationRequest
@@ -210,10 +208,10 @@ namespace OCSP.Application.Services
                     Id = Guid.NewGuid(),
                     UserId = user.Id,
                     CompanyName = request.CompanyName ?? string.Empty,
-                    BusinessLicense = request.BusinessLicense ?? string.Empty,
-                    TaxCode = request.TaxCode,
-                    Description = request.Description,
-                    Website = request.Website,
+                    BusinessLicense = request.BusinessLicense ?? string.Empty, // Will be updated by user later
+                    TaxCode = request.TaxCode ?? string.Empty,
+                    Description = request.Description ?? string.Empty,
+                    Website = request.Website ?? string.Empty,
                     ContactPhone = request.Phone,
                     ContactEmail = request.Email,
                     Address = request.Address,

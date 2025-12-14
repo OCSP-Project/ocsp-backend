@@ -17,7 +17,16 @@ namespace OCSP.Domain.Entities
         public string? Address { get; set; }
         public string? City { get; set; } = "Da Nang";
         public string? Province { get; set; } = "Da Nang";
-        
+
+        // Google Maps Integration
+        public string? GoogleMapsPlaceUrl { get; set; }
+        public string? GoogleMapsDataId { get; set; }
+        public decimal? GoogleMapsRating { get; set; }
+        public int? GoogleMapsReviewCount { get; set; }
+
+        // Featured Image
+        public string? FeaturedImageUrl { get; set; }
+
         // Business Info
         public int YearsOfExperience { get; set; } = 0;
         public int TeamSize { get; set; } = 1;

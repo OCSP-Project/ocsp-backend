@@ -65,6 +65,69 @@ namespace OCSP.Infrastructure.ExternalServices
             await SendEmailAsync(email, subject, body);
         }
 
+        public async Task SendPasswordChangeConfirmationEmailAsync(string email, string username)
+        {
+            var subject = "Xác nhận đổi mật khẩu";
+            var htmlBody = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: linear-gradient(135deg, #38c1b6 0%, #667eea 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+        .content {{ background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }}
+        .icon {{ font-size: 48px; margin-bottom: 10px; }}
+        .success-box {{ background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 5px; }}
+        .info-box {{ background: white; padding: 15px; border-left: 4px solid #38c1b6; margin: 20px 0; border-radius: 5px; }}
+        .footer {{ text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }}
+        .warning {{ color: #dc2626; font-weight: bold; margin-top: 20px; }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <div class=""icon"">🔒</div>
+            <h1>Đổi mật khẩu thành công</h1>
+        </div>
+        <div class=""content"">
+            <p>Xin chào <strong>{username}</strong>,</p>
+
+            <div class=""success-box"">
+                <p style=""margin: 0; color: #065f46;"">
+                    ✅ Mật khẩu của bạn đã được thay đổi thành công vào lúc {DateTime.UtcNow.AddHours(7):dd/MM/yyyy HH:mm} (GMT+7)
+                </p>
+            </div>
+
+            <div class=""info-box"">
+                <strong>Để bảo mật tài khoản của bạn:</strong>
+                <ul style=""margin: 10px 0; padding-left: 20px;"">
+                    <li>Không chia sẻ mật khẩu với bất kỳ ai</li>
+                    <li>Sử dụng mật khẩu mạnh và duy nhất cho mỗi tài khoản</li>
+                    <li>Thay đổi mật khẩu định kỳ</li>
+                    <li>Kích hoạt xác thực hai yếu tố nếu có thể</li>
+                </ul>
+            </div>
+
+            <div class=""warning"">
+                ⚠️ Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với chúng tôi ngay lập tức!
+            </div>
+
+            <p style=""margin-top: 30px; color: #6b7280;"">
+                Tất cả các phiên đăng nhập hiện tại của bạn đã được duy trì. Bạn có thể tiếp tục sử dụng hệ thống với mật khẩu mới.
+            </p>
+        </div>
+        <div class=""footer"">
+            <p>© 2025 OCSP - Hệ thống quản lý dự án xây dựng</p>
+            <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            await SendEmailAsync(email, subject, htmlBody);
+        }
+
         public async Task SendInvitationEmailAsync(
             string toEmail,
             string inviterName,

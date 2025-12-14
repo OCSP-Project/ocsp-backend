@@ -109,6 +109,12 @@ namespace OCSP.Application.DTOs.Contractor
         public string? City { get; set; }
         public string? Province { get; set; }
 
+        public string? GoogleMapsPlaceUrl { get; set; }
+        public string? GoogleMapsDataId { get; set; }
+        public decimal? GoogleMapsRating { get; set; }
+        public int? GoogleMapsReviewCount { get; set; }
+        public string? FeaturedImageUrl { get; set; }
+
         public int YearsOfExperience { get; set; }
         public int TeamSize { get; set; }
         public decimal? MinProjectBudget { get; set; }
@@ -148,6 +154,8 @@ namespace OCSP.Application.DTOs.Contractor
         public decimal? MaxProjectBudget { get; set; }
         public bool IsVerified { get; set; }
         public bool IsPremium { get; set; }
+        public decimal? GoogleMapsRating { get; set; }
+        public int? GoogleMapsReviewCount { get; set; }
         public List<string> Specialties { get; set; } = new List<string>();
         public string? FeaturedImageUrl { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -193,6 +201,8 @@ namespace OCSP.Application.DTOs.Contractor
         public decimal? MaxProjectBudget { get; set; }
         public bool IsVerified { get; set; }
         public bool IsPremium { get; set; }
+        public decimal? GoogleMapsRating { get; set; }
+        public int? GoogleMapsReviewCount { get; set; }
         public List<string> Specialties { get; set; } = new List<string>();
         public string? FeaturedImageUrl { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -244,5 +254,34 @@ namespace OCSP.Application.DTOs.Contractor
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<ContractorPostImageDto> Images { get; set; } = new List<ContractorPostImageDto>();
+    }
+
+    public class UpdateContractorCompanyInfoDto
+    {
+        public string CompanyName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Website { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? ContactEmail { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? Province { get; set; }
+        public string? GoogleMapsPlaceUrl { get; set; }
+    }
+
+    public class GoogleMapsReviewDto
+    {
+        public string AuthorName { get; set; } = string.Empty;
+        public string? AuthorUrl { get; set; }
+        public string? ProfilePhotoUrl { get; set; }
+        public int Rating { get; set; }
+        public string? Text { get; set; }
+        public long Time { get; set; }
+        public string? RelativeTimeDescription { get; set; }
+    }
+
+    public class GoogleMapsReviewsResponseDto
+    {
+        public List<GoogleMapsReviewDto> Reviews { get; set; } = new List<GoogleMapsReviewDto>();
     }
 }

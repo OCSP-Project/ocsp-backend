@@ -44,7 +44,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 //────────────────────────────────────────────────────────
 // 2) Services Registration
 //────────────────────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configure JSON serialization to use camelCase (standard for REST APIs)
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 // Configure request timeout and size limits
 builder.Services.Configure<IISServerOptions>(options =>

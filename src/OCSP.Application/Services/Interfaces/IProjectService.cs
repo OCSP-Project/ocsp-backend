@@ -14,6 +14,8 @@ namespace OCSP.Application.Services.Interfaces
         // Get Project
         Task<ProjectDetailDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default);
         Task<List<ProjectResponseDto>> GetProjectsByHomeownerAsync(Guid homeownerId, CancellationToken ct = default);
+        Task<List<ProjectResponseDto>> GetProjectsByContractorAsync(Guid contractorUserId, CancellationToken ct = default);
+        Task<bool> IsUserContractorAsync(Guid userId, CancellationToken ct = default);
 
         // Update Project
         Task<ProjectDetailDto> UpdateProjectAsync(Guid projectId, UpdateProjectDto dto, Guid homeownerId, CancellationToken ct = default);

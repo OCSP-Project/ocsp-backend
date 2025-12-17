@@ -268,13 +268,17 @@ namespace OCSP.Application.Services
                     break;
 
                 case ContractStatus.Active:
-    // Bước 2: contractor xác nhận để Active
-    if (!isContractor)
-        throw new UnauthorizedAccessException("Only contractor can activate the contract");
-    if (c.Status != ContractStatus.PendingSignatures)
-        throw new InvalidOperationException("Only PendingSignatures can be activated");
-    c.Status = ContractStatus.Active;
-    break;
+                    // Bước 2: contractor xác nhận để Active
+                    if (!isContractor)
+                        throw new UnauthorizedAccessException("Only contractor can activate the contract");
+                    if (c.Status != ContractStatus.PendingSignatures)
+                        throw new InvalidOperationException("Only PendingSignatures can be activated");
+
+                    c.Status = ContractStatus.Active;
+
+                    // Ensure contractor is assigned to project when contract becomes Active
+                    await AssignContractorToProjectAsync(c.ProjectId, c.ContractorUserId, ct);
+                    break;
 
                 case ContractStatus.Completed:
                     // Active -> Completed — homeowner làm
@@ -282,7 +286,11 @@ namespace OCSP.Application.Services
                         throw new UnauthorizedAccessException("Only homeowner can complete the contract");
                     if (c.Status != ContractStatus.Active)
                         throw new InvalidOperationException("Only Active contracts can be completed");
+
                     c.Status = ContractStatus.Completed;
+
+                    // Double‑check contractor assignment when contract is marked Completed
+                    await AssignContractorToProjectAsync(c.ProjectId, c.ContractorUserId, ct);
                     break;
 
                 case ContractStatus.Cancelled:
@@ -491,6 +499,7 @@ namespace OCSP.Application.Services
         {
             var contract = await _db.Contracts
                 .Include(c => c.Items)
+                .Include(c => c.Project)
                 .FirstOrDefaultAsync(c => c.Id == contractId, ct)
                 ?? throw new ArgumentException("Contract not found");
 
@@ -513,8 +522,49 @@ namespace OCSP.Application.Services
             // Mark contract as completed (both parties have signed)
             contract.Status = ContractStatus.Completed;
 
+            // When contract is completed, assign contractor to project
+            // so that Project.ContractorId and Participants are updated
+            await AssignContractorToProjectAsync(contract.ProjectId, contract.ContractorUserId, ct);
+
             await _db.SaveChangesAsync(ct);
             return await BuildDetailDtoAsync(contract.Id, contractorId, ct);
+        }
+
+        private async Task AssignContractorToProjectAsync(Guid projectId, Guid contractorUserId, CancellationToken ct)
+        {
+            var project = await _db.Projects
+                .Include(p => p.Participants)
+                .FirstOrDefaultAsync(p => p.Id == projectId, ct)
+                ?? throw new ArgumentException("Project not found");
+
+            var contractor = await _db.Contractors
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.UserId == contractorUserId, ct)
+                ?? throw new ArgumentException("Contractor not found");
+
+            // Only assign if not already assigned
+            if (project.ContractorId.HasValue && project.ContractorId.Value == contractor.Id)
+                return;
+
+            project.ContractorId = contractor.Id;
+
+            // Add Contractor as project participant if not exists
+            var hasContractorParticipant = project.Participants
+                .Any(pp => pp.Role == ProjectRole.Contractor && pp.UserId == contractor.UserId);
+
+            if (!hasContractorParticipant)
+            {
+                project.Participants.Add(new ProjectParticipant
+                {
+                    ProjectId = project.Id,
+                    UserId = contractor.UserId,
+                    Role = ProjectRole.Contractor,
+                    Status = ParticipantStatus.Active,
+                    JoinedAt = DateTime.UtcNow
+                });
+            }
+
+            await _db.SaveChangesAsync(ct);
         }
 
         public async Task<byte[]> GetContractPdfAsync(Guid contractId, Guid currentUserId, CancellationToken ct = default)

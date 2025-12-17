@@ -110,3 +110,44 @@ wwwroot/uploads/
 # Temporary files
 *.tmp
 *.temp
+  # User Uploads (stored in S3)
+  docker/uploads/
+  **/uploads/
+  **/wwwroot/uploads/
+
+  # Binary files
+  *.bin
+  *.exe
+  *.dll
+  *.so
+  *.dylib
+
+  # Documents
+  *.pdf
+  *.doc
+  *.docx
+  *.xls
+  *.xlsx
+
+  # Images (except static assets)
+  uploads/**/*.jpg
+  uploads/**/*.jpeg
+  uploads/**/*.png
+  uploads/**/*.gif
+  uploads/**/*.webp
+
+  # Build artifacts
+  bin/
+  obj/
+  .vs/
+  *.user
+
+  # Environment
+  .env
+  .env.local
+  appsettings.Development.json
+  secrets.json
+
+  # Logs
+  *.log
+  logs/

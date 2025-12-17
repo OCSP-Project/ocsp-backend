@@ -5,6 +5,7 @@ using OCSP.Application.DTOs.Project;
 using OCSP.Application.Services.Interfaces;
 using System.Security.Claims;
 using OCSP.API.Models;
+using System.Linq;
 
 namespace OCSP.API.Controllers
 {
@@ -35,12 +36,39 @@ namespace OCSP.API.Controllers
         [HttpGet("my-projects")]
         public async Task<IActionResult> GetMyProjects()
         {
-            var homeownerId = GetCurrentUserId();
-            if (homeownerId == Guid.Empty)
+            var userId = GetCurrentUserId();
+            if (userId == Guid.Empty)
                 return Unauthorized(new { message = "User not authenticated" });
 
-            var projects = await _projectService.GetProjectsByHomeownerAsync(homeownerId);
-            return Ok(projects);
+            // Check if user is a contractor
+            var isContractor = await _projectService.IsUserContractorAsync(userId);
+            
+            // Check if user is a homeowner (has projects as homeowner)
+            var homeownerProjects = await _projectService.GetProjectsByHomeownerAsync(userId);
+            var isHomeowner = homeownerProjects.Any();
+
+            var allProjects = new List<OCSP.Application.DTOs.Project.ProjectResponseDto>();
+
+            // If user is contractor, get contractor projects
+            if (isContractor)
+            {
+                var contractorProjects = await _projectService.GetProjectsByContractorAsync(userId);
+                allProjects.AddRange(contractorProjects);
+            }
+
+            // If user is homeowner, add homeowner projects
+            if (isHomeowner)
+            {
+                allProjects.AddRange(homeownerProjects);
+            }
+
+            // Deduplicate by project ID
+            var uniqueProjects = allProjects
+                .GroupBy(p => p.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            return Ok(uniqueProjects);
         }
 
 

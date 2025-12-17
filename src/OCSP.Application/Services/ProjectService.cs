@@ -75,6 +75,73 @@ public class ProjectService : IProjectService
 
         return result;
     }
+
+    public async Task<List<ProjectResponseDto>> GetProjectsByContractorAsync(Guid contractorUserId, CancellationToken ct = default)
+    {
+        // Find contractor by UserId
+        var contractor = await _db.Contractors
+            .FirstOrDefaultAsync(c => c.UserId == contractorUserId, ct);
+
+        if (contractor == null)
+            return new List<ProjectResponseDto>();
+
+        // Get projects where contractor is assigned (ContractorId matches)
+        var contractorProjects = await _db.Projects
+            .Where(p => p.ContractorId == contractor.Id)
+            .Include(p => p.Supervisor)
+                .ThenInclude(s => s.User)
+            .Include(p => p.Homeowner)
+            .ToListAsync(ct);
+
+        // Get projects where contractor is a participant
+        var participantProjects = await _db.ProjectParticipants
+            .Where(pp => pp.UserId == contractorUserId && pp.Status == ParticipantStatus.Active)
+            .Include(pp => pp.Project)
+                .ThenInclude(p => p.Supervisor)
+                    .ThenInclude(s => s.User)
+            .Include(pp => pp.Project)
+                .ThenInclude(p => p.Homeowner)
+            .Select(pp => pp.Project)
+            .ToListAsync(ct);
+
+        // Combine and deduplicate by project ID
+        var projects = contractorProjects
+            .Concat(participantProjects)
+            .GroupBy(p => p.Id)
+            .Select(g => g.First())
+            .ToList();
+
+        var result = projects.Select(p => new ProjectResponseDto
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Description = p.Description,
+            Address = p.Address,
+            FloorArea = p.FloorArea,
+            NumberOfFloors = p.NumberOfFloors,
+            Budget = p.Budget,
+            ActualBudget = p.ActualBudget,
+            StartDate = p.StartDate,
+            EndDate = p.EndDate,
+            EstimatedCompletionDate = p.EstimatedCompletionDate,
+            Status = p.Status.ToString(),
+            CreatedAt = p.CreatedAt,
+            UpdatedAt = p.UpdatedAt,
+            SupervisorId = p.SupervisorId,
+            SupervisorName = p.Supervisor?.User?.Username,
+            HomeownerId = p.HomeownerId,
+            HomeownerName = p.Homeowner?.Username
+        }).ToList();
+
+        return result;
+    }
+
+    public async Task<bool> IsUserContractorAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await _db.Contractors
+            .AnyAsync(c => c.UserId == userId, ct);
+    }
+
     public async Task<ProjectDetailDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default)
     {
         var p = await _projectRepository.GetByIdAsync(id, ct);

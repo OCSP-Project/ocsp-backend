@@ -10,29 +10,49 @@ namespace OCSP.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<decimal>(
-                name: "GoogleMapsRating",
-                table: "Contractors",
-                type: "numeric",
-                nullable: true);
+            // Use IF NOT EXISTS to avoid errors if columns already exist
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'Contractors' AND column_name = 'GoogleMapsRating'
+                    ) THEN
+                        ALTER TABLE ""Contractors"" ADD ""GoogleMapsRating"" numeric;
+                    END IF;
 
-            migrationBuilder.AddColumn<int>(
-                name: "GoogleMapsReviewCount",
-                table: "Contractors",
-                type: "integer",
-                nullable: true);
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'Contractors' AND column_name = 'GoogleMapsReviewCount'
+                    ) THEN
+                        ALTER TABLE ""Contractors"" ADD ""GoogleMapsReviewCount"" integer;
+                    END IF;
+                END $$;
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "GoogleMapsRating",
-                table: "Contractors");
+            // Use IF EXISTS to avoid errors during rollback
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'Contractors' AND column_name = 'GoogleMapsRating'
+                    ) THEN
+                        ALTER TABLE ""Contractors"" DROP COLUMN ""GoogleMapsRating"";
+                    END IF;
 
-            migrationBuilder.DropColumn(
-                name: "GoogleMapsReviewCount",
-                table: "Contractors");
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'Contractors' AND column_name = 'GoogleMapsReviewCount'
+                    ) THEN
+                        ALTER TABLE ""Contractors"" DROP COLUMN ""GoogleMapsReviewCount"";
+                    END IF;
+                END $$;
+            ");
         }
     }
 }

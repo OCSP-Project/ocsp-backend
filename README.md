@@ -33,7 +33,7 @@ docker-compose up -d
 
 # Xem logs
 
-docker compose logs api | tail -50
+docker-compose logs -f --tail=50 api
 
 docker-compose logs -f api
 🌐 Truy cập:

@@ -992,6 +992,55 @@ namespace OCSP.Infrastructure.Data
                         NormalizeDateTimePropertiesToUtc(entry.Entity);
                   }
 
+                  // ✅ FIX: Handle BuildingElement with UUID columns
+                  try
+                  {
+                        return await base.SaveChangesAsync(cancellationToken);
+                  }
+                  catch (Npgsql.PostgresException ex) when (ex.SqlState == "42804" && ex.Message.Contains("CreatedBy"))
+                  {
+                        // UUID type mismatch - retry with raw SQL cast
+                        return await SaveBuildingElementsWithCast(cancellationToken);
+                  }
+            }
+
+            private async Task<int> SaveBuildingElementsWithCast(CancellationToken cancellationToken)
+            {
+                  // Get all BuildingElement entries that are being added
+                  var buildingElements = ChangeTracker.Entries<BuildingElement>()
+                      .Where(e => e.State == EntityState.Added)
+                      .Select(e => e.Entity)
+                      .ToList();
+
+                  if (!buildingElements.Any())
+                  {
+                        return await base.SaveChangesAsync(cancellationToken);
+                  }
+
+                  // Insert using raw SQL with explicit CAST for UUID columns
+                  foreach (var element in buildingElements)
+                  {
+                        await Database.ExecuteSqlRawAsync(@"
+                              INSERT INTO ""BuildingElements""
+                              (""Id"", ""ModelId"", ""Name"", ""ElementType"", ""FloorLevel"", ""MeshIndices"",
+                               ""Color"", ""Width"", ""Length"", ""Height"", ""CenterX"", ""CenterY"", ""CenterZ"",
+                               ""VolumeM3"", ""TrackingStatus"", ""CompletionPercentage"", ""CanTrack"",
+                               ""CreatedAt"", ""UpdatedAt"", ""CreatedBy"", ""UpdatedBy"")
+                              VALUES
+                              ({0}, {1}, {2}, {3}, {4}, {5}::jsonb, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14}, {15}, {16}, {17}, {18},
+                               CASE WHEN {19} IS NULL THEN NULL ELSE {19}::uuid END,
+                               CASE WHEN {20} IS NULL THEN NULL ELSE {20}::uuid END)",
+                              element.Id, element.ModelId, element.Name, (int)element.ElementType, element.FloorLevel,
+                              element.MeshIndices, element.Color, element.Width, element.Length, element.Height,
+                              element.CenterX, element.CenterY, element.CenterZ, element.VolumeM3,
+                              (int)element.TrackingStatus, element.CompletionPercentage, element.CanTrack,
+                              element.CreatedAt, element.UpdatedAt, element.CreatedBy, element.UpdatedBy);
+
+                        // Mark as unchanged so base.SaveChangesAsync doesn't try to insert again
+                        Entry(element).State = EntityState.Unchanged;
+                  }
+
+                  // Save other entities normally
                   return await base.SaveChangesAsync(cancellationToken);
             }
       }

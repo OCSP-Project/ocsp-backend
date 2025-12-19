@@ -993,14 +993,62 @@ namespace OCSP.Infrastructure.Data
                   }
 
                   // ✅ FIX: Handle BuildingElement with UUID columns
+                  // Check if we have BuildingElements to save
+                  var hasBuildingElements = ChangeTracker.Entries<BuildingElement>()
+                      .Any(e => e.State == EntityState.Added);
+
+                  if (hasBuildingElements)
+                  {
+                        // Detect if BuildingElements.CreatedBy column is UUID type
+                        var isUuidColumn = await IsColumnUuidType("BuildingElements", "CreatedBy", cancellationToken);
+
+                        if (isUuidColumn)
+                        {
+                              Console.WriteLine($"[SaveChangesAsync] Detected UUID columns, using raw SQL with CAST");
+                              return await SaveBuildingElementsWithCast(cancellationToken);
+                        }
+                  }
+
+                  // Normal save for TEXT columns or non-BuildingElement entities
+                  return await base.SaveChangesAsync(cancellationToken);
+            }
+
+            private async Task<bool> IsColumnUuidType(string tableName, string columnName, CancellationToken cancellationToken)
+            {
                   try
                   {
-                        return await base.SaveChangesAsync(cancellationToken);
+                        // Query PostgreSQL information_schema to check column data type
+                        var sql = @"
+                              SELECT data_type
+                              FROM information_schema.columns
+                              WHERE table_name = {0} AND column_name = {1}";
+
+                        var connection = Database.GetDbConnection();
+                        var wasOpen = connection.State == System.Data.ConnectionState.Open;
+
+                        if (!wasOpen)
+                              await connection.OpenAsync(cancellationToken);
+
+                        using var command = connection.CreateCommand();
+                        command.CommandText = string.Format(
+                              "SELECT data_type FROM information_schema.columns WHERE table_name = '{0}' AND column_name = '{1}'",
+                              tableName, columnName);
+
+                        var result = await command.ExecuteScalarAsync(cancellationToken);
+
+                        if (!wasOpen)
+                              connection.Close();
+
+                        var dataType = result?.ToString()?.ToLower() ?? "";
+                        Console.WriteLine($"[IsColumnUuidType] Table={tableName}, Column={columnName}, Type={dataType}");
+
+                        return dataType == "uuid";
                   }
-                  catch (Npgsql.PostgresException ex) when (ex.SqlState == "42804" && ex.Message.Contains("CreatedBy"))
+                  catch (Exception ex)
                   {
-                        // UUID type mismatch - retry with raw SQL cast
-                        return await SaveBuildingElementsWithCast(cancellationToken);
+                        Console.WriteLine($"[IsColumnUuidType] Error checking column type: {ex.Message}");
+                        // If we can't determine, assume it's not UUID (safer default)
+                        return false;
                   }
             }
 

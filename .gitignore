@@ -110,44 +110,44 @@ wwwroot/uploads/
 # Temporary files
 *.tmp
 *.temp
-  # User Uploads (stored in S3)
-  docker/uploads/
-  **/uploads/
-  **/wwwroot/uploads/
+# User Uploads (stored in S3)
+docker/uploads/
+**/uploads/
+**/wwwroot/uploads/
 
-  # Binary files
-  *.bin
-  *.exe
-  *.dll
-  *.so
-  *.dylib
+# Docker volumes and data
+docker/postgres-data/
+docker/data/
+*.sql.backup
+*.dump
 
-  # Documents
-  *.pdf
-  *.doc
-  *.docx
-  *.xls
-  *.xlsx
+# Binary files (development artifacts)
+*.bin
+*.exe
+*.dll
+*.so
+*.dylib
 
-  # Images (except static assets)
-  uploads/**/*.jpg
-  uploads/**/*.jpeg
-  uploads/**/*.png
-  uploads/**/*.gif
-  uploads/**/*.webp
+# Documents
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
 
-  # Build artifacts
-  bin/
-  obj/
-  .vs/
-  *.user
+# Images (except static assets)
+uploads/**/*.jpg
+uploads/**/*.jpeg
+uploads/**/*.png
+uploads/**/*.gif
+uploads/**/*.webp
 
-  # Environment
-  .env
-  .env.local
-  appsettings.Development.json
-  secrets.json
+# Logs
+*.log
+logs/
+*.log.*
 
-  # Logs
-  *.log
-  logs/
+# Cache and temporary files
+.cache/
+*.cache
+*.tmp.cs

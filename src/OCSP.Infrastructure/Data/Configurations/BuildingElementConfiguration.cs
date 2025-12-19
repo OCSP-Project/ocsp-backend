@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OCSP.Domain.Entities;
 using OCSP.Domain.Enums;
 
@@ -45,6 +46,18 @@ namespace OCSP.Infrastructure.Data.Configurations
             builder.Property(e => e.TrackingStatus).HasDefaultValue(TrackingStatus.NotStarted);
             builder.Property(e => e.CompletionPercentage).HasDefaultValue(0);
             builder.Property(e => e.CanTrack).HasDefaultValue(true);
+
+            // Value converters for UUID ↔ string compatibility
+            // This allows reading UUID columns as strings
+            var uuidToStringConverter = new ValueConverter<string, Guid?>(
+                v => string.IsNullOrEmpty(v) ? null : Guid.Parse(v), // string → Guid? (for write)
+                v => v.HasValue ? v.Value.ToString() : null); // Guid? → string (for read)
+
+            builder.Property(e => e.CreatedBy)
+                .HasConversion(uuidToStringConverter);
+
+            builder.Property(e => e.UpdatedBy)
+                .HasConversion(uuidToStringConverter);
 
             // Relationships
             builder.HasOne(e => e.Model)

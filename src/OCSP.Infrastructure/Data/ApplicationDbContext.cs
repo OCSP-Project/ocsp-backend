@@ -1068,21 +1068,33 @@ namespace OCSP.Infrastructure.Data
                   // Insert using raw SQL with explicit CAST for UUID columns
                   foreach (var element in buildingElements)
                   {
-                        await Database.ExecuteSqlRawAsync(@"
+                        // Format CreatedBy and UpdatedBy with proper UUID casting
+                        var createdByValue = string.IsNullOrEmpty(element.CreatedBy)
+                              ? "NULL"
+                              : $"'{element.CreatedBy}'::uuid";
+
+                        var updatedByValue = string.IsNullOrEmpty(element.UpdatedBy)
+                              ? "NULL"
+                              : $"'{element.UpdatedBy}'::uuid";
+
+                        var sql = $@"
                               INSERT INTO ""BuildingElements""
                               (""Id"", ""ModelId"", ""Name"", ""ElementType"", ""FloorLevel"", ""MeshIndices"",
                                ""Color"", ""Width"", ""Length"", ""Height"", ""CenterX"", ""CenterY"", ""CenterZ"",
                                ""VolumeM3"", ""TrackingStatus"", ""CompletionPercentage"", ""CanTrack"",
                                ""CreatedAt"", ""UpdatedAt"", ""CreatedBy"", ""UpdatedBy"")
                               VALUES
-                              ({0}, {1}, {2}, {3}, {4}, {5}::jsonb, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14}, {15}, {16}, {17}, {18},
-                               CASE WHEN {19} IS NULL THEN NULL ELSE {19}::uuid END,
-                               CASE WHEN {20} IS NULL THEN NULL ELSE {20}::uuid END)",
+                              ({{0}}, {{1}}, {{2}}, {{3}}, {{4}}, {{5}}::jsonb, {{6}}, {{7}}, {{8}}, {{9}}, {{10}}, {{11}}, {{12}}, {{13}}, {{14}}, {{15}}, {{16}}, {{17}}, {{18}},
+                               {createdByValue}, {updatedByValue})";
+
+                        await Database.ExecuteSqlRawAsync(sql,
                               element.Id, element.ModelId, element.Name, (int)element.ElementType, element.FloorLevel,
                               element.MeshIndices, element.Color, element.Width, element.Length, element.Height,
                               element.CenterX, element.CenterY, element.CenterZ, element.VolumeM3,
                               (int)element.TrackingStatus, element.CompletionPercentage, element.CanTrack,
-                              element.CreatedAt, element.UpdatedAt, element.CreatedBy, element.UpdatedBy);
+                              element.CreatedAt, element.UpdatedAt);
+
+                        Console.WriteLine($"[SaveBuildingElementsWithCast] Inserted BuildingElement {element.Id}");
 
                         // Mark as unchanged so base.SaveChangesAsync doesn't try to insert again
                         Entry(element).State = EntityState.Unchanged;

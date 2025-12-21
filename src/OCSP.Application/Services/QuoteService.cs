@@ -12,8 +12,13 @@ namespace OCSP.Application.Services
     public class QuoteService : IQuoteService
     {
         private readonly ApplicationDbContext _db;
+        private readonly INotificationService _notificationService;
 
-        public QuoteService(ApplicationDbContext db) => _db = db;
+        public QuoteService(ApplicationDbContext db, INotificationService notificationService)
+        {
+            _db = db;
+            _notificationService = notificationService;
+        }
 
         public async Task<QuoteRequestDto> CreateAsync(CreateQuoteRequestDto dto, Guid homeownerId, CancellationToken ct = default)
         {
@@ -104,6 +109,7 @@ namespace OCSP.Application.Services
         {
             var qr = await _db.QuoteRequests
                 .Include(q => q.Project)
+                .Include(q => q.Invites)
                 .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
                 ?? throw new ArgumentException("Quote request not found");
 
@@ -121,7 +127,20 @@ namespace OCSP.Application.Services
             qr.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
 
-            // TODO: gửi notification/email cho contractor (tuỳ bạn)
+            // Send notification to all invited contractors
+            foreach (var invite in qr.Invites)
+            {
+                await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationDto
+                {
+                    UserId = invite.ContractorUserId,
+                    Title = "Yêu cầu báo giá mới",
+                    Message = $"Bạn đã nhận được yêu cầu báo giá từ dự án '{qr.Project.Name}'",
+                    Type = NotificationType.QuoteRequestSent,
+                    ReferenceId = qr.Id,
+                    ActionUrl = "/projects?tab=invites",
+                    ProjectId = qr.ProjectId
+                }, ct);
+            }
         }
         public async Task<QuoteRequestDto> GetByIdAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
@@ -508,7 +527,20 @@ public async Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync
     qr.UpdatedAt = DateTime.UtcNow;
     await _db.SaveChangesAsync(ct);
 
-    // TODO: gửi notification/email cho tất cả contractors
+    // Send notification to all invited contractors
+    foreach (var contractorUserId in allContractorUserIds)
+    {
+        await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationDto
+        {
+            UserId = contractorUserId,
+            Title = "Yêu cầu báo giá mới",
+            Message = $"Bạn đã nhận được yêu cầu báo giá từ dự án '{qr.Project.Name}'",
+            Type = NotificationType.QuoteRequestSent,
+            ReferenceId = qr.Id,
+            ActionUrl = "/projects?tab=invites",
+            ProjectId = qr.ProjectId
+        }, ct);
+    }
 }
 
 public async Task SendToContractorAsync(Guid quoteId, Guid contractorUserId, Guid homeownerId, CancellationToken ct = default)
@@ -576,7 +608,17 @@ public async Task SendToContractorAsync(Guid quoteId, Guid contractorUserId, Gui
     qr.UpdatedAt = DateTime.UtcNow;
     await _db.SaveChangesAsync(ct);
 
-    // TODO: gửi notification/email cho contractor
+    // Send notification to the contractor
+    await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationDto
+    {
+        UserId = resolvedContractorUserId,
+        Title = "Yêu cầu báo giá mới",
+        Message = $"Bạn đã nhận được yêu cầu báo giá từ dự án '{qr.Project.Name}'",
+        Type = NotificationType.QuoteRequestSent,
+        ReferenceId = qr.Id,
+        ActionUrl = "/projects?tab=invites",
+        ProjectId = qr.ProjectId
+    }, ct);
 }
 
 

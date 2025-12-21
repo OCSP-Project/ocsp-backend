@@ -29,9 +29,8 @@ namespace OCSP.API.Extensions
             services.AddScoped<IGLBValidatorService, GLBValidatorService>();
             services.AddScoped<IBuildingElementService, BuildingElementService>();
 
-            // File Storage (local for demo, Azure Blob for production)
-            services.AddScoped<IFileStorageService, LocalFileStorageService>();
-            // For production: services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+            // File Storage is configured in Program.cs based on FileStorage:UseS3 setting
+            // Do NOT register IFileStorageService here to avoid overriding Program.cs configuration
 
             return services;
         }

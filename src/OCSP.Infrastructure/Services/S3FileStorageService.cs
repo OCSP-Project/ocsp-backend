@@ -46,7 +46,7 @@ namespace OCSP.Infrastructure.Services
                     InputStream = stream,
                     Key = fileKey,
                     BucketName = _bucketName,
-                    CannedACL = S3CannedACL.PublicRead, // Public files - accessible via direct URL
+                    // ACLs are disabled on this bucket - use bucket policy instead
                     ContentType = GetContentType(file.FileName)
                 };
 

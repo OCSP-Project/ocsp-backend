@@ -15,6 +15,13 @@ namespace OCSP.Domain.Entities
         PaymentRequest = 200,
         ProgressUpdate = 300,
         WorkItemCommentMention = 400,
+
+        // Quote & Proposal Notifications
+        QuoteRequestSent = 500,
+        ProposalSubmitted = 501,
+        ProposalAccepted = 502,
+        ProposalRejected = 503,
+        ProposalRevisionRequested = 504,
     }
 
     public class Notification : AuditableEntity

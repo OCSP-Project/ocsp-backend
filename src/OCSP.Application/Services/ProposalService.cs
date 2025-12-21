@@ -13,11 +13,13 @@ namespace OCSP.Application.Services
     {
         private readonly ApplicationDbContext _db;
         private readonly IFileService _fileService;
-        
-        public ProposalService(ApplicationDbContext db, IFileService fileService)
+        private readonly INotificationService _notificationService;
+
+        public ProposalService(ApplicationDbContext db, IFileService fileService, INotificationService notificationService)
         {
             _db = db;
             _fileService = fileService;
+            _notificationService = notificationService;
         }
 
         public async Task<ProposalDto> CreateAsync(CreateProposalDto dto, Guid contractorUserId, CancellationToken ct = default)
@@ -220,6 +222,7 @@ ProjectId = quote.ProjectId,
         {
             var p = await _db.Proposals
                 .Include(x => x.QuoteRequest)
+                    .ThenInclude(q => q.Project)
                 .FirstOrDefaultAsync(x => x.Id == proposalId, ct)
                 ?? throw new ArgumentException("Proposal not found");
 
@@ -237,6 +240,19 @@ ProjectId = quote.ProjectId,
             p.HasBeenSubmitted = true; // Mark as submitted
             p.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
+
+            // Send notification to homeowner
+            var homeownerId = p.QuoteRequest.Project.HomeownerId;
+            await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationDto
+            {
+                UserId = homeownerId,
+                Title = isResubmission ? "Đề xuất đã được chỉnh sửa và gửi lại" : "Đề xuất báo giá mới",
+                Message = $"Bạn đã nhận được {(isResubmission ? "đề xuất chỉnh sửa" : "đề xuất báo giá mới")} cho dự án '{p.QuoteRequest.Project.Name}'",
+                Type = NotificationType.ProposalSubmitted,
+                ReferenceId = p.Id,
+                ActionUrl = "/projects?tab=quotes",
+                ProjectId = p.ProjectId
+            }, ct);
         }
 
         public async Task<IEnumerable<ProposalDto>> ListByQuoteAsync(Guid quoteId, Guid homeownerId, CancellationToken ct = default)
@@ -367,6 +383,11 @@ ProjectId = quote.ProjectId,
             selected.Status = ProposalStatus.Accepted;
             selected.UpdatedAt = DateTime.UtcNow;
 
+            // Get all other proposals for this quote to send rejection notifications
+            var otherProposals = await _db.Proposals
+                .Where(p => p.QuoteRequestId == selected.QuoteRequestId && p.Id != proposalId)
+                .ToListAsync(ct);
+
             // Reject các proposal khác của cùng quote
             await _db.Proposals
                 .Where(p => p.QuoteRequestId == selected.QuoteRequestId && p.Id != proposalId)
@@ -379,6 +400,33 @@ ProjectId = quote.ProjectId,
 
             await _db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
+
+            // Send notification to accepted contractor
+            await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationDto
+            {
+                UserId = selected.ContractorUserId,
+                Title = "Đề xuất của bạn đã được chấp nhận",
+                Message = $"Chúc mừng! Đề xuất của bạn cho dự án '{selected.QuoteRequest.Project.Name}' đã được chủ nhà chấp nhận",
+                Type = NotificationType.ProposalAccepted,
+                ReferenceId = selected.Id,
+                ActionUrl = "/projects?tab=invites",
+                ProjectId = selected.ProjectId
+            }, ct);
+
+            // Send rejection notifications to other contractors
+            foreach (var otherProposal in otherProposals)
+            {
+                await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationDto
+                {
+                    UserId = otherProposal.ContractorUserId,
+                    Title = "Đề xuất không được chọn",
+                    Message = $"Đề xuất của bạn cho dự án '{selected.QuoteRequest.Project.Name}' không được chọn. Cảm ơn bạn đã tham gia!",
+                    Type = NotificationType.ProposalRejected,
+                    ReferenceId = otherProposal.Id,
+                    ActionUrl = "/projects?tab=invites",
+                    ProjectId = selected.ProjectId
+                }, ct);
+            }
         }
 
         public async Task RequestRevisionAsync(Guid proposalId, Guid homeownerId, CancellationToken ct = default)
@@ -402,9 +450,17 @@ ProjectId = quote.ProjectId,
 
             await _db.SaveChangesAsync(ct);
 
-            // Log notification for contractor
-            Console.WriteLine($"NOTIFICATION: Contractor {proposal.ContractorUserId} received revision request for proposal {proposal.Id}");
-            Console.WriteLine($"Message: Yêu cầu chỉnh sửa đề xuất báo giá tới từ chủ nhà, vui lòng liên hệ với bên chủ nhà để thảo luận vấn đề cần chỉnh sửa");
+            // Send notification to contractor
+            await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationDto
+            {
+                UserId = proposal.ContractorUserId,
+                Title = "Yêu cầu chỉnh sửa đề xuất",
+                Message = $"Chủ nhà yêu cầu chỉnh sửa đề xuất của bạn cho dự án '{proposal.QuoteRequest.Project.Name}'. Vui lòng liên hệ với chủ nhà để thảo luận chi tiết.",
+                Type = NotificationType.ProposalRevisionRequested,
+                ReferenceId = proposal.Id,
+                ActionUrl = "/projects?tab=invites",
+                ProjectId = proposal.ProjectId
+            }, ct);
         }
 
         private static ProposalDto ToDto(Proposal p) => new ProposalDto

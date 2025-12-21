@@ -10,6 +10,7 @@ namespace OCSP.Infrastructure.Services
     {
         private readonly IAmazonS3 _s3Client;
         private readonly string _bucketName;
+        private readonly string _region;
         private readonly IConfiguration _configuration;
 
         public S3FileStorageService(IAmazonS3 s3Client, IConfiguration configuration)
@@ -18,6 +19,7 @@ namespace OCSP.Infrastructure.Services
             _configuration = configuration;
             _bucketName = configuration["AWS:BucketName"]
                 ?? throw new InvalidOperationException("AWS:BucketName is not configured");
+            _region = configuration["AWS:Region"] ?? "ap-southeast-1";
         }
 
         public async Task<string> UploadFileAsync(
@@ -44,15 +46,16 @@ namespace OCSP.Infrastructure.Services
                     InputStream = stream,
                     Key = fileKey,
                     BucketName = _bucketName,
-                    CannedACL = S3CannedACL.Private, // Private files - access via signed URLs
+                    CannedACL = S3CannedACL.PublicRead, // Public files - accessible via direct URL
                     ContentType = GetContentType(file.FileName)
                 };
 
                 var fileTransferUtility = new TransferUtility(_s3Client);
                 await fileTransferUtility.UploadAsync(uploadRequest, cancellationToken);
 
-                // Return the S3 key as the file URL/identifier
-                return fileKey;
+                // Return the public S3 URL
+                var publicUrl = $"https://{_bucketName}.s3.{_region}.amazonaws.com/{fileKey}";
+                return publicUrl;
             }
             catch (Exception ex)
             {
@@ -67,10 +70,13 @@ namespace OCSP.Infrastructure.Services
 
             try
             {
+                // Extract S3 key from URL if it's a full URL
+                var key = ExtractS3KeyFromUrl(fileUrl);
+
                 var deleteRequest = new DeleteObjectRequest
                 {
                     BucketName = _bucketName,
-                    Key = fileUrl // fileUrl is the S3 key
+                    Key = key
                 };
 
                 await _s3Client.DeleteObjectAsync(deleteRequest, cancellationToken);
@@ -94,10 +100,13 @@ namespace OCSP.Infrastructure.Services
 
             try
             {
+                // Extract S3 key from URL if it's a full URL
+                var key = ExtractS3KeyFromUrl(fileUrl);
+
                 var request = new GetPreSignedUrlRequest
                 {
                     BucketName = _bucketName,
-                    Key = fileUrl, // fileUrl is the S3 key
+                    Key = key,
                     Expires = DateTime.UtcNow.Add(expiration),
                     Verb = HttpVerb.GET
                 };
@@ -119,11 +128,13 @@ namespace OCSP.Infrastructure.Services
 
             try
             {
-                // fileUrl is the S3 key (e.g., "proposals/{quoteId}/{fileName}")
+                // Extract S3 key from URL if it's a full URL
+                var key = ExtractS3KeyFromUrl(fileUrl);
+
                 var request = new GetObjectRequest
                 {
                     BucketName = _bucketName,
-                    Key = fileUrl
+                    Key = key
                 };
 
                 using var response = await _s3Client.GetObjectAsync(request, cancellationToken);
@@ -138,6 +149,35 @@ namespace OCSP.Infrastructure.Services
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Failed to get file from S3: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Extract S3 key from URL or return as-is if already a key
+        /// Example: https://bucket.s3.region.amazonaws.com/folder/file.png -> folder/file.png
+        /// </summary>
+        private string ExtractS3KeyFromUrl(string fileUrl)
+        {
+            if (string.IsNullOrWhiteSpace(fileUrl))
+                return fileUrl;
+
+            // If it's already a key (not a URL), return as-is
+            if (!fileUrl.StartsWith("http://") && !fileUrl.StartsWith("https://"))
+                return fileUrl;
+
+            try
+            {
+                // Parse URL: https://bucket.s3.region.amazonaws.com/folder/file.png
+                var uri = new Uri(fileUrl);
+
+                // Extract key from path (remove leading /)
+                var key = uri.AbsolutePath.TrimStart('/');
+                return key;
+            }
+            catch
+            {
+                // If parsing fails, assume it's already a key
+                return fileUrl;
             }
         }
 

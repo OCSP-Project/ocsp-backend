@@ -12,8 +12,8 @@ using OCSP.Infrastructure.Data;
 namespace OCSP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251221135101_AddContractorPostsTables")]
-    partial class AddContractorPostsTables
+    [Migration("20251223154951_AddContractorPostsWithBuildingElementFix")]
+    partial class AddContractorPostsWithBuildingElementFix
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

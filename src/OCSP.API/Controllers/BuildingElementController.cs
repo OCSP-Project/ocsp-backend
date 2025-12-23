@@ -34,6 +34,14 @@ namespace OCSP.API.Controllers
             return Ok(e);
         }
 
+        [HttpGet("{id:guid}/detail")]
+        public async Task<IActionResult> GetDetail(Guid id)
+        {
+            var detail = await _service.GetDetailAsync(id);
+            if (detail == null) return NotFound(new { message = "Element not found" });
+            return Ok(detail);
+        }
+
         [HttpPost]
         [Authorize(Roles = "Supervisor,Admin")]
         public async Task<IActionResult> Create([FromBody] CreateBuildingElementRequest req)

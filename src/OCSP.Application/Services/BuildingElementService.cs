@@ -16,6 +16,7 @@ namespace OCSP.Application.Services
     {
         Task<List<BuildingElementDto>> GetByModelAsync(Guid modelId);
         Task<BuildingElementDto?> GetAsync(Guid id);
+        Task<BuildingElementDetailDto?> GetDetailAsync(Guid id);
         Task<BuildingElementDto> CreateAsync(CreateBuildingElementRequest req, Guid userId);
         Task<BuildingElementDto> UpdateAsync(Guid id, UpdateBuildingElementRequest req, Guid userId);
         Task<TrackingHistoryDto> AddTrackingAsync(Guid elementId, AddTrackingRecordRequest req, Guid userId);
@@ -52,6 +53,40 @@ namespace OCSP.Application.Services
         {
             var e = await _elements.GetByIdAsync(id);
             return e == null ? null : MapElement(e);
+        }
+
+        public async Task<BuildingElementDetailDto?> GetDetailAsync(Guid id)
+        {
+            var e = await _elements.GetByIdAsync(id);
+            if (e == null) return null;
+
+            // Get latest tracking history
+            var histories = await _histories.GetByElementIdAsync(id);
+            var latestHistory = histories.OrderByDescending(h => h.TrackingDate).FirstOrDefault();
+
+            // Get photos of latest history
+            var photos = new List<TrackingPhotoDto>();
+            if (latestHistory != null)
+            {
+                var photoEntities = await _photos.GetByHistoryIdAsync(latestHistory.Id);
+                photos = photoEntities.Select(MapPhoto).ToList();
+            }
+
+            return new BuildingElementDetailDto
+            {
+                Id = e.Id,
+                ModelId = e.ModelId,
+                Name = e.Name,
+                ElementType = (int)e.ElementType,
+                FloorLevel = e.FloorLevel,
+                MeshIndicesJson = e.MeshIndices,
+                TrackingStatus = (int)e.TrackingStatus,
+                CompletionPercentage = e.CompletionPercentage,
+                Color = e.Color,
+                CreatedAt = e.CreatedAt,
+                LatestHistory = latestHistory == null ? null : MapHistory(latestHistory),
+                LatestPhotos = photos
+            };
         }
 
         public async Task<BuildingElementDto> CreateAsync(CreateBuildingElementRequest req, Guid userId)
@@ -249,6 +284,19 @@ namespace OCSP.Application.Services
             PreviousStatus = h.PreviousStatus.HasValue ? (int)h.PreviousStatus.Value : (int?)null,
             NewStatus = (int)h.NewStatus,
             Notes = h.Notes
+        };
+
+        private static TrackingPhotoDto MapPhoto(TrackingPhoto p) => new()
+        {
+            Id = p.Id,
+            TrackingHistoryId = p.TrackingHistoryId,
+            PhotoUrl = p.PhotoUrl,
+            Caption = p.Caption,
+            FileSizeMB = p.FileSizeMB,
+            FileType = p.FileType,
+            Width = p.Width,
+            Height = p.Height,
+            UploadedAt = p.UploadedAt
         };
     }
 }

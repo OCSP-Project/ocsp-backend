@@ -43,6 +43,24 @@ namespace OCSP.Application.DTOs.BuildingElements
         public DateTime CreatedAt { get; set; }
     }
 
+    public class BuildingElementDetailDto
+    {
+        public Guid Id { get; set; }
+        public Guid ModelId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int ElementType { get; set; }
+        public int FloorLevel { get; set; }
+        public string MeshIndicesJson { get; set; } = "[]";
+        public int TrackingStatus { get; set; }
+        public int CompletionPercentage { get; set; }
+        public string Color { get; set; } = "#CCCCCC";
+        public DateTime CreatedAt { get; set; }
+
+        // Extended data
+        public TrackingHistoryDto? LatestHistory { get; set; }
+        public List<TrackingPhotoDto> LatestPhotos { get; set; } = new();
+    }
+
     public class AddTrackingRecordRequest
     {
         [Required]

@@ -498,10 +498,10 @@ namespace OCSP.API.Controllers
         }
 
         /// <summary>
-        /// Get Google Maps reviews for contractor
+        /// Get Google Maps reviews for contractor (public endpoint, all authenticated users can view)
         /// </summary>
         [HttpGet("google-maps-reviews")]
-        [Authorize(Roles = "Contractor")]
+        [Authorize] // Allow all authenticated users to view reviews
         public async Task<ActionResult<GoogleMapsReviewsResponseDto>> GetGoogleMapsReviews([FromQuery] string dataId)
         {
             try

@@ -6,28 +6,24 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OCSP.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddContractorPostsTables : Migration
+    public partial class AddContractorPostsWithBuildingElementFix : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<Guid>(
-                name: "UpdatedBy",
-                table: "BuildingElements",
-                type: "uuid",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+            // Convert UpdatedBy from text to uuid using explicit casting
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""BuildingElements""
+                ALTER COLUMN ""UpdatedBy"" TYPE uuid
+                USING ""UpdatedBy""::uuid;
+            ");
 
-            migrationBuilder.AlterColumn<Guid>(
-                name: "CreatedBy",
-                table: "BuildingElements",
-                type: "uuid",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+            // Convert CreatedBy from text to uuid using explicit casting
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""BuildingElements""
+                ALTER COLUMN ""CreatedBy"" TYPE uuid
+                USING ""CreatedBy""::uuid;
+            ");
 
             // Create ContractorPosts table
             migrationBuilder.CreateTable(

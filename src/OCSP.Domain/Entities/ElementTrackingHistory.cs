@@ -9,6 +9,10 @@ namespace OCSP.Domain.Entities
     /// </summary>
     public class ElementTrackingHistory : AuditableEntity
     {
+        // Override audit fields to use Guid instead of string (migrated from old schema)
+        public new Guid? CreatedBy { get; set; }
+        public new Guid? UpdatedBy { get; set; }
+
         // Element reference
         public Guid BuildingElementId { get; set; }
         public BuildingElement? BuildingElement { get; set; }

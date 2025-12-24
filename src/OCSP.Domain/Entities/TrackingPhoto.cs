@@ -7,6 +7,10 @@ namespace OCSP.Domain.Entities
     /// </summary>
     public class TrackingPhoto : AuditableEntity
     {
+        // Override audit fields to use Guid instead of string (migrated from old schema)
+        public new Guid? CreatedBy { get; set; }
+        public new Guid? UpdatedBy { get; set; }
+
         // Tracking reference
         public Guid TrackingHistoryId { get; set; }
         public ElementTrackingHistory? TrackingHistory { get; set; }

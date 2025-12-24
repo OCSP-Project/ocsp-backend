@@ -8,6 +8,10 @@ namespace OCSP.Domain.Entities
     /// </summary>
     public class BuildingElement : AuditableEntity
     {
+        // Override audit fields to use Guid instead of string (migrated from old schema)
+        public new Guid? CreatedBy { get; set; }
+        public new Guid? UpdatedBy { get; set; }
+
         // Model reference
         public Guid ModelId { get; set; }
         public Project3DModel? Model { get; set; }

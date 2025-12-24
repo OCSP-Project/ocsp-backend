@@ -102,7 +102,7 @@ namespace OCSP.Application.Services
                 TrackingStatus = TrackingStatus.NotStarted,
                 CompletionPercentage = 0,
                 CanTrack = true,
-                CreatedBy = userId.ToString(),
+                CreatedBy = userId,
                 CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
                 UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
             };
@@ -119,7 +119,7 @@ namespace OCSP.Application.Services
             if (req.FloorLevel.HasValue) e.FloorLevel = req.FloorLevel.Value;
             if (req.MeshIndices != null) e.MeshIndices = JsonSerializer.Serialize(req.MeshIndices);
             if (!string.IsNullOrWhiteSpace(req.Color)) e.Color = req.Color;
-            e.UpdatedBy = userId.ToString();
+            e.UpdatedBy = userId;
             e.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
             await _elements.UpdateAsync(e);
             await _elements.SaveChangesAsync();
@@ -148,7 +148,7 @@ namespace OCSP.Application.Services
             };
             e.CompletionPercentage = req.NewPercentage;
             e.TrackingStatus = (TrackingStatus)req.NewStatus;
-            e.UpdatedBy = userId.ToString();
+            e.UpdatedBy = userId;
             e.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
             await _histories.AddAsync(history);
             await _elements.UpdateAsync(e);

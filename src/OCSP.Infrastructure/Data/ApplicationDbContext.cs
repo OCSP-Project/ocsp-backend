@@ -1069,13 +1069,13 @@ namespace OCSP.Infrastructure.Data
                   foreach (var element in buildingElements)
                   {
                         // Format CreatedBy and UpdatedBy with proper UUID casting
-                        var createdByValue = string.IsNullOrEmpty(element.CreatedBy)
-                              ? "NULL"
-                              : $"'{element.CreatedBy}'::uuid";
+                        var createdByValue = element.CreatedBy.HasValue
+                              ? $"'{element.CreatedBy.Value}'::uuid"
+                              : "NULL";
 
-                        var updatedByValue = string.IsNullOrEmpty(element.UpdatedBy)
-                              ? "NULL"
-                              : $"'{element.UpdatedBy}'::uuid";
+                        var updatedByValue = element.UpdatedBy.HasValue
+                              ? $"'{element.UpdatedBy.Value}'::uuid"
+                              : "NULL";
 
                         var sql = $@"
                               INSERT INTO ""BuildingElements""

@@ -1156,6 +1156,10 @@ namespace OCSP.Application.Services
             dto.DocumentCount = await _context.Set<WorkItemDocument>().CountAsync(d => d.WorkItemId == item.Id && !d.IsDeleted, ct);
             dto.MaterialCount = await _context.Set<WorkItemMaterial>().CountAsync(m => m.WorkItemId == item.Id, ct);
 
+            // Load audit user info
+            dto.CreatedBy = await GetUserBasicDto(item.CreatedBy, ct);
+            dto.UpdatedBy = await GetUserBasicDto(item.UpdatedBy, ct);
+
             // Load children if requested
             if (includeChildren)
             {
@@ -1262,6 +1266,25 @@ namespace OCSP.Application.Services
             }
 
             return null;
+        }
+
+        private async Task<UserBasicDto?> GetUserBasicDto(string? userId, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(userId)) return null;
+
+            if (!Guid.TryParse(userId, out var userGuid)) return null;
+
+            var user = await _context.Set<User>()
+                .Where(u => u.Id == userGuid)
+                .Select(u => new UserBasicDto
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    FullName = u.Username // TODO: Use actual FullName when User.FullName is uncommented
+                })
+                .FirstOrDefaultAsync(ct);
+
+            return user;
         }
 
         private List<Guid> ParsePrerequisites(string? prerequisiteIdsJson)

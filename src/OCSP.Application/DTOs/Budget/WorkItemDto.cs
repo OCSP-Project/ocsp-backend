@@ -65,6 +65,15 @@ namespace OCSP.Application.DTOs.Budget
         public DateTime UpdatedAt { get; set; }
         public string? CreatedByUsername { get; set; }
         public string? UpdatedByUsername { get; set; }
+        public UserBasicDto? CreatedBy { get; set; }
+        public UserBasicDto? UpdatedBy { get; set; }
+    }
+
+    public class UserBasicDto
+    {
+        public Guid Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string? FullName { get; set; }
     }
 
     public class AssigneeDto

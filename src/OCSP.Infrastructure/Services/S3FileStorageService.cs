@@ -3,6 +3,8 @@ using Amazon.S3.Model;
 using Amazon.S3.Transfer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using System.IO;
+using System.Linq;
 
 namespace OCSP.Infrastructure.Services
 {
@@ -31,8 +33,10 @@ namespace OCSP.Infrastructure.Services
             if (file == null || file.Length == 0)
                 throw new ArgumentException("File is empty or null");
 
-            // Generate unique filename
-            fileName ??= $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+            // Generate unique filename and sanitize it
+            var originalFileName = Path.GetFileName(file.FileName);
+            var sanitizedFileName = SanitizeFileName(originalFileName);
+            fileName ??= $"{Guid.NewGuid()}_{sanitizedFileName}";
 
             // Construct S3 key (path in bucket)
             var fileKey = $"{containerName}/{fileName}";
@@ -179,6 +183,45 @@ namespace OCSP.Infrastructure.Services
                 // If parsing fails, assume it's already a key
                 return fileUrl;
             }
+        }
+
+        /// <summary>
+        /// Sanitize filename to remove special characters that may cause issues in S3
+        /// </summary>
+        private static string SanitizeFileName(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+                return "file";
+
+            // Get extension first
+            var extension = Path.GetExtension(fileName);
+            var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+
+            // Replace spaces and special characters with underscore
+            var invalidChars = Path.GetInvalidFileNameChars()
+                .Concat(new[] { ' ', '(', ')', '[', ']', '{', '}', '!', '@', '#', '$', '%', '^', '&', '*', '+', '=', '~', '`' })
+                .Distinct()
+                .ToArray();
+
+            foreach (var c in invalidChars)
+            {
+                nameWithoutExt = nameWithoutExt.Replace(c, '_');
+            }
+
+            // Remove consecutive underscores
+            while (nameWithoutExt.Contains("__"))
+            {
+                nameWithoutExt = nameWithoutExt.Replace("__", "_");
+            }
+
+            // Trim underscores from start and end
+            nameWithoutExt = nameWithoutExt.Trim('_');
+
+            // If name is empty after sanitization, use a default
+            if (string.IsNullOrWhiteSpace(nameWithoutExt))
+                nameWithoutExt = "file";
+
+            return nameWithoutExt + extension;
         }
 
         private static string GetContentType(string fileName)

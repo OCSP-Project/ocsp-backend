@@ -174,5 +174,22 @@ namespace OCSP.API.Controllers
             catch (ArgumentException ex)            { return NotFound(ex.Message); }
             catch (UnauthorizedAccessException ex)  { return Forbid(ex.Message); }
         }
+
+        // ─────────────────────────────────────────────────────────────
+        // Delete quote (Homeowner, only Draft status)
+        // ─────────────────────────────────────────────────────────────
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+        {
+            var uid = Me(); if (uid == Guid.Empty) return Unauthorized();
+            try
+            {
+                await _quoteService.DeleteAsync(id, uid, ct);
+                return NoContent();
+            }
+            catch (ArgumentException ex)            { return NotFound(ex.Message); }
+            catch (UnauthorizedAccessException ex)  { return Forbid(ex.Message); }
+            catch (InvalidOperationException ex)    { return BadRequest(ex.Message); }
+        }
     }
 }

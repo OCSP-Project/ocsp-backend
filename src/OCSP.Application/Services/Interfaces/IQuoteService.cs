@@ -17,5 +17,6 @@ namespace OCSP.Application.Services.Interfaces
         Task<QuoteRequestDto> GetByIdAsync(Guid id, Guid userId, CancellationToken ct = default);
         Task<IEnumerable<QuoteRequestDetailDto>> ListMyInvitesDetailedAsync(Guid contractorUserId, CancellationToken ct = default);
         Task<QuoteRequestDetailDto> GetDetailForUserAsync(Guid id, Guid userId, CancellationToken ct = default);
+        Task DeleteAsync(Guid quoteId, Guid homeownerId, CancellationToken ct = default);
     }
 }

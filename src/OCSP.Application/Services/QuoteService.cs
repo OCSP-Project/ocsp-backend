@@ -621,6 +621,27 @@ public async Task SendToContractorAsync(Guid quoteId, Guid contractorUserId, Gui
     }, ct);
 }
 
+        public async Task DeleteAsync(Guid quoteId, Guid homeownerId, CancellationToken ct = default)
+        {
+            // 1) Load quote với project
+            var qr = await _db.QuoteRequests
+                .Include(q => q.Project)
+                .Include(q => q.Invites)
+                .FirstOrDefaultAsync(q => q.Id == quoteId, ct)
+                ?? throw new ArgumentException("Quote request not found");
+
+            // 2) Kiểm tra quyền - chỉ homeowner mới được xóa
+            if (qr.Project.HomeownerId != homeownerId)
+                throw new UnauthorizedAccessException("Not project owner");
+
+            // 3) Chỉ cho phép xóa quote có status Draft
+            if (qr.Status != QuoteStatus.Draft)
+                throw new InvalidOperationException("Only Draft quotes can be deleted");
+
+            // 4) Xóa quote (cascade delete sẽ xóa các QuoteInvite liên quan)
+            _db.QuoteRequests.Remove(qr);
+            await _db.SaveChangesAsync(ct);
+        }
 
     }
 }
